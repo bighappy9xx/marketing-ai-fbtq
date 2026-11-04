@@ -2,8 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function approved() { return signedIn() && request.auth.token.approved == true; }
-    function role() { return approved() ? request.auth.token.role : ''; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function approved() { return signedIn() && profile().approved == true; }
+    function role() { return approved() ? profile().role : ''; }
     function director() { return role() == 'director'; }
     function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
     function self(uid) { return signedIn() && request.auth.uid == uid; }
@@ -11,7 +12,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow create: if self(uid)
         && request.resource.data.role == 'employee'
-        && request.resource.data.approved == false
+        && request.resource.data.approved == true
         && request.resource.data.email == request.auth.token.email;
       allow get: if self(uid) || manager();
       allow list: if manager();

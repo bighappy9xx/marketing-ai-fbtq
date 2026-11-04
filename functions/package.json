@@ -3,7 +3,10 @@
   "private": true,
   "engines": {"node": "22"},
   "main": "index.js",
-  "scripts": {"bootstrap-admin": "node bootstrap-admin.js"},
+  "scripts": {
+    "bootstrap-admin": "node bootstrap-admin.js",
+    "approve-all-users": "node approve-all-users.js"
+  },
   "dependencies": {
     "firebase-admin": "^13.4.0",
     "firebase-functions": "^6.4.0"
