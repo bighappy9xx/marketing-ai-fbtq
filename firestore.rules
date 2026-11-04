@@ -3,8 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function approved() { return signedIn() && profile().approved == true; }
-    function role() { return approved() ? profile().role : ''; }
+    function role() { return signedIn() ? profile().role : ''; }
     function director() { return role() == 'director'; }
     function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
     function self(uid) { return signedIn() && request.auth.uid == uid; }
@@ -23,7 +22,7 @@ service cloud.firestore {
       function inWorkspace() { return workspaceId == 'fbtq'; }
       function owns() { return resource.data.createdBy == request.auth.uid; }
       function taskAssignee() { return resource.data.assigneeUid == request.auth.uid; }
-      allow read: if approved() && inWorkspace() && collection != 'pages' && (
+      allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
         collection == 'campaigns'
         || collection == 'settings'
         || collection in ['invitations', 'requests'] && manager()
@@ -35,7 +34,7 @@ service cloud.firestore {
         || collection == 'invoices' && manager()
       );
 
-      allow create: if approved() && inWorkspace() && request.resource.data.createdBy == request.auth.uid && (
+      allow create: if signedIn() && inWorkspace() && request.resource.data.createdBy == request.auth.uid && (
         collection in ['drafts', 'dailyReports', 'contentReviews', 'requests']
         || collection == 'contentTemplates' && request.resource.data.status == 'pending'
         || collection == 'tasks' && manager()
@@ -43,7 +42,7 @@ service cloud.firestore {
         || collection in ['invoices', 'settings', 'invitations'] && manager()
       );
 
-      allow update: if approved() && inWorkspace() && (
+      allow update: if signedIn() && inWorkspace() && (
         collection == 'tasks' && (
           manager() || taskAssignee()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])
@@ -52,7 +51,7 @@ service cloud.firestore {
         || collection == 'contentTemplates' && manager()
         || collection in ['campaigns','invoices','settings','invitations'] && manager()
       );
-      allow delete: if approved() && inWorkspace() && manager();
+      allow delete: if signedIn() && inWorkspace() && manager();
     }
 
     // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.

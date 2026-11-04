@@ -16,24 +16,21 @@ const META_VERIFY_TOKEN = defineSecret('META_VERIFY_TOKEN');
 const META_APP_SECRET = defineSecret('META_APP_SECRET');
 const GRAPH_VERSION = () => process.env.META_GRAPH_VERSION || 'v26.0';
 
-async function requireApproved(request) {
+async function requireSignedIn(request) {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Vui lòng đăng nhập để tiếp tục.');
   const snap = await db.doc(`users/${request.auth.uid}`).get();
   const profile = snap.exists ? snap.data() : {};
-  if (profile.approved !== true && request.auth.token.approved !== true) {
-    throw new HttpsError('permission-denied', 'Tài khoản chưa được kích hoạt.');
-  }
   return {...request.auth, profile};
 }
 async function requireManager(request) {
-  const auth = await requireApproved(request);
+  const auth = await requireSignedIn(request);
   if (!['director','branch_manager','department_manager'].includes(auth.profile.role || auth.token.role)) {
     throw new HttpsError('permission-denied', 'Chức năng này dành cho quản lý.');
   }
   return auth;
 }
 async function requireDirector(request) {
-  const auth = await requireApproved(request);
+  const auth = await requireSignedIn(request);
   if ((auth.profile.role || auth.token.role) !== 'director') throw new HttpsError('permission-denied', 'Chỉ Giám đốc có thể thay đổi phân quyền.');
   return auth;
 }
@@ -92,7 +89,7 @@ function secretValues() {
 }
 
 exports.generateContent = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY],timeoutSeconds:60,memory:'256MiB'},async request=>{
-  await requireApproved(request);
+  await requireSignedIn(request);
   const {prompt,platform='Facebook',tone='Thân thiện, gần gũi',length='Tiêu chuẩn',model='gemini'}=request.data||{};
   if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>5000)throw new HttpsError('invalid-argument','Prompt cần từ 3 đến 5.000 ký tự.');
   const provider=cleanProvider(model);
@@ -104,7 +101,7 @@ exports.generateContent = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY,ANTHROP
 });
 
 exports.suggestReply = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSeconds:45,memory:'256MiB'},async request=>{
-  const auth=await requireApproved(request);const {pageId,message,model='gemini'}=request.data||{};
+  const auth=await requireSignedIn(request);const {pageId,message,model='gemini'}=request.data||{};
   if(typeof message!=='string'||message.trim().length<1||message.length>3000)throw new HttpsError('invalid-argument','Tin nhắn không hợp lệ.');
   const page=await db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`).get();
   if(!page.exists||page.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Bạn chưa kết nối Fanpage này.');
@@ -141,7 +138,7 @@ function decryptToken(data,secret) {
 }
 function graphUrl(path) { return `https://graph.facebook.com/${GRAPH_VERSION()}/${path}`; }
 exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
-  const auth=await requireApproved(request);const {pageId,pageName,pageToken,model='gemini'}=request.data||{};
+  const auth=await requireSignedIn(request);const {pageId,pageName,pageToken,model='gemini'}=request.data||{};
   if(typeof pageId!=='string'||!/^\d{5,30}$/.test(pageId)||typeof pageName!=='string'||pageName.length>160||typeof pageToken!=='string'||pageToken.length<20)throw new HttpsError('invalid-argument','Thông tin Fanpage chưa hợp lệ.');
   if(!['gemini','openai'].includes(model))throw new HttpsError('invalid-argument','Mô hình chatbot chưa được hỗ trợ.');
   const response=await fetch(`${graphUrl(encodeURIComponent(pageId))}?fields=id,name&access_token=${encodeURIComponent(pageToken)}`,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
@@ -153,7 +150,7 @@ exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeou
 });
 
 exports.sendPageReply = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
-  const auth=await requireApproved(request);const {pageId,recipientId,message}=request.data||{};
+  const auth=await requireSignedIn(request);const {pageId,recipientId,message}=request.data||{};
   if(typeof message!=='string'||!message.trim()||message.length>2000||typeof recipientId!=='string'||!/^\d+$/.test(recipientId))throw new HttpsError('invalid-argument','Tin nhắn hoặc khách nhận không hợp lệ.');
   const ref=db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`);const snap=await ref.get();
   if(!snap.exists||snap.data().ownerUid!==auth.uid||snap.data().active!==true)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản của bạn.');

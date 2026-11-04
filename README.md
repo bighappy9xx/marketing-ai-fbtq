@@ -11,7 +11,7 @@ Các tệp giao diện chính: `index.html`, `styles.css`, `app.js`, `firebase-c
 ## Triển khai Firebase Hosting
 
 1. Tạo Firebase project và Web App. Bật **Authentication → Email/Password** và **Cloud Firestore**.
-2. Tạo Firestore ở chế độ production; Rules dùng hồ sơ người dùng và vai trò đã duyệt để kiểm soát quyền ở phía máy chủ.
+2. Tạo Firestore ở chế độ production; Rules cho phép mọi tài khoản đã đăng nhập sử dụng website và giới hạn thao tác theo vai trò.
 3. Điền `apiKey`, `authDomain`, `projectId`, `appId` vào `firebase-config.js`. Web API key là thông tin nhận diện dự án, không phải private key; không đặt service account key trong thư mục public.
 4. Cài Firebase CLI, đăng nhập, chọn project; cài dependencies cho Cloud Functions:
 
@@ -46,24 +46,21 @@ Hosting cần HTTPS để Firebase Authentication, clipboard và webhook hoạt 
 
 ## Tài khoản và phân quyền
 
-1. Triển khai Rules mới trước khi dùng đăng ký: `firebase deploy --only firestore:rules`. Tài khoản đăng ký mới được duyệt tự động với vai trò **Nhân viên** và vẫn đăng nhập sau khi tạo.
-2. Để duyệt các tài khoản Firebase Auth đã tồn tại, trên máy quản trị riêng cài `functions/` dependencies và xác thực Firebase Admin bằng Application Default Credentials hoặc service account được bảo vệ ngoài thư mục website. Chạy:
+Mọi tài khoản đã đăng ký và đăng nhập Firebase đều vào được website; không cần chạy script duyệt tài khoản. Nếu người dùng chưa có hồ sơ Firestore, website tự tạo hồ sơ với vai trò **Nhân viên**. Vai trò đã lưu của người dùng hiện có được giữ nguyên. Quyền Giám đốc và quản lý vẫn do vai trò quyết định.
 
-   ```sh
-   cd functions
-   GOOGLE_APPLICATION_CREDENTIALS="/đường-dẫn-an-toàn/service-account.json" npm run approve-all-users
-   ```
+Triển khai Rules mới để bỏ chặn trạng thái `approved`:
 
-   Script duyệt toàn bộ tài khoản hiện có và giữ vai trò hợp lệ hiện tại; tài khoản chưa có vai trò nhận quyền Nhân viên. Không tải service account key lên hosting hoặc đưa vào Git.
+```sh
+firebase deploy --project mediafbtq-6e1bb --only firestore:rules,hosting
+```
 
-3. Tạo Giám đốc đầu tiên nếu dự án chưa có: đăng ký tài khoản rồi chạy `npm run bootstrap-admin -- admin@congty.vn` trong `functions/` với thông tin xác thực Firebase Admin. Sau khi bootstrap hoặc đổi quyền, đăng xuất và đăng nhập lại để làm mới quyền.
-4. Triển khai Cloud Function đổi vai trò:
+Để đổi vai trò trong website, triển khai Cloud Function:
 
    ```sh
    firebase deploy --only functions:setUserRole
    ```
 
-   Giám đốc đổi vai trò tại **Nhân sự & phân quyền**. Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase; script duyệt hàng loạt chạy cục bộ bằng Firebase Admin, không cần đưa khóa quản trị lên hosting.
+Giám đốc đổi vai trò tại **Nhân sự & phân quyền**. Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
 ## Kết nối mô hình AI
 

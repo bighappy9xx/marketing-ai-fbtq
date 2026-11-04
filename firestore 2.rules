@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function approved() { return signedIn() && profile().approved == true; }
+    function role() { return approved() ? profile().role : ''; }
+    function director() { return role() == 'director'; }
+    function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
+    function self(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow create: if self(uid)
+        && request.resource.data.role == 'employee'
+        && request.resource.data.approved == true
+        && request.resource.data.email == request.auth.token.email;
+      allow get: if self(uid) || manager();
+      allow list: if manager();
+      allow update, delete: if director();
+    }
+
+    match /workspaces/{workspaceId}/{collection}/{documentId} {
+      function inWorkspace() { return workspaceId == 'fbtq'; }
+      function owns() { return resource.data.createdBy == request.auth.uid; }
+      function taskAssignee() { return resource.data.assigneeUid == request.auth.uid; }
+      allow read: if approved() && inWorkspace() && collection != 'pages' && (
+        collection == 'campaigns'
+        || collection == 'settings'
+        || collection in ['invitations', 'requests'] && manager()
+        || collection == 'tasks' && (manager() || taskAssignee() || owns())
+        || collection in ['drafts', 'contentReviews', 'dailyReports'] && (manager() || owns())
+        || collection == 'inbox' && (manager() || resource.data.ownerUid == request.auth.uid)
+        || collection == 'messages' && (manager() || resource.data.ownerUid == request.auth.uid)
+        || collection == 'contentTemplates' && (manager() || resource.data.status == 'approved')
+        || collection == 'invoices' && manager()
+      );
+
+      allow create: if approved() && inWorkspace() && request.resource.data.createdBy == request.auth.uid && (
+        collection in ['drafts', 'dailyReports', 'contentReviews', 'requests']
+        || collection == 'contentTemplates' && request.resource.data.status == 'pending'
+        || collection == 'tasks' && manager()
+        || collection == 'campaigns'
+        || collection in ['invoices', 'settings', 'invitations'] && manager()
+      );
+
+      allow update: if approved() && inWorkspace() && (
+        collection == 'tasks' && (
+          manager() || taskAssignee()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])
+        )
+        || collection in ['drafts','dailyReports','contentReviews','requests'] && (manager() || owns())
+        || collection == 'contentTemplates' && manager()
+        || collection in ['campaigns','invoices','settings','invitations'] && manager()
+      );
+      allow delete: if approved() && inWorkspace() && manager();
+    }
+
+    // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.
+    match /workspaces/{workspaceId}/pages/{pageId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

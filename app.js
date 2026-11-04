@@ -67,12 +67,16 @@ async function firebaseInit(config, announce=false) {
       if (!user) { if (state.user?.uid) signOutToAuth(); return; }
       if(state.signingUp)return;
       try {
-        const snap=await storeMod.getDoc(storeMod.doc(db,'users',user.uid));
-        const profile=snap.exists()?snap.data():{};
+        const userRef=storeMod.doc(db,'users',user.uid);
+        const snap=await storeMod.getDoc(userRef);
+        let profile=snap.exists()?snap.data():null;
+        if(!profile){
+          profile={name:user.displayName||user.email||'Nhân viên',email:user.email||'',role:'employee',approved:true};
+          await storeMod.setDoc(userRef,{...profile,createdAt:storeMod.serverTimestamp()});
+        }
         const token=await user.getIdTokenResult();
-        if(profile.approved!==true&&token.claims.approved!==true){await authMod.signOut(auth);$('#authScreen').classList.remove('hidden');$('#app').classList.add('hidden');$('#authNotice').textContent='Tài khoản chưa được kích hoạt. Liên hệ quản trị viên.';return;}
         state.user={uid:user.uid,email:user.email,name:profile.name||user.displayName||user.email,role:profile.role||token.claims.role||'employee',approved:true};state.role=state.user.role;enterApp();
-      } catch(e){console.error(e);showToast('Không đọc được hồ sơ người dùng. Kiểm tra Firestore Rules.','error')}
+      } catch(e){console.error(e);showToast('Không tạo hoặc đọc được hồ sơ. Hãy cập nhật Firestore Rules mới.','error')}
     });
     if(announce)showToast('Đã kết nối Firebase. Bật Email/Password và triển khai Firestore Rules.');
     return true;
