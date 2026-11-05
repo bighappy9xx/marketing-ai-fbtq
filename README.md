@@ -54,13 +54,13 @@ Triển khai Rules mới để áp dụng phân quyền riêng tư theo người
 firebase deploy --project mediafbtq-6e1bb --only firestore:rules
 ```
 
-Để đổi vai trò trong website, triển khai Cloud Function:
+Giám đốc đổi vai trò tại **Nhân sự & phân quyền** bằng UID trong Firebase Authentication hoặc email. Website đồng bộ vai trò vào hồ sơ `users/{UID}` và custom claim. Nếu vừa sửa mã nguồn, triển khai hàm phân quyền:
 
-   ```sh
-   firebase deploy --only functions:setUserRole
-   ```
+```sh
+firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
+```
 
-Giám đốc đổi vai trò tại **Nhân sự & phân quyền**. Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
+Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
 ## Kết nối mô hình AI
 

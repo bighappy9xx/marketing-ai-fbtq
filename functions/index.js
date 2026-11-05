@@ -112,12 +112,15 @@ exports.suggestReply = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSe
 });
 
 exports.setUserRole = onCall({timeoutSeconds:30,memory:'256MiB'},async request=>{
-  const auth=await requireDirector(request);const {email,role}=request.data||{};
-  if(typeof email!=='string'||!email.includes('@')||!['director','branch_manager','department_manager','employee'].includes(role))throw new HttpsError('invalid-argument','Email hoặc vai trò không hợp lệ.');
-  let user;try{user=await getAuth().getUserByEmail(email.trim().toLowerCase())}catch{throw new HttpsError('not-found','Chưa tìm thấy tài khoản. Người dùng cần đăng ký trước.')}
+  const auth=await requireDirector(request);const {uidOrEmail,uid,email,role}=request.data||{};
+  const identifier=String(uidOrEmail||uid||email||'').trim();
+  if(!identifier||identifier.length>128||!['director','branch_manager','department_manager','employee'].includes(role))throw new HttpsError('invalid-argument','UID/email hoặc vai trò không hợp lệ.');
+  const lookupByEmail=identifier.includes('@');
+  if(lookupByEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier))throw new HttpsError('invalid-argument','Email chưa đúng định dạng.');
+  let user;try{user=lookupByEmail?await getAuth().getUserByEmail(identifier.toLowerCase()):await getAuth().getUser(identifier)}catch(error){if(error.code==='auth/invalid-uid'||error.code==='auth/invalid-email')throw new HttpsError('invalid-argument','UID hoặc email không hợp lệ.');throw new HttpsError('not-found','Không tìm thấy tài khoản trong Firebase Authentication. Hãy kiểm tra UID/email và đảm bảo người dùng đã đăng ký.')}
   const claims={...user.customClaims,role,approved:true,workspaceId:'fbtq'};
   await getAuth().setCustomUserClaims(user.uid,claims);
-  await db.doc(`users/${user.uid}`).set({email:user.email,name:user.displayName||email,role,approved:true,updatedAt:FieldValue.serverTimestamp(),updatedBy:auth.uid},{merge:true});
+  await db.doc(`users/${user.uid}`).set({email:user.email||'',name:user.displayName||user.email||user.uid,role,approved:true,updatedAt:FieldValue.serverTimestamp(),updatedBy:auth.uid},{merge:true});
   return {ok:true,uid:user.uid,role};
 });
 
