@@ -39,3 +39,51 @@ body.dark{--ink:#e6ecf5;--muted:#91a0b4;--line:#273447;--surface:#1c293b;--canva
 .leaderboard-panel{margin:0 0 14px}
 @media(max-width:1080px){.analytics-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:680px){.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Overview revenue and manager comparisons */
+.overview-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.overview-revenue-card .stat-value{color:var(--green)}
+.nav-item-ranking{font-size:10px;gap:8px}
+.analytics-filters #analyticsUserFilter{min-width:170px;margin-left:8px}
+.user-compare-panel{margin:-2px 0 14px}
+.user-compare-panel>.panel-heading{align-items:flex-start;gap:14px}
+.user-compare-controls{display:flex;gap:8px}
+.user-compare-controls label{display:grid;gap:5px;color:var(--muted);font-size:9px;font-weight:700}
+.user-compare-controls select{min-width:145px;height:33px;padding:0 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:10px}
+.user-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.compare-metric{padding:12px;border:1px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--blue-pale) 24%,var(--surface))}
+.compare-metric>b{display:block;margin-bottom:9px;font-size:10px}
+.compare-bar-row{display:grid;grid-template-columns:minmax(68px,.7fr) minmax(55px,1fr) minmax(80px,.8fr);align-items:center;gap:8px;margin-top:7px;font-size:8px;color:var(--muted)}
+.compare-bar-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-bar-row>strong{text-align:right;color:var(--ink);font-size:9px}
+.compare-track{height:7px;border-radius:99px;background:var(--line);overflow:hidden}
+.compare-fill{display:block;height:100%;min-width:2px;border-radius:inherit;transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.compare-fill-a{background:linear-gradient(90deg,#5e9aff,#3978f6)}
+.compare-fill-b{background:linear-gradient(90deg,#a78bfa,#7c5de7)}
+body.dark .compare-metric{background:#1b2b41;border-color:#34445a}
+
+/* Perspective 3D revenue ranking chart */
+.leaderboard-chart-panel{margin:0 0 14px;overflow:hidden}
+.leaderboard-chart-panel .panel-heading{align-items:center}
+.leaderboard-chart-badge{display:grid;place-items:center;width:33px;height:27px;border-radius:8px;background:linear-gradient(145deg,#73a6ff,#3978f6);color:#fff;font-size:10px;font-weight:800;box-shadow:0 5px 14px #3978f633}
+.leaderboard-3d-viewport{overflow-x:auto;padding:4px 4px 0;perspective:1100px}
+.leaderboard-3d-chart{min-width:680px;height:270px;display:flex;align-items:stretch;gap:clamp(10px,2.2vw,28px);padding:16px 22px 10px;border-radius:10px;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 100%,color-mix(in srgb,var(--blue-pale) 76%,var(--surface)),var(--surface) 68%);transform-style:preserve-3d}
+.leaderboard-3d-item{flex:1;min-width:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative;text-align:center}
+.leaderboard-3d-barstage{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;transform-style:preserve-3d}
+.leaderboard-3d-value{position:absolute;bottom:calc(10% + 7px);left:50%;transform:translateX(-50%);z-index:4;white-space:nowrap;color:var(--ink);font-size:8px;font-weight:800;text-shadow:0 1px 4px var(--surface)}
+.leaderboard-3d-bar{--front:#4b8bfa;--side:#2865d9;--top:#8ab6ff;position:absolute;left:50%;bottom:0;width:min(44px,72%);min-height:5px;border-radius:7px 7px 2px 2px;background:linear-gradient(90deg,var(--front),#6aa5ff);box-shadow:inset -7px 0 12px #16479b22,0 8px 15px #3978f628;transform:translateX(-50%) perspective(500px) rotateY(-20deg);transform-origin:center bottom;animation:barIn .7s backwards;transition:filter .2s,transform .2s}
+.leaderboard-3d-bar:hover{filter:brightness(1.08);transform:translateX(-50%) perspective(500px) rotateY(-20deg) translateY(-4px)}
+.leaderboard-3d-bar:before{content:"";position:absolute;left:0;right:-1px;top:-9px;height:10px;border-radius:5px 5px 0 0;background:var(--top);transform:skewY(-15deg);transform-origin:left bottom}
+.leaderboard-3d-bar:after{content:"";position:absolute;top:3px;right:-9px;width:9px;height:calc(100% - 3px);border-radius:0 4px 2px 0;background:var(--side);transform:skewY(-37deg);transform-origin:left top}
+.leaderboard-3d-bar>i{position:absolute;inset:0 9px 0 6px;border-radius:5px;background:linear-gradient(180deg,#ffffff25,transparent 48%);pointer-events:none}
+.bar-tone-gold{--front:#f6bd4f;--side:#c9871d;--top:#ffdb83}
+.bar-tone-silver{--front:#91a7c9;--side:#687d9d;--top:#c5d1e2}
+.bar-tone-bronze{--front:#d99767;--side:#a9653d;--top:#efbd91}
+.leaderboard-3d-rank{position:absolute;top:1px;left:50%;transform:translateX(-50%);z-index:5;font-size:10px}
+.leaderboard-3d-item>small{width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8px;font-weight:700}
+body.dark .leaderboard-3d-chart{border-color:#34445a;background:radial-gradient(ellipse at 50% 100%,#253955,#1a2739 70%)}
+body.dark .leaderboard-3d-value{color:#e4ebf5}
+@media(max-width:1080px){.overview-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filters #analyticsUserFilter{min-width:0;width:100%;margin-left:0}.user-compare-panel>.panel-heading{align-items:flex-start;flex-direction:column}.user-compare-controls{width:100%}.user-compare-controls label{flex:1;min-width:0}.user-compare-controls select{width:100%;min-width:0}.user-compare-grid{grid-template-columns:1fr}.leaderboard-chart-panel .panel-heading{align-items:flex-start}.leaderboard-3d-chart{height:240px;min-width:600px;padding-left:14px;padding-right:14px}.leaderboard-3d-barstage{height:178px}}
+.analytics-filters{flex-wrap:wrap;gap:8px}
+.leaderboard-3d-rank{position:static;transform:none;margin-top:4px;min-height:14px}

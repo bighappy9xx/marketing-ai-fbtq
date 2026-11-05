@@ -62,7 +62,7 @@ firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
 
 Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
-Mỗi **Báo cáo quảng cáo hàng ngày** gồm doanh thu. Ô doanh thu thứ năm trong **Hiệu suất marketing** cộng doanh thu theo kỳ Meta Ads đang chọn. Trang **Xếp hạng & so sánh nhân sự** tổng hợp báo cáo theo tháng/quý/năm. Mỗi nhân viên chỉ đọc báo cáo chi tiết của mình; mọi tài khoản đăng nhập có thể đọc các bản ghi doanh thu tối thiểu để xem xếp hạng. Sau khi cập nhật, triển khai Rules bằng lệnh ở trên; xếp hạng không cần Cloud Function.
+Mỗi **Báo cáo quảng cáo hàng ngày** gồm doanh thu. Ô doanh thu trong **Tổng quan** và ô thứ năm trong **Hiệu suất marketing** cộng doanh thu theo kỳ Meta Ads đang chọn. Quản lý có thể lọc chiến dịch theo từng user và đối chiếu hai user. Trang **Xếp hạng & so sánh nhân sự** có biểu đồ cột 3D theo tháng/quý/năm. Mỗi nhân viên chỉ đọc báo cáo chi tiết của mình; mọi tài khoản đăng nhập có thể đọc các bản ghi doanh thu tối thiểu để xếp hạng. Triển khai Rules bằng lệnh ở trên; không cần Cloud Function cho xếp hạng.
 
 ## Kết nối mô hình AI
 
@@ -93,7 +93,7 @@ Mỗi nhóm được lưu theo tài khoản, nền tảng, kỳ báo cáo và m�
 
 Trong trang **Hiệu suất marketing**, Giám đốc xem thêm cột **Người phụ trách** ở danh sách đầy đủ và chiến dịch gần đây. Tên và email được đối chiếu từ UID tài khoản đã nhập báo cáo; biểu đồ cũng hiện người phụ trách trong chú giải khi rê chuột vào cột.
 
-Trang **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh tổng doanh thu từ báo cáo quảng cáo hằng ngày. Báo cáo cùng ngày và chiến dịch được cập nhật vào bản ghi cũ để tránh cộng trùng; bảng hiển thị số ngày có báo cáo.
+Trang **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh tổng doanh thu từ báo cáo quảng cáo hằng ngày. Biểu đồ cột 3D hiển thị tối đa 10 nhân sự dẫn đầu. Báo cáo cùng ngày và chiến dịch được cập nhật vào bản ghi cũ để tránh cộng trùng; bảng hiển thị số ngày có báo cáo.
 
 `extension/` là tiện ích Chrome riêng. Cài bằng `chrome://extensions` → **Developer mode** → **Load unpacked** → chọn thư mục `extension/`. Trên Meta Ads Manager, chọn tab chiến dịch/các cột cần lấy, bấm **Sao chép chỉ số Ads**, rồi nhập JSON trên website.
 
