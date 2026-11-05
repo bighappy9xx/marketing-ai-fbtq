@@ -10,7 +10,7 @@ Các tệp giao diện chính: `index.html`, `styles.css`, `app.js`, `firebase-c
 
 ## Triển khai Firebase Hosting
 
-1. Tạo Firebase project và Web App. Bật **Authentication → Email/Password** và **Cloud Firestore**.
+1. Tạo Firebase project và Web App. Bật **Authentication → Email/Password** và **Cloud Firestore**. Trong **Authentication → Settings → Authorized domains**, thêm `bighappy9xx.github.io` (chỉ tên miền, không thêm `/marketing-ai-fbtq`).
 2. Tạo Firestore ở chế độ production; Rules cho phép mọi tài khoản đã đăng nhập sử dụng website và giới hạn thao tác theo vai trò.
 3. Điền `apiKey`, `authDomain`, `projectId`, `appId` vào `firebase-config.js`. Web API key là thông tin nhận diện dự án, không phải private key; không đặt service account key trong thư mục public.
 4. Cài Firebase CLI, đăng nhập, chọn project; cài dependencies cho Cloud Functions:

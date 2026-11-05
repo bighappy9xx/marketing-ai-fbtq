@@ -46,21 +46,23 @@ const showToast = (message,type='success') => {const el=document.createElement('
 const configFromInputs = () => ({apiKey:$('#fbApiKey').value.trim(),authDomain:$('#fbAuthDomain').value.trim(),projectId:$('#fbProjectId').value.trim(),appId:$('#fbAppId').value.trim()});
 const validConfig = c => !!(c?.apiKey && c?.authDomain && c?.projectId && c?.appId);
 const getSavedFirebaseConfig = () => {try{return JSON.parse(localStorage.getItem('fbtq_firebase_config')||'null')}catch{return null}};
+let firebaseBootPromise=Promise.resolve(false);
 
 async function firebaseInit(config, announce=false) {
   if (!validConfig(config)) return false;
   if(state.firebase){if(announce)showToast('Firebase đã kết nối trong phiên này. Tải lại trang để thay đổi dự án.');return true}
   try {
-    const [appMod,authMod,storeMod,funcMod] = await Promise.all([
+    const [appMod,authMod,storeMod] = await Promise.all([
       import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'),
       import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js'),
-      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js'),
-      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js')
+      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js')
     ]);
+    let funcMod=null;
+    try{funcMod=await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js')}catch(error){console.warn('Firebase Functions chưa tải được; đăng nhập vẫn hoạt động.',error)}
     const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(config);
     const auth = authMod.getAuth(app);
     const db = storeMod.getFirestore(app);
-    const functions = funcMod.getFunctions(app);
+    const functions = funcMod?.getFunctions(app)||null;
     state.firebase = {app,auth,db,functions,authMod,storeMod,funcMod};
     $('#firebaseIndicator').textContent='● Firebase đã kết nối';$('#firebaseIndicator').classList.add('connected');$('#firebaseStatus').textContent='● Firebase đã kết nối';$('#firebaseStatus').className='status status-live';
     authMod.onAuthStateChanged(auth, async user => {
@@ -76,7 +78,7 @@ async function firebaseInit(config, announce=false) {
         }
         const token=await user.getIdTokenResult();
         state.user={uid:user.uid,email:user.email,name:profile.name||user.displayName||user.email,role:profile.role||token.claims.role||'employee',approved:true};state.role=state.user.role;enterApp();
-      } catch(e){console.error(e);showToast('Không tạo hoặc đọc được hồ sơ. Hãy cập nhật Firestore Rules mới.','error')}
+      } catch(e){console.error(e);showAuthNotice(authErrorMessage(e))}
     });
     if(announce)showToast('Đã kết nối Firebase. Bật Email/Password và triển khai Firestore Rules.');
     return true;
@@ -91,7 +93,7 @@ async function saveRecord(collection,data,id=crypto.randomUUID()) {
   return id;
 }
 async function callFunction(name,data) {
-  if(!state.firebase)throw new Error('Kết nối Firebase trước khi dùng dịch vụ AI thật.');
+  if(!state.firebase?.funcMod)throw new Error('Dịch vụ Functions chưa kết nối. Đăng nhập vẫn dùng được; quản trị viên cần kiểm tra Firebase Functions.');
   const callable=state.firebase.funcMod.httpsCallable(state.firebase.functions,name);
   const result=await callable(data);return result.data;
 }
@@ -116,8 +118,8 @@ async function sendChatReply(text){if(state.firebase){if(!state.activeThread)ret
 $('#demoLogin').addEventListener('click',()=>{state.user={...DEMO_USER,uid:'demo'};state.role='director';localStorage.setItem('fbtq_demo_user','1');enterApp();showToast('Đang trải nghiệm với dữ liệu mẫu. Hãy kết nối Firebase để dùng dữ liệu thật.')});
 function authErrorMessage(error){const code=error?.code||'';if(code==='auth/unauthorized-domain')return 'Tên miền website chưa được cho phép trong Firebase. Vào Authentication → Settings → Authorized domains và thêm bighappy9xx.github.io.';if(code==='auth/operation-not-allowed'||code==='auth/configuration-not-found')return 'Firebase chưa bật đăng nhập Email/Password. Vào Authentication → Sign-in method và bật Email/Password.';if(code==='auth/invalid-credential'||code==='auth/wrong-password'||code==='auth/user-not-found')return 'Email hoặc mật khẩu chưa chính xác. Hãy kiểm tra lại hoặc chọn Quên mật khẩu.';if(code==='auth/invalid-email')return 'Địa chỉ email chưa đúng định dạng.';if(code==='auth/weak-password')return 'Mật khẩu chưa đủ mạnh. Hãy dùng ít nhất 8 ký tự.';if(code==='auth/network-request-failed')return 'Không kết nối được Firebase. Hãy kiểm tra mạng và mở website bằng HTTPS.';if(code==='auth/too-many-requests')return 'Firebase tạm khóa thử đăng nhập quá nhiều lần. Hãy đợi một lúc rồi thử lại.';if(code==='permission-denied'||code==='firestore/permission-denied')return 'Firebase đã xác thực nhưng Firestore từ chối tạo/đọc hồ sơ. Hãy triển khai firestore.rules mới.';return error?.message||'Không thể kết nối Firebase. Hãy kiểm tra cấu hình Auth và Firestore.'}function showAuthNotice(message,success=false){const notice=$('#authNotice');notice.textContent=message;notice.classList.toggle('success',success)}
 function switchToLogin(message,email,success=false){$('#registerForm').classList.add('hidden');$('#loginForm').classList.remove('hidden');$('#registerNotice').textContent='';if(email)$('#loginForm [name=email]').value=email;showAuthNotice(message,success)}
-$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();showAuthNotice('');if(!state.firebase){showAuthNotice('Website đang ở chế độ demo. Kết nối Firebase trong Cài đặt hoặc dùng nút trải nghiệm demo.');return}const f=new FormData(e.currentTarget);try{await state.firebase.authMod.signInWithEmailAndPassword(state.firebase.auth,f.get('email'),f.get('password'))}catch(err){showAuthNotice(authErrorMessage(err))}});
-$('#registerForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);if(!state.firebase){$('#registerNotice').textContent='Cần kết nối Firebase trước khi tạo tài khoản.';return}state.signingUp=true;try{const {user}=await state.firebase.authMod.createUserWithEmailAndPassword(state.firebase.auth,f.get('email'),f.get('password'));await state.firebase.authMod.updateProfile(user,{displayName:f.get('name')});await state.firebase.storeMod.setDoc(state.firebase.storeMod.doc(state.firebase.db,'users',user.uid),{name:f.get('name'),email:user.email,role:'employee',approved:true,createdAt:state.firebase.storeMod.serverTimestamp()});await state.firebase.authMod.signOut(state.firebase.auth);const email=user.email;form.reset();switchToLogin('Đăng ký thành công. Vui lòng đăng nhập bằng tài khoản vừa tạo.',email,true)}catch(err){if(['auth/email-already-in-use','auth/email-already-exists'].includes(err.code)){switchToLogin('Email này đã được đăng ký. Hãy đăng nhập hoặc chọn “Quên mật khẩu?” nếu bạn quên mật khẩu.',f.get('email'))}else{$('#registerNotice').textContent=err.code==='permission-denied'?'Tài khoản có thể đã được tạo trong Firebase Authentication, nhưng Firestore Rules từ chối lưu hồ sơ. Triển khai firestore.rules rồi thử đăng nhập.':authErrorMessage(err)}}finally{state.signingUp=false}});
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();showAuthNotice('');if(!state.firebase){showAuthNotice('Đang kết nối Firebase…');await firebaseBootPromise}if(!state.firebase){showAuthNotice('Chưa kết nối được Firebase. Kiểm tra cấu hình, Email/Password và tên miền được phép.');return}const f=new FormData(e.currentTarget);try{await state.firebase.authMod.signInWithEmailAndPassword(state.firebase.auth,f.get('email'),f.get('password'))}catch(err){showAuthNotice(authErrorMessage(err))}});
+$('#registerForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);if(!state.firebase){$('#registerNotice').textContent='Đang kết nối Firebase…';await firebaseBootPromise}if(!state.firebase){$('#registerNotice').textContent='Chưa kết nối được Firebase. Kiểm tra cấu hình, Email/Password và tên miền được phép.';return}state.signingUp=true;try{const {user}=await state.firebase.authMod.createUserWithEmailAndPassword(state.firebase.auth,f.get('email'),f.get('password'));await state.firebase.authMod.updateProfile(user,{displayName:f.get('name')});await state.firebase.storeMod.setDoc(state.firebase.storeMod.doc(state.firebase.db,'users',user.uid),{name:f.get('name'),email:user.email,role:'employee',approved:true,createdAt:state.firebase.storeMod.serverTimestamp()});await state.firebase.authMod.signOut(state.firebase.auth);const email=user.email;form.reset();switchToLogin('Đăng ký thành công. Vui lòng đăng nhập bằng tài khoản vừa tạo.',email,true)}catch(err){if(['auth/email-already-in-use','auth/email-already-exists'].includes(err.code)){switchToLogin('Email này đã được đăng ký. Hãy đăng nhập hoặc chọn “Quên mật khẩu?” nếu bạn quên mật khẩu.',f.get('email'))}else{$('#registerNotice').textContent=err.code==='permission-denied'?'Tài khoản có thể đã được tạo trong Firebase Authentication, nhưng Firestore Rules từ chối lưu hồ sơ. Triển khai firestore.rules rồi thử đăng nhập.':authErrorMessage(err)}}finally{state.signingUp=false}});
 $('#showRegister').addEventListener('click',e=>{e.preventDefault();showAuthNotice('');$('#registerNotice').textContent='';$('#loginForm').classList.add('hidden');$('#registerForm').classList.remove('hidden')});$('#showLogin').addEventListener('click',e=>{e.preventDefault();showAuthNotice('');$('#registerNotice').textContent='';$('#registerForm').classList.add('hidden');$('#loginForm').classList.remove('hidden')});
 $('.toggle-password').addEventListener('click',e=>{const input=$('input',e.currentTarget.parentElement);input.type=input.type==='password'?'text':'password'});
 $('#forgotLink').addEventListener('click',async e=>{e.preventDefault();const email=$('#loginForm [name=email]').value;if(!state.firebase){showAuthNotice('Kết nối Firebase và nhập email để nhận liên kết đặt lại mật khẩu.');return}if(!email){showAuthNotice('Nhập email trước, sau đó bấm Quên mật khẩu.');return}try{await state.firebase.authMod.sendPasswordResetEmail(state.firebase.auth,email);showAuthNotice('Đã gửi liên kết đặt lại mật khẩu nếu email tồn tại.',true)}catch(err){showAuthNotice(err.message)}});
@@ -206,7 +208,7 @@ $('#editPermissions').addEventListener('click',()=>{if(!isDirector())return show
 $('#metaConnect').addEventListener('click',()=>{navigate('settings');selectSetting('chatbot');showToast('Thiết lập Meta App trong mục Chatbot & Fanpage.')});
 
 // Firebase and model settings.
-$('#saveFirebase').addEventListener('click',async()=>{const c=configFromInputs();if(!validConfig(c)){showToast('Hãy điền đủ Firebase API Key, Auth Domain, Project ID và App ID.','error');return}localStorage.setItem('fbtq_firebase_config',JSON.stringify(c));const ok=await firebaseInit(c,true);if(ok&&window.location.protocol==='file:')showToast('Mở website qua HTTPS để Firebase Auth hoạt động.','error')});
+$('#saveFirebase').addEventListener('click',async()=>{const c=configFromInputs();if(!validConfig(c)){showToast('Hãy điền đủ Firebase API Key, Auth Domain, Project ID và App ID.','error');return}localStorage.setItem('fbtq_firebase_config',JSON.stringify(c));firebaseBootPromise=firebaseInit(c,true);const ok=await firebaseBootPromise;if(ok&&window.location.protocol==='file:')showToast('Mở website qua HTTPS để Firebase Auth hoạt động.','error')});
 $('#disconnectFirebase').addEventListener('click',async()=>{localStorage.removeItem('fbtq_firebase_config');if(state.firebase)await state.firebase.authMod.signOut(state.firebase.auth);state.firebase=null;$('#firebaseIndicator').textContent='● Chưa kết nối';$('#firebaseIndicator').classList.remove('connected');$('#firebaseStatus').textContent='● Chế độ bản demo';$('#firebaseStatus').className='status status-review';showToast('Đã chuyển về chế độ demo.')});
 $('#saveAiSettings').addEventListener('click',async()=>{if(!isManager())return showToast('Chỉ quản lý mới có thể cấu hình mô hình AI.','error');const config={defaultModel:$('#defaultModel').value,brandVoice:$('#brandVoice').value};localStorage.setItem('fbtq_default_model',config.defaultModel);localStorage.setItem('fbtq_brand_voice',config.brandVoice);if(state.firebase)try{await saveRecord('settings',config,'bot')}catch(e){showToast(e.message,'error');return}const radio=$(`input[name="aiModel"][value="${config.defaultModel}"]`);if(radio){radio.checked=true;$$('.model-choice').forEach(x=>x.classList.toggle('selected',$('input',x)===radio))}$('#aiConfigStatus').textContent='Đã lưu lựa chọn mô hình. API keys được quản lý trên Firebase Functions.';showToast('Đã lưu lựa chọn mô hình.')});
 $('#enableAutoReply').addEventListener('change',e=>showToast(e.target.checked?'Đã bật chế độ AI đề xuất. Nhân viên cần xác nhận trước khi gửi.':'Đã tắt AI đề xuất.'));
@@ -215,6 +217,6 @@ $('#enableAutoReply').addEventListener('change',e=>showToast(e.target.checked?'�
 $('#notificationBtn').addEventListener('click',()=>showToast('Bạn đã cập nhật các thông báo mới nhất.'));
 $('#topProfile').addEventListener('click',()=>showToast(`${state.user?.name||'Minh Anh'} · ${roleName(state.role)}`));
 $('#copyGuide').setAttribute('aria-label','Hướng dẫn sao chép chỉ số Facebook Ads');
-const savedFirebase=getSavedFirebaseConfig()||window.FBTQ_FIREBASE_CONFIG;if(validConfig(savedFirebase)){['apiKey','authDomain','projectId','appId'].forEach(k=>{const el=$('#fb'+k[0].toUpperCase()+k.slice(1));if(el)el.value=savedFirebase[k]});firebaseInit(savedFirebase)}
+const savedFirebase=getSavedFirebaseConfig()||window.FBTQ_FIREBASE_CONFIG;if(validConfig(savedFirebase)){['apiKey','authDomain','projectId','appId'].forEach(k=>{const el=$('#fb'+k[0].toUpperCase()+k.slice(1));if(el)el.value=savedFirebase[k]});firebaseBootPromise=firebaseInit(savedFirebase)}
 $('#defaultModel').value=localStorage.getItem('fbtq_default_model')||'gemini';$('#brandVoice').value=localStorage.getItem('fbtq_brand_voice')||'';const bootModel=$('#defaultModel').value,bootRadio=$(`input[name="aiModel"][value="${bootModel}"]`);if(bootRadio){bootRadio.checked=true;$$('.model-choice').forEach(x=>x.classList.toggle('selected',$('input',x)===bootRadio))}
 if(localStorage.getItem('fbtq_demo_user')==='1'){state.user={...DEMO_USER,uid:'demo'};state.role='director';enterApp()}
