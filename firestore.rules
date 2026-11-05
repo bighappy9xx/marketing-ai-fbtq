@@ -22,11 +22,27 @@ service cloud.firestore {
       function inWorkspace() { return workspaceId == 'fbtq'; }
       function owns() { return resource.data.createdBy == request.auth.uid; }
       function taskAssignee() { return resource.data.assigneeUid == request.auth.uid; }
-      function validRevenueReport() {
-        return request.resource.data.keys().hasAll(['monthKey','revenue','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
-          && request.resource.data.keys().hasOnly(['monthKey','revenue','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+      function validDailyReport() {
+        return request.resource.data.reportDate is string
+          && request.resource.data.reportDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
           && request.resource.data.monthKey is string
           && request.resource.data.monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.reportDate.matches('^' + request.resource.data.monthKey + '-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.revenue is number
+          && request.resource.data.revenue >= 0
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdByName == profile().name
+          && request.resource.data.department == (profile().keys().hasAny(['department']) ? profile().department : '');
+      }
+      function validRevenueEntry() {
+        return request.resource.data.keys().hasAll(['reportDate','monthKey','revenue','dailyReportId','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.keys().hasOnly(['reportDate','monthKey','revenue','dailyReportId','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.dailyReportId == documentId
+          && request.resource.data.reportDate is string
+          && request.resource.data.reportDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.monthKey is string
+          && request.resource.data.monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.reportDate.matches('^' + request.resource.data.monthKey + '-(0[1-9]|[12][0-9]|3[01])$')
           && request.resource.data.revenue is number
           && request.resource.data.revenue >= 0
           && request.resource.data.createdBy == request.auth.uid
@@ -35,10 +51,25 @@ service cloud.firestore {
           && request.resource.data.submittedAt is string
           && request.resource.data.updatedBy == request.auth.uid;
       }
+      function dailyReportMatchesRevenueEntryAfter() {
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.dailyReportId == documentId
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.reportDate == request.resource.data.reportDate
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.monthKey == request.resource.data.monthKey
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.revenue == request.resource.data.revenue
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.createdBy == request.auth.uid;
+      }
+      function revenueEntryMatchesDailyReportAfter() {
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.reportDate == request.resource.data.reportDate
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.monthKey == request.resource.data.monthKey
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.revenue == request.resource.data.revenue
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.createdBy == request.auth.uid;
+      }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
         collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
-        || collection == 'revenueReports'
+        || collection == 'revenueEntries'
         || collection == 'invitations' && manager()
         || collection == 'requests' && (manager() || owns())
         || collection == 'tasks' && (manager() || taskAssignee() || owns())
@@ -50,13 +81,12 @@ service cloud.firestore {
       );
 
       allow create: if signedIn() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
-        collection in ['drafts', 'dailyReports', 'contentReviews', 'requests']
+        collection in ['drafts', 'contentReviews', 'requests']
+        || collection == 'dailyReports' && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
+        || collection == 'revenueEntries' && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && request.resource.data.status == 'pending'
         || collection == 'tasks' && manager()
         || collection == 'campaigns'
-        || collection == 'revenueReports'
-          && documentId == request.auth.uid + '_' + request.resource.data.monthKey
-          && validRevenueReport()
         || collection == 'invoices' && request.resource.data.status == 'pending'
           && request.resource.data.keys().hasAll(['invoiceNumber','customer','item','quantity','unitPrice','total','createdBy','createdAt'])
           && request.resource.data.customer is string && request.resource.data.item is string
@@ -70,12 +100,11 @@ service cloud.firestore {
           manager() || taskAssignee()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])
         )
-        || collection in ['drafts','dailyReports','contentReviews','requests'] && (manager() || owns())
+        || collection in ['drafts','contentReviews','requests'] && (manager() || owns())
+        || collection == 'dailyReports' && owns() && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
+        || collection == 'revenueEntries' && owns() && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && manager()
         || collection == 'campaigns' && (manager() || owns())
-        || collection == 'revenueReports' && owns()
-          && documentId == request.auth.uid + '_' + request.resource.data.monthKey
-          && validRevenueReport()
         || collection in ['settings','invitations'] && manager()
         || collection == 'invoices' && manager() && resource.data.status == 'pending'
           && request.resource.data.status in ['approved','rejected']

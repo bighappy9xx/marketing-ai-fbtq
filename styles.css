@@ -31,3 +31,11 @@ body.dark{--ink:#e6ecf5;--muted:#91a0b4;--line:#273447;--surface:#1c293b;--canva
 @media(max-width:680px){.leaderboard-panel>.panel-heading{align-items:flex-start;flex-direction:column}.leaderboard-controls{width:100%}.leaderboard-controls .select-small{flex:1;min-width:0}}
 .revenue-entry-row{display:grid;grid-template-columns:minmax(140px,.65fr) minmax(190px,1fr) auto minmax(180px,1fr);align-items:end;gap:10px;padding:13px;margin:12px 0 14px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--blue-pale) 42%,var(--surface))}.revenue-entry-row label{display:grid;gap:6px;color:var(--muted);font-size:10px;font-weight:700}.revenue-entry-row input{width:100%;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}.revenue-report-status{padding:0 0 9px;color:var(--muted);font-size:10px;line-height:1.4}body.dark .revenue-entry-row{background:#1d2d43;border-color:#34445a}body.dark .revenue-entry-row input{background:#202f44;border-color:#34445a;color:#d6dfec}
 @media(max-width:680px){.revenue-entry-row{grid-template-columns:1fr}.revenue-entry-row button{width:100%}.revenue-report-status{padding:0}}
+
+/* Five marketing KPIs and company-wide revenue ranking */
+.analytics-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.analytics-stats .stat-card{padding-left:13px;padding-right:13px}
+.nav-item-ranking{font-size:10px;gap:8px}
+.leaderboard-panel{margin:0 0 14px}
+@media(max-width:1080px){.analytics-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
