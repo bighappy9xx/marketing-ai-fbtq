@@ -137,6 +137,12 @@ function decryptToken(data,secret) {
   return Buffer.concat([decipher.update(Buffer.from(data.encryptedToken,'base64')),decipher.final()]).toString('utf8');
 }
 function graphUrl(path) { return `https://graph.facebook.com/${GRAPH_VERSION()}/${path}`; }
+exports.listMyPages = onCall({timeoutSeconds:20,memory:'256MiB'},async request=>{
+  const auth=await requireSignedIn(request);
+  const snapshot=await db.collection('workspaces/fbtq/pages').where('ownerUid','==',auth.uid).get();
+  return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',model:page.model||'gemini',active:page.active===true}})};
+});
+
 exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
   const auth=await requireSignedIn(request);const {pageId,pageName,pageToken,model='gemini'}=request.data||{};
   if(typeof pageId!=='string'||!/^\d{5,30}$/.test(pageId)||typeof pageName!=='string'||pageName.length>160||typeof pageToken!=='string'||pageToken.length<20)throw new HttpsError('invalid-argument','Thông tin Fanpage chưa hợp lệ.');
