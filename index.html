@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261105-gemini-tts">
+  <link rel="stylesheet" href="styles.css?v=20261105-speech-appcheck-help">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -117,6 +117,8 @@
             <aside class="panel speech-preview-panel">
               <div class="speech-section-heading"><span class="speech-step speech-step-preview">3</span><div><h2>Nghe và tải xuống</h2><p>Kết quả âm thanh sẽ xuất hiện tại đây.</p></div></div>
               <div class="speech-empty-state" id="speechEmptyState"><div class="speech-wave-art"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><b>Sẵn sàng tạo giọng đọc</b><span>Nhập văn bản và nhấn “Tạo giọng đọc” để bắt đầu.</span></div>
+              <div class="speech-progress hidden" id="speechProgress" aria-live="polite"><span class="generation-spinner" aria-hidden="true"></span><b>Đang tạo giọng đọc…</b><small>Gemini đang xử lý văn bản của bạn.</small></div>
+              <div class="speech-inline-error hidden" id="speechError" role="alert"></div>
               <div id="speechResult" class="speech-result hidden"><div class="speech-ready-label"><span class="speech-ready-dot"></span> Âm thanh đã sẵn sàng</div><audio id="speechAudio" controls preload="none"></audio><a id="downloadSpeech" class="btn btn-secondary" download="marketing-fbtq-voice.wav">↓ Tải tệp WAV</a></div>
               <div class="speech-preview-foot"><span>Định dạng WAV</span><span>Giới hạn 1.800 ký tự / lần</span></div>
             </aside>
@@ -144,6 +146,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261105-gemini-tts"></script>
+  <script type="module" src="app.js?v=20261105-speech-appcheck-help"></script>
 </body>
 </html>

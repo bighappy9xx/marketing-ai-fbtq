@@ -249,3 +249,25 @@ body.dark .generation-error-copy code{color:#ffb7bd}
 @keyframes contentSpin{to{transform:rotate(360deg)}}
 @media(max-width:600px){.result-generated{padding:14px}.generated-actions .btn{flex:1 1 auto}.generation-error{padding:15px 13px}.result-panel{min-height:180px}}
 @media(prefers-reduced-motion:reduce){.generation-spinner{animation:none}}
+
+.speech-progress{min-height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;border:1px dashed var(--line);border-radius:10px;background:var(--canvas);text-align:center}
+.speech-progress .generation-spinner{width:30px;height:30px}
+.speech-progress>b{color:var(--ink);font-size:11px}
+.speech-progress>small{color:var(--muted);font-size:9px}
+.speech-inline-error{padding:15px;border:1px solid #f2d8c9;border-radius:10px;background:#fff9f5;color:var(--ink);font-size:9px;line-height:1.65}
+.speech-error-heading{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#9b4e33;font-size:11px}
+.speech-error-heading>span{width:21px;height:21px;display:grid;place-items:center;border-radius:7px;background:#ffecdf;color:#c55f3f;font-weight:800}
+.speech-inline-error>p{margin:7px 0;color:var(--muted)}
+.speech-inline-error ol{display:grid;gap:7px;margin:9px 0;padding-left:20px}
+.speech-inline-error li{padding-left:2px}
+.speech-inline-error code{padding:1px 4px;border-radius:4px;background:#f0f2f6;color:#5d6980;font:9px ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+.speech-inline-error .speech-error-refresh{color:var(--ink);font-weight:700}
+.speech-inline-error details{margin-top:10px;padding-top:8px;border-top:1px solid #f0ddd2}
+.speech-inline-error summary{color:var(--muted);font-weight:700;cursor:pointer}
+.speech-inline-error details code{display:block;margin-top:7px;padding:8px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+body.dark .speech-progress{border-color:#34445a;background:#172435}
+body.dark .speech-inline-error{border-color:#5a4539;background:#302822;color:var(--ink)}
+body.dark .speech-error-heading{color:#ffc19f}
+body.dark .speech-error-heading>span{background:#4a3428;color:#ffc19f}
+body.dark .speech-inline-error code{background:#202f44;color:#d6dfec}
+body.dark .speech-inline-error details{border-color:#574439}
