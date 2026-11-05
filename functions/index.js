@@ -84,20 +84,56 @@ async function readBotSettings() {
   const snap=await db.doc('workspaces/fbtq/settings/bot').get();
   return snap.exists?snap.data():{};
 }
-function secretValues() {
-  return {gemini:GEMINI_API_KEY.value(),openai:OPENAI_API_KEY.value(),claude:ANTHROPIC_API_KEY.value()};
+function contentCallable(provider, secret) {
+  return onCall({secrets:[secret],timeoutSeconds:60,memory:'256MiB'},async request=>{
+    await requireSignedIn(request);
+    const {prompt,tone='Thân thiện, gần gũi',length='Tiêu chuẩn',model=provider}=request.data||{};
+    if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>5000)throw new HttpsError('invalid-argument','Prompt cần từ 3 đến 5.000 ký tự.');
+    if(cleanProvider(model)!==provider)throw new HttpsError('invalid-argument','Hãy chọn đúng mô hình AI cho chức năng này.');
+    const settings=await readBotSettings();
+    const voice=settings.brandVoice||'Thân thiện, rõ ràng, tích cực. Không tự tạo số liệu, giá bán hoặc cam kết chưa có trong yêu cầu.';
+    const system=`Bạn là trợ lý nội dung marketing của công ty FBTQ. Viết bằng tiếng Việt tự nhiên. Giọng thương hiệu: ${voice}.\nGiọng điệu mong muốn: ${tone}. Độ dài: ${length}. Viết độc lập, không tự mặc định một nền tảng cụ thể.\nTuân thủ chính sách quảng cáo và tránh khẳng định sức khoẻ, tài chính hoặc kết quả tuyệt đối. Không tự thêm thông tin giá, ưu đãi, tồn kho hay số liệu nếu người dùng không cung cấp. Chỉ trả về nội dung có thể chỉnh sửa, không giải thích quy trình.`;
+    const content=await generateWithProvider(provider,prompt.trim(),system,{[provider]:secret.value()},{maxTokens:length==='Chi tiết'?1500:900});
+    return {content,provider};
+  });
 }
 
-exports.generateContent = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY],timeoutSeconds:60,memory:'256MiB'},async request=>{
+// Deploy only the provider the company has configured. Each callable receives
+// just its own secret, so enabling one model does not require the other keys.
+exports.generateContentGemini = contentCallable('gemini',GEMINI_API_KEY);
+exports.generateContentOpenAI = contentCallable('openai',OPENAI_API_KEY);
+exports.generateContentClaude = contentCallable('claude',ANTHROPIC_API_KEY);
+
+const TTS_VOICES = {
+  Aoede:'Speak Vietnamese with a clear, soft Northern Vietnamese accent and a warm, light delivery.',
+  Kore:'Speak Vietnamese with an expressive Southern Vietnamese accent and a warm, emotional delivery.',
+  Zephyr:'Speak Vietnamese in a natural Northern Vietnamese accent, bright, clear, and friendly.',
+  Callirrhoe:'Use standard Northern Vietnamese pronunciation with a steady, easy-to-understand delivery.',
+  Sulafat:'Use a warm, conversational, interactive speaking style in Vietnamese.'
+};
+exports.synthesizeSpeech = onCall({secrets:[GEMINI_API_KEY],timeoutSeconds:60,memory:'256MiB'},async request=>{
   await requireSignedIn(request);
-  const {prompt,platform='Facebook',tone='Thân thiện, gần gũi',length='Tiêu chuẩn',model='gemini'}=request.data||{};
-  if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>5000)throw new HttpsError('invalid-argument','Prompt cần từ 3 đến 5.000 ký tự.');
-  const provider=cleanProvider(model);
-  const settings=await readBotSettings();
-  const voice=settings.brandVoice||'Thân thiện, rõ ràng, tích cực. Không tự tạo số liệu, giá bán hoặc cam kết chưa có trong yêu cầu.';
-  const system=`Bạn là trợ lý nội dung marketing của công ty FBTQ. Viết bằng tiếng Việt tự nhiên. Giọng thương hiệu: ${voice}.\nNền tảng: ${platform}. Giọng điệu mong muốn: ${tone}. Độ dài: ${length}.\nTuân thủ chính sách quảng cáo và tránh khẳng định sức khoẻ, tài chính hoặc kết quả tuyệt đối. Không tự thêm thông tin giá, ưu đãi, tồn kho hay số liệu nếu người dùng không cung cấp. Chỉ trả về nội dung có thể chỉnh sửa, không giải thích quy trình.`;
-  const content=await generateWithProvider(provider,prompt.trim(),system,secretValues(),{maxTokens:length==='Chi tiết'?1500:900});
-  return {content,provider};
+  const {text,voice='Aoede'}=request.data||{};
+  if(typeof text!=='string'||!text.trim())throw new HttpsError('invalid-argument','Nhập văn bản cần chuyển thành giọng đọc.');
+  if(Array.from(text.trim()).length>1800)throw new HttpsError('invalid-argument','Văn bản tối đa 1.800 ký tự mỗi lần tạo. Hãy chia nội dung dài thành nhiều đoạn.');
+  if(!Object.hasOwn(TTS_VOICES,voice))throw new HttpsError('invalid-argument','Giọng đọc Gemini không hợp lệ.');
+  const apiKey=GEMINI_API_KEY.value();
+  if(!apiKey)throw new HttpsError('failed-precondition','Quản trị viên chưa cấu hình GEMINI_API_KEY từ Google AI Studio.');
+  const url='https://generativelanguage.googleapis.com/v1beta/interactions';
+  let response;
+  try{
+    response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({model:'gemini-3.8-flash-tts',input:[{type:'user_input',content:[{type:'text',text:text.trim(),annotations:[{type:'speech_metadata',style:TTS_VOICES[voice]}]}]}],response_format:{type:'audio',mime_type:'audio/wav'},generation_config:{speech_config:[{voice}]} }),signal:AbortSignal.timeout(55000)});
+  }catch(error){logger.error('Gemini TTS request failed');throw new HttpsError('unavailable','Không kết nối được Gemini TTS. Hãy thử lại sau.');}
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+    logger.error('Gemini TTS returned an error',{status:response.status,reason:data.error?.status||'unknown'});
+    if(response.status===401||response.status===403)throw new HttpsError('failed-precondition','Gemini API Key không hợp lệ, chưa bật quyền Gemini API hoặc project chưa được cấp quyền cho model TTS.');
+    if(response.status===429)throw new HttpsError('resource-exhausted','Đã vượt hạn mức Gemini API. Hãy kiểm tra quota và billing của Google AI Studio.');
+    throw new HttpsError('unavailable','Gemini TTS chưa tạo được âm thanh. Kiểm tra API Key, model và nội dung yêu cầu.');
+  }
+  const audioContent=data.output_audio?.data;
+  if(typeof audioContent!=='string'||!audioContent)throw new HttpsError('unavailable','Gemini TTS chưa trả về tệp âm thanh.');
+  return {audioContent,mimeType:data.output_audio.mime_type||'audio/wav',voice};
 });
 
 exports.suggestReply = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSeconds:45,memory:'256MiB'},async request=>{

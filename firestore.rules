@@ -92,7 +92,7 @@ service cloud.firestore {
         collection in ['drafts', 'contentReviews', 'requests']
         || collection == 'dailyReports' && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
         || collection == 'revenueEntries' && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
-        || collection == 'contentTemplates' && request.resource.data.status == 'pending'
+        || collection == 'contentTemplates' && (request.resource.data.status == 'pending' || manager() && request.resource.data.status == 'approved')
         || collection == 'tasks' && manager()
         || collection == 'campaigns'
         || collection == 'invoices' && request.resource.data.status == 'pending'
