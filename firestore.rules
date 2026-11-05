@@ -22,9 +22,23 @@ service cloud.firestore {
       function inWorkspace() { return workspaceId == 'fbtq'; }
       function owns() { return resource.data.createdBy == request.auth.uid; }
       function taskAssignee() { return resource.data.assigneeUid == request.auth.uid; }
+      function validRevenueReport() {
+        return request.resource.data.keys().hasAll(['monthKey','revenue','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.keys().hasOnly(['monthKey','revenue','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.monthKey is string
+          && request.resource.data.monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.revenue is number
+          && request.resource.data.revenue >= 0
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdByName == profile().name
+          && request.resource.data.department == (profile().keys().hasAny(['department']) ? profile().department : '')
+          && request.resource.data.submittedAt is string
+          && request.resource.data.updatedBy == request.auth.uid;
+      }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
         collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
+        || collection == 'revenueReports'
         || collection == 'invitations' && manager()
         || collection == 'requests' && (manager() || owns())
         || collection == 'tasks' && (manager() || taskAssignee() || owns())
@@ -40,6 +54,9 @@ service cloud.firestore {
         || collection == 'contentTemplates' && request.resource.data.status == 'pending'
         || collection == 'tasks' && manager()
         || collection == 'campaigns'
+        || collection == 'revenueReports'
+          && documentId == request.auth.uid + '_' + request.resource.data.monthKey
+          && validRevenueReport()
         || collection == 'invoices' && request.resource.data.status == 'pending'
           && request.resource.data.keys().hasAll(['invoiceNumber','customer','item','quantity','unitPrice','total','createdBy','createdAt'])
           && request.resource.data.customer is string && request.resource.data.item is string
@@ -56,6 +73,9 @@ service cloud.firestore {
         || collection in ['drafts','dailyReports','contentReviews','requests'] && (manager() || owns())
         || collection == 'contentTemplates' && manager()
         || collection == 'campaigns' && (manager() || owns())
+        || collection == 'revenueReports' && owns()
+          && documentId == request.auth.uid + '_' + request.resource.data.monthKey
+          && validRevenueReport()
         || collection in ['settings','invitations'] && manager()
         || collection == 'invoices' && manager() && resource.data.status == 'pending'
           && request.resource.data.status in ['approved','rejected']

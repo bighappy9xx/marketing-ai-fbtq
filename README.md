@@ -62,11 +62,7 @@ firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
 
 Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
-Bảng xếp hạng hiệu suất được gọi qua Cloud Function đã đăng nhập; mọi tài khoản thấy số liệu tổng hợp theo nhân sự, còn dữ liệu chi tiết chiến dịch vẫn theo Rules hiện hành. Triển khai hàm mới bằng:
-
-```sh
-firebase deploy --project mediafbtq-6e1bb --only functions:getMarketingLeaderboard
-```
+Mục **Hiệu suất marketing** có biểu mẫu báo cáo doanh thu theo tháng. Mỗi tài khoản chỉ tạo hoặc sửa báo cáo của mình; mọi tài khoản đã đăng nhập có thể đọc các báo cáo doanh thu để xem bảng xếp hạng tháng/quý/năm. Dữ liệu chiến dịch chi tiết vẫn được giới hạn theo Rules. Sau khi cập nhật, triển khai Rules bằng lệnh ở trên; bảng xếp hạng không cần Cloud Function.
 
 ## Kết nối mô hình AI
 
@@ -97,7 +93,7 @@ Mỗi nhóm được lưu theo tài khoản, nền tảng, kỳ báo cáo và m�
 
 Trong trang **Hiệu suất marketing**, Giám đốc xem thêm cột **Người phụ trách** ở danh sách đầy đủ và chiến dịch gần đây. Tên và email được đối chiếu từ UID tài khoản đã nhập báo cáo; biểu đồ cũng hiện người phụ trách trong chú giải khi rê chuột vào cột.
 
-Bảng **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh chi tiêu, kết quả, chi phí/kết quả, hiển thị, tiếp cận và ROAS bình quân có trọng số. Tháng/quý/năm được xác định theo ngày kết thúc kỳ báo cáo.
+Bảng **Báo cáo doanh thu & xếp hạng** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh tổng doanh thu do người dùng nhập thủ công. Quý và năm cộng các báo cáo tháng đã gửi; gửi lại cùng tháng sẽ cập nhật số liệu cũ. Bảng hiển thị số tháng đã báo cáo để mọi người thấy mức độ đầy đủ của dữ liệu.
 
 `extension/` là tiện ích Chrome riêng. Cài bằng `chrome://extensions` → **Developer mode** → **Load unpacked** → chọn thư mục `extension/`. Trên Meta Ads Manager, chọn tab chiến dịch/các cột cần lấy, bấm **Sao chép chỉ số Ads**, rồi nhập JSON trên website.
 
