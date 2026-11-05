@@ -93,7 +93,7 @@ Mỗi nhóm được lưu theo tài khoản, nền tảng, kỳ báo cáo và m�
 
 Trong trang **Hiệu suất marketing**, Giám đốc xem thêm cột **Người phụ trách** ở danh sách đầy đủ và chiến dịch gần đây. Tên và email được đối chiếu từ UID tài khoản đã nhập báo cáo; biểu đồ cũng hiện người phụ trách trong chú giải khi rê chuột vào cột.
 
-Trang **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh tổng doanh thu từ báo cáo quảng cáo hằng ngày. Biểu đồ cột 3D hiển thị tối đa 10 nhân sự dẫn đầu. Báo cáo cùng ngày và chiến dịch được cập nhật vào bản ghi cũ để tránh cộng trùng; bảng hiển thị số ngày có báo cáo.
+Trang **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh tổng doanh thu từ báo cáo quảng cáo hằng ngày. Có thể chuyển giữa cột 3D, cột 2D, biểu đồ tròn và thống kê; biểu đồ cột hiển thị tối đa 10 nhân sự dẫn đầu. Báo cáo cùng ngày và chiến dịch được cập nhật vào bản ghi cũ để tránh cộng trùng; bảng hiển thị số ngày có báo cáo.
 
 `extension/` là tiện ích Chrome riêng. Cài bằng `chrome://extensions` → **Developer mode** → **Load unpacked** → chọn thư mục `extension/`. Trên Meta Ads Manager, chọn tab chiến dịch/các cột cần lấy, bấm **Sao chép chỉ số Ads**, rồi nhập JSON trên website.
 
