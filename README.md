@@ -85,6 +85,10 @@ Meta có thể yêu cầu xác minh doanh nghiệp, xét duyệt ứng dụng v�
 
 ## Nhập chỉ số quảng cáo
 
+Trong **Hiệu suất marketing**, chọn **Nhập chỉ số** để tải CSV xuất từ Meta Ads Manager hoặc dán JSON từ Ads Clipper. Bộ nhập nhận các cột Meta Ads tiếng Việt, gồm kỳ báo cáo, tên nhóm, trạng thái phân phối, cài đặt ghi nhận, kết quả, ngân sách, chi tiêu, lượt hiển thị, tiếp cận, tin nhắn và chi phí tương ứng. Bảng có mục **Chi tiết** cho ngày chạy nhóm, giá thầu, lần chỉnh sửa và kết quả ban đầu.
+
+Mỗi nhóm được lưu theo tài khoản, nền tảng, kỳ báo cáo và mã nhóm quảng cáo; nếu CSV không có mã nhóm thì dùng tên nhóm cùng ngày bắt đầu. Khi tên và ngày bắt đầu bị lặp trong cùng tệp, ngân sách/loại ngân sách và giá thầu giúp giữ riêng các biến thể có trong tệp mẫu. Nhập lại cùng kỳ và nhóm sẽ ghi đè chỉ số vào bản ghi đã có. Các dòng trùng hoàn toàn trong cùng tệp được gộp. Bộ chọn kỳ báo cáo chỉ cộng số liệu của một khoảng ngày tại một thời điểm, tránh cộng chồng các bản xuất có khoảng ngày giao nhau.
+
 `extension/` là tiện ích Chrome riêng. Cài bằng `chrome://extensions` → **Developer mode** → **Load unpacked** → chọn thư mục `extension/`. Trên Meta Ads Manager, chọn tab chiến dịch/các cột cần lấy, bấm **Sao chép chỉ số Ads**, rồi nhập JSON trên website.
 
 Tiện ích đọc bảng đang hiển thị trên trang; đây là snapshot do người dùng kích hoạt, không phải đồng bộ trực tiếp qua Marketing API. Cần đối chiếu chỉ số trước khi dùng báo cáo. Tích hợp Marketing API tự động cần ứng dụng Meta và quyền quảng cáo được Meta cấp.
