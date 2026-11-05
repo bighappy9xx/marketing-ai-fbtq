@@ -23,3 +23,4 @@ body.dark{--ink:#e6ecf5;--muted:#91a0b4;--line:#273447;--surface:#1c293b;--canva
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
 .auth-note.success{color:#16865f}
+.metric-more{min-width:70px}.metric-more summary{cursor:pointer;color:var(--blue);font-size:10px;font-weight:700}.metric-more dl{min-width:230px;max-width:330px;display:grid;gap:5px;margin:8px 0;white-space:normal}.metric-more dl>div{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;border-bottom:1px solid var(--line);padding:4px 0}.metric-more dt{color:var(--muted)}.metric-more dd{margin:0;overflow-wrap:anywhere}
