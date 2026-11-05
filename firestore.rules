@@ -15,7 +15,15 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email;
       allow get: if self(uid) || manager();
       allow list: if manager();
-      allow update, delete: if director();
+      allow update: if director() || (
+        self(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData'])
+        && request.resource.data.photoData is string
+        && request.resource.data.photoData.size() <= 180000
+        && (request.resource.data.photoData == ''
+          || request.resource.data.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$'))
+      );
+      allow delete: if director();
     }
 
     match /workspaces/{workspaceId}/{collection}/{documentId} {

@@ -62,6 +62,14 @@ firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
 
 Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
+### Logo và ảnh đại diện
+
+`logo.svg`, `logo-light.svg` và `favicon.svg` là bộ nhận diện dùng trên trang đăng nhập, menu và tab trình duyệt. Sau khi đăng nhập, bấm ảnh đại diện ở góc trên bên phải để chọn hoặc gỡ ảnh. Ảnh được cắt vuông, thu nhỏ ở trình duyệt và lưu trong hồ sơ Firebase của chính tài khoản; không cần bật Firebase Storage. Rules chỉ cho chủ tài khoản cập nhật trường ảnh đại diện, giới hạn 180 KB. Sau khi cập nhật Rules, triển khai lại:
+
+```sh
+firebase deploy --project mediafbtq-6e1bb --only firestore:rules
+```
+
 Mỗi **Báo cáo quảng cáo hàng ngày** gồm doanh thu. Ô doanh thu trong **Tổng quan** và ô thứ năm trong **Hiệu suất marketing** cộng doanh thu theo kỳ Meta Ads đang chọn. Quản lý có thể lọc chiến dịch theo từng user và đối chiếu hai user. Trang **Xếp hạng & so sánh nhân sự** có biểu đồ cột 3D theo tháng/quý/năm. Mỗi nhân viên chỉ đọc báo cáo chi tiết của mình; mọi tài khoản đăng nhập có thể đọc các bản ghi doanh thu tối thiểu để xếp hạng. Triển khai Rules bằng lệnh ở trên; không cần Cloud Function cho xếp hạng.
 
 ## Kết nối mô hình AI
