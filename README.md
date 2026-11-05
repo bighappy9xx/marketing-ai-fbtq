@@ -62,6 +62,12 @@ firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
 
 Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
+Bảng xếp hạng hiệu suất được gọi qua Cloud Function đã đăng nhập; mọi tài khoản thấy số liệu tổng hợp theo nhân sự, còn dữ liệu chi tiết chiến dịch vẫn theo Rules hiện hành. Triển khai hàm mới bằng:
+
+```sh
+firebase deploy --project mediafbtq-6e1bb --only functions:getMarketingLeaderboard
+```
+
 ## Kết nối mô hình AI
 
 Mỗi nhà cung cấp cần API key và thanh toán/quyền truy cập riêng của công ty. Khóa được giữ trong Firebase Functions Secrets, không gửi xuống trình duyệt. Chọn Gemini, ChatGPT hoặc Claude trong Studio nội dung. Phần kết nối gọi [Gemini generateContent](https://ai.google.dev/api/generate-content), [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses/create) và [Anthropic Messages API](https://docs.anthropic.com/en/api/messages). Chatbot dùng Gemini hoặc ChatGPT. Nếu muốn dùng model khác, chỉnh giá trị model mặc định trong `functions/index.js`.
@@ -90,6 +96,8 @@ Trong **Hiệu suất marketing**, chọn **Nhập chỉ số** để tải CSV 
 Mỗi nhóm được lưu theo tài khoản, nền tảng, kỳ báo cáo và mã nhóm quảng cáo; nếu CSV không có mã nhóm thì dùng tên nhóm cùng ngày bắt đầu. Khi tên và ngày bắt đầu bị lặp trong cùng tệp, ngân sách/loại ngân sách và giá thầu giúp giữ riêng các biến thể có trong tệp mẫu. Nhập lại cùng kỳ và nhóm sẽ ghi đè chỉ số vào bản ghi đã có. Các dòng trùng hoàn toàn trong cùng tệp được gộp. Bộ chọn kỳ báo cáo chỉ cộng số liệu của một khoảng ngày tại một thời điểm, tránh cộng chồng các bản xuất có khoảng ngày giao nhau.
 
 Trong trang **Hiệu suất marketing**, Giám đốc xem thêm cột **Người phụ trách** ở danh sách đầy đủ và chiến dịch gần đây. Tên và email được đối chiếu từ UID tài khoản đã nhập báo cáo; biểu đồ cũng hiện người phụ trách trong chú giải khi rê chuột vào cột.
+
+Bảng **Xếp hạng & so sánh nhân sự** cho mọi tài khoản chọn tháng, quý hoặc năm để so sánh chi tiêu, kết quả, chi phí/kết quả, hiển thị, tiếp cận và ROAS bình quân có trọng số. Tháng/quý/năm được xác định theo ngày kết thúc kỳ báo cáo.
 
 `extension/` là tiện ích Chrome riêng. Cài bằng `chrome://extensions` → **Developer mode** → **Load unpacked** → chọn thư mục `extension/`. Trên Meta Ads Manager, chọn tab chiến dịch/các cột cần lấy, bấm **Sao chép chỉ số Ads**, rồi nhập JSON trên website.
 

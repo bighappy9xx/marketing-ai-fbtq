@@ -124,6 +124,53 @@ exports.setUserRole = onCall({timeoutSeconds:30,memory:'256MiB'},async request=>
   return {ok:true,uid:user.uid,role};
 });
 
+function leaderboardDateKey(value) {
+  const text=String(value||'').trim();if(!text)return '';
+  let match=text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if(match)return `${match[1]}-${String(match[2]).padStart(2,'0')}-${String(match[3]).padStart(2,'0')}`;
+  match=text.match(/^(\d{1,2})[/. -](\d{1,2})[/. -](\d{4})/);
+  if(match)return `${match[3]}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;
+  const parsed=Date.parse(text);return Number.isFinite(parsed)?new Date(parsed).toISOString().slice(0,10):'';
+}
+function leaderboardWindow(type,key) {
+  const month=/^(\d{4})-(\d{2})$/.exec(key||'');
+  const quarter=/^(\d{4})-Q([1-4])$/.exec(key||'');
+  const year=/^(\d{4})$/.exec(key||'');let y,startMonth,endMonth;
+  if(type==='month'&&month){y=Number(month[1]);startMonth=Number(month[2]);if(startMonth<1||startMonth>12)throw new HttpsError('invalid-argument','Tháng báo cáo không hợp lệ.');endMonth=startMonth}
+  else if(type==='quarter'&&quarter){y=Number(quarter[1]);startMonth=(Number(quarter[2])-1)*3+1;endMonth=startMonth+2}
+  else if(type==='year'&&year){y=Number(year[1]);startMonth=1;endMonth=12}
+  else throw new HttpsError('invalid-argument','Kỳ xếp hạng không hợp lệ.');
+  const pad=value=>String(value).padStart(2,'0');
+  return{start:`${y}-${pad(startMonth)}-01`,end:new Date(Date.UTC(y,endMonth,0)).toISOString().slice(0,10)};
+}
+exports.getMarketingLeaderboard = onCall({timeoutSeconds:55,memory:'512MiB'},async request=>{
+  await requireSignedIn(request);
+  const {periodType,periodKey}=request.data||{};const {start,end}=leaderboardWindow(periodType,periodKey);
+  const [usersSnapshot,campaignSnapshot]=await Promise.all([db.collection('users').get(),db.collection('workspaces/fbtq/campaigns').get()]);
+  const profiles=new Map(usersSnapshot.docs.map(doc=>[doc.id,doc.data()||{}]));
+  const totals=new Map();
+  for(const [uid,profile] of profiles){
+    if(profile.approved===false)continue;
+    const name=String(profile.name||'').trim();
+    totals.set(uid,{uid,name:name&&!name.includes('@')?name:`Nhân viên ${uid.slice(-5)}`,department:String(profile.department||''),spend:0,impressions:0,reach:0,results:0,campaigns:0,roasWeighted:0,roasSpend:0});
+  }
+  const number=value=>{const result=Number(value);return Number.isFinite(result)?result:0};
+  for(const doc of campaignSnapshot.docs){
+    const item=doc.data()||{},uid=String(item.createdBy||'');if(!uid)continue;
+    const profile=profiles.get(uid);if(profile?.approved===false)continue;
+    const date=leaderboardDateKey(item.reportEnd)||leaderboardDateKey(item.reportAt)||leaderboardDateKey(item.reportStart);
+    if(!date||date<start||date>end)continue;
+    let row=totals.get(uid);
+    if(!row){const name=String(item.createdByName||'').trim();row={uid,name:name&&!name.includes('@')?name:`Nhân viên ${uid.slice(-5)}`,department:String(profile?.department||''),spend:0,impressions:0,reach:0,results:0,campaigns:0,roasWeighted:0,roasSpend:0};totals.set(uid,row)}
+    const spend=number(item.spend),roas=number(item.roas);row.spend+=spend;row.impressions+=number(item.impressions);row.reach+=number(item.reach);row.results+=number(item.results);row.campaigns++;
+    if(spend>0&&item.roas!==null&&item.roas!==undefined&&item.roas!==''){row.roasWeighted+=roas*spend;row.roasSpend+=spend}
+  }
+  const rows=[...totals.values()].map(row=>({uid:row.uid,name:row.name,department:row.department,spend:row.spend,impressions:row.impressions,reach:row.reach,results:row.results,campaigns:row.campaigns,costPerResult:row.results>0?row.spend/row.results:null,roas:row.roasSpend>0?row.roasWeighted/row.roasSpend:null,isCurrentUser:row.uid===request.auth.uid}));
+  rows.sort((a,b)=>b.results-a.results||b.roas-b.roas||b.spend-a.spend||a.name.localeCompare(b.name,'vi'));
+  rows.forEach((row,index)=>{row.rank=index+1;delete row.uid});
+  return{periodType,periodKey,start,end,rows};
+});
+
 function encryptionKey(secret) {
   const raw=String(secret||'');
   if(!raw)throw new HttpsError('failed-precondition','Chưa cấu hình META_TOKEN_ENCRYPTION_KEY.');
