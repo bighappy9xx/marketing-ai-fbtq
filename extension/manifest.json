@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "FBTQ Ads Clipper",
+  "version": "1.0.0",
+  "description": "Sao chép nhanh các chiến dịch đang hiển thị trong Meta Ads Manager thành JSON cho Marketing Ai FBTQ.",
+  "permissions": ["clipboardWrite"],
+  "host_permissions": ["https://www.facebook.com/*", "https://business.facebook.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/adsmanager/*", "https://business.facebook.com/adsmanager/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
