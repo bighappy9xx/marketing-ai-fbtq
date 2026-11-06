@@ -8,5 +8,8 @@ window.FBTQ_FIREBASE_CONFIG = {
   storageBucket: "mediafbtq-6e1bb.firebasestorage.app",
   messagingSenderId: "231204857128",
   appId: "1:231204857128:web:bfb14a2427e610889a5c1d",
-  measurementId: "G-K0YVWXG9X7"
+  measurementId: "G-K0YVWXG9X7",
+  // Add the reCAPTCHA Enterprise web site key once here; it is public by design.
+  // This shared value is loaded by every user from the hosted website.
+  appCheckSiteKey: ""
 };

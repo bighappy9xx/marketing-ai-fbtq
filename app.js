@@ -17,7 +17,7 @@ const isDirector = () => state.role === 'director';
 const showToast = (message,type='success') => {const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=message;$('#toastRegion').append(el);setTimeout(()=>el.remove(),3600)};
 const configFromInputs = () => ({apiKey:$('#fbApiKey').value.trim(),authDomain:$('#fbAuthDomain').value.trim(),projectId:$('#fbProjectId').value.trim(),appId:$('#fbAppId').value.trim(),appCheckSiteKey:$('#fbAppCheckSiteKey')?.value.trim()||''});
 const validConfig = c => !!(c?.apiKey && c?.authDomain && c?.projectId && c?.appId);
-const getSavedFirebaseConfig = () => {try{return JSON.parse(localStorage.getItem('fbtq_firebase_config')||'null')}catch{return null}};
+const getSavedFirebaseConfig = () => {const shared=window.FBTQ_FIREBASE_CONFIG||{};let saved=null;try{saved=JSON.parse(localStorage.getItem('fbtq_firebase_config')||'null')}catch{}if(!saved)return shared;return{...saved,...shared,appCheckSiteKey:shared.appCheckSiteKey||saved.appCheckSiteKey||''}};
 let firebaseBootPromise=Promise.resolve(false);
 
 async function firebaseInit(config, announce=false) {
