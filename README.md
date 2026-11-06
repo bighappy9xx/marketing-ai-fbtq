@@ -61,6 +61,18 @@ firebase deploy --project mediafbtq-6e1bb --only firestore:rules
 
 Mỗi **Báo cáo quảng cáo hàng ngày** gồm doanh thu. Ô doanh thu trong **Tổng quan** và ô thứ năm trong **Hiệu suất marketing** cộng doanh thu theo kỳ Meta Ads đang chọn. Quản lý có thể lọc chiến dịch theo từng user và đối chiếu hai user. Trang **Xếp hạng & so sánh nhân sự** có biểu đồ cột 3D theo tháng/quý/năm. Mỗi nhân viên chỉ đọc báo cáo chi tiết của mình; mọi tài khoản đăng nhập có thể đọc các bản ghi doanh thu tối thiểu để xếp hạng. Triển khai Rules bằng lệnh ở trên; không cần Cloud Function cho xếp hạng.
 
+### Upload Hóa Đơn Meta Ads
+
+Trong **Tự động hóa → Upload Hóa Đơn**, chọn PDF hóa đơn Meta/Facebook. Website đọc lớp văn bản của PDF ngay trên trình duyệt rồi điền tên trên hóa đơn, tài khoản quảng cáo, mã hóa đơn, mã số thuế nhà cung cấp, mã giao dịch, ngày lập, kỳ kế toán/kỳ thuế và các số tiền trước VAT, VAT, tổng thanh toán. Kiểm tra lại các trường được điền, sửa nếu cần, rồi bấm **Lưu và gửi duyệt**. PDF có thể tối đa 5 MB; PDF dạng ảnh quét không có lớp văn bản sẽ cần nhập số liệu bằng tay.
+
+Hóa đơn được lưu ở trạng thái **Chờ duyệt**. Nhân viên xem hồ sơ do mình gửi; trưởng phòng, quản lý chi nhánh và giám đốc xem toàn bộ, mở PDF gốc, rồi duyệt hoặc từ chối. Bảng **Báo cáo VAT Meta Ads** lọc theo tháng/quý/năm hoặc ngày, phòng ban, tổng hợp tiền trước VAT/VAT/tổng thanh toán và xuất CSV để kế toán xử lý. Sau khi cập nhật website, triển khai Firestore Rules mới để khóa quyền đọc file PDF theo chủ sở hữu và vai trò quản lý:
+
+```sh
+firebase deploy --project mediafbtq-6e1bb --only firestore:rules
+```
+
+Tệp PDF gốc được chia thành các phần nhỏ và lưu cùng hồ sơ trong Firestore để không phụ thuộc Firebase Storage. Nếu tải PDF lớn, Firestore sẽ sử dụng dung lượng và lượt đọc/ghi tương ứng.
+
 ## Firebase AI Logic cho Gemini
 
 Gemini tạo nội dung trong **Studio nội dung** và chuyển văn bản thành giọng đọc qua Firebase AI Logic, dùng Gemini Developer API. Không nhập Gemini API Key vào mã nguồn, cài đặt website hay GitHub: từ giữa năm 2026, Firebase AI Logic xác thực bằng service identity do Google quản lý. Key Google AI Studio mà bạn gửi trong cuộc trò chuyện không cần cho cấu hình này. Vì key đã được chia sẻ trong chat, hãy thu hồi key đó tại [Google AI Studio API keys](https://aistudio.google.com/apikey) và không dùng lại.
