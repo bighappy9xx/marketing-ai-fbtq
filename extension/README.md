@@ -12,10 +12,11 @@ Extension Chrome Manifest V3 để chuyển chỉ số quảng cáo và PDF biê
 ## Chuyển chỉ số vào Báo cáo hàng ngày
 
 1. Mở Meta Ads Manager, chọn tab **Campaigns/Chiến dịch** hoặc **Ad sets/Nhóm quảng cáo**, chọn đúng tài khoản và kỳ báo cáo. Bảng cần có cột tên chiến dịch/nhóm quảng cáo; bật thêm các cột chỉ số muốn đưa vào báo cáo.
-2. Bấm nút nổi **Meta Helper** ở góc phải dưới, rồi **Quét lại bảng**. Kiểm tra số hàng được nhận diện và bấm **Gửi vào Báo cáo hàng ngày**.
-3. Extension mở website; nếu chưa đăng nhập, hãy đăng nhập. Sau khi Firebase tải dữ liệu, chỉ số được nhập và cửa sổ **Báo cáo hàng ngày** hiện ra. Kiểm tra ngày, số Mess, SĐT và doanh thu trước khi lưu.
+2. Tích ô vuông ở đầu các dòng chiến dịch/nhóm quảng cáo cần báo cáo trên Meta.
+3. Bấm nút nổi **Meta Helper**, chọn **Quét mục đã chọn** để kiểm tra số dòng, rồi bấm **Gửi mục đã chọn vào Báo cáo**.
+4. Extension mở website; nếu chưa đăng nhập, hãy đăng nhập. Sau khi Firebase tải dữ liệu, chỉ số được nhập và cửa sổ **Báo cáo hàng ngày** hiện ra. Kiểm tra ngày, số Mess, SĐT và doanh thu trước khi lưu.
 
-Meta Ads Manager chỉ tải một số hàng trong bảng cùng lúc. Nếu cần thêm hàng, cuộn bảng Meta để tải tiếp rồi bấm **Quét lại bảng**. Nếu tiện ích báo chưa nhận diện tên chiến dịch, hãy chuyển sang tab Chiến dịch/Nhóm quảng cáo, bật cột tên tương ứng, chờ bảng tải xong rồi quét lại. Chỉ số được gắn với ngày hiện tại để mở đúng báo cáo ngày; hãy kiểm tra ngày và dữ liệu trước khi lưu.
+Meta Ads Manager chỉ tải một số hàng trong bảng cùng lúc. Nếu cần thêm hàng, cuộn bảng Meta để tải tiếp, tích chọn các dòng cần lấy rồi quét lại. Tiện ích chỉ gửi các dòng đã tích chọn. Nếu chưa nhận được dòng nào, hãy kiểm tra dấu tích ở ô vuông đầu hàng; chỉ chọn cấp Chiến dịch hoặc Nhóm quảng cáo, không chọn tab Quảng cáo nếu bạn muốn lấy nhóm/campaign. Chỉ số được gắn với ngày hiện tại để mở đúng báo cáo ngày; hãy kiểm tra ngày và dữ liệu trước khi lưu.
 
 ## Chuyển PDF hóa đơn Meta
 

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Marketing Ai FBTQ · Meta Helper",
-  "version": "2.1.0",
-  "description": "Đọc chỉ số Meta Ads và PDF biên lai để chuyển vào Marketing Ai FBTQ.",
+  "version": "2.6.0",
+  "description": "Quét chiến dịch Meta đã chọn và chuyển chỉ số/PDF biên lai vào Marketing Ai FBTQ.",
   "permissions": [
     "clipboardWrite",
     "tabs",
