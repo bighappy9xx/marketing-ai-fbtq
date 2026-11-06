@@ -59,3 +59,11 @@ Giá mess TB lấy trực tiếp từ Chi phí mỗi kết quả, kể cả khi 
 - Không nhập dòng nhận nhầm nội dung cài đặt ghi nhận thành chiến dịch/trạng thái.
 - Khi mở báo cáo từ extension, sáu trường ánh xạ ưu tiên dữ liệu vừa quét thay cho báo cáo đã lưu; các trường bổ sung vẫn giữ dữ liệu đã nhập.
 - Cập nhật cả website app.js và extension, sau đó tải lại hai tab. Kiểm tra: node tests/extension-mapping.cjs.
+
+## Cập nhật 2.7.0 – Toàn bộ cột theo mẫu
+
+Extension hiển thị bảng xem trước cuộn ngang cho mọi dòng được tích chọn. Lấy Tắt/Bật (nếu Meta cung cấp trạng thái switch), Chiến dịch, Phân phối, Kết quả và loại kết quả, Chi phí trên mỗi kết quả, Ngân sách và loại ngân sách, Số tiền đã chi tiêu, Lượt hiển thị, Người tiếp cận, Người liên hệ nhắn tin mới, Chi phí trên mỗi người liên hệ nhắn tin mới, Lượt bắt đầu cuộc trò chuyện và chi phí tương ứng. Giữ dấu — ở dữ liệu gốc và lưu null cho số thiếu; bỏ dòng tổng. Bộ đọc bảng có ARIA giữ thêm mọi cột khác trong rawColumns.
+
+Website lưu chỉ số vào campaigns, hiển thị dữ liệu gốc trong Chi tiết và mục Toàn bộ cột Meta ở form báo cáo. Khi lưu báo cáo, metaSnapshot giữ dữ liệu Meta tương ứng để đối chiếu. Sáu trường báo cáo vẫn theo ánh xạ đã yêu cầu.
+
+Cài cập nhật: thay app.js và styles.css của website, cập nhật thư mục extension, Reload extension ở chrome://extensions, tải lại Meta và website. Tích các dòng cần gửi, Quét mục đã chọn, đối chiếu toàn bộ bảng rồi bấm Gửi. Chỉ lấy cột/hàng Meta đã tải vào trang; không suy ra dữ liệu ngoài khoảng ngày đang chọn.

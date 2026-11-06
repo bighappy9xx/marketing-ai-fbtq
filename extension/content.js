@@ -106,6 +106,7 @@
     if (row.getAttribute('aria-selected') === 'true' || row.getAttribute('data-selected') === 'true') return true;
     const controls = [...row.querySelectorAll('[role="checkbox"],input[type="checkbox"],[data-testid*="select"],[aria-label*="select" i],[aria-label*="chọn" i]')];
     if (controls.some(control => {
+      if (control.getAttribute('role') === 'switch' || control.closest?.('[role="switch"]')) return false;
       const label = `${control.getAttribute('aria-label') || ''} ${control.getAttribute('title') || ''}`;
       return control.matches('input[type="checkbox"]:checked') || control.getAttribute('aria-checked') === 'true' || control.getAttribute('data-state') === 'checked' || control.getAttribute('data-checked') === 'true' || control.getAttribute('aria-pressed') === 'true' || /\b(deselect|unselect|selected)\b|bỏ chọn/i.test(label);
     })) return true;
@@ -118,6 +119,29 @@
       return blue > red + 12 && blue > green + 2;
     });
   }
+  const headerSpecs = [
+      { field: 'enabled', labels: ['Tắt/Bật','Bật/Tắt','Tắt...','Off/On'] },
+      { field: 'campaign', labels: ['campaign name','tên chiến dịch','campaign','chiến dịch'] },
+      { field: 'status', labels: ['lượt phân phối chiến dịch','phân phối','delivery','delivery status','status','trạng thái'] },
+      { field: 'budget', labels: ['ngân sách nhóm quảng cáo','budget','ngân sách'] },
+      { field: 'budgetType', labels: ['loại ngân sách nhóm quảng cáo','budget type'] },
+      { field: 'spend', labels: ['số tiền đã chi tiêu (vnd)','amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'] },
+      { field: 'impressions', labels: ['impressions','lượt hiển thị'] },
+      { field: 'reach', labels: ['reach','người tiếp cận'] },
+      { field: 'results', labels: ['results','kết quả'] },
+      { field: 'resultIndicator', labels: ['result indicator','chỉ báo kết quả'] },
+      { field: 'costPerResult', labels: ['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'] },
+      { field: 'newMessagingContacts', labels: ['new messaging contacts','người liên hệ nhắn tin mới'] },
+      { field: 'costPerNewMessagingContact', labels: ['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'] },
+      { field: 'messagingConversationsStarted', labels: ['messaging conversations started','lượt bắt đầu cuộc trò chuyện','lượt bắt đầu cuộc trò chuyện qua tin nhắn'] },
+      { field: 'costPerMessagingConversationStart', labels: ['cost per messaging conversation start','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện qua tin nhắn','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện qua tin nhắn (vnd)'] },
+      { field: 'originalResults', labels: ['original results','kết quả ban đầu'] },
+      { field: 'originalResultIndicator', labels: ['original result indicator','chỉ báo kết quả ban đầu'] },
+      { field: 'reportStart', labels: ['reporting starts','lượt bắt đầu báo cáo'] },
+      { field: 'reportEnd', labels: ['reporting ends','lượt kết thúc báo cáo'] },
+      { field: 'adSetEnd', labels: ['end','kết thúc'] },
+      { field: 'campaignId', labels: ['campaign id','id chiến dịch'] }
+    ];
   // Use the full header cell, never the center of its short text label.
   function columnBounds(element) {
     let node = element;
@@ -131,7 +155,7 @@
     }
     return rect;
   }
-  function textInColumn(items, column, row) {
+  function textInColumn(items, column, row, fullText = false) {
     const candidates = items.filter(item => {
       const r = item.rect;
       return r.width > 0 && r.height > 0 && r.left >= column.left - 2 && r.right <= column.right + 2 &&
@@ -139,7 +163,10 @@
     });
     // Pick the upper text line first: numeric value precedes its attribution label.
     candidates.sort((a,b) => a.rect.top - b.rect.top || a.rect.height - b.rect.height || a.rect.width - b.rect.width);
-    return candidates[0]?.text || '';
+    if (!fullText) return candidates[0]?.text || '';
+    // Prefer a full cell container, then deduplicate leaf lines in visual order.
+    const enclosing = candidates.find(item => candidates.every(other => other.rect.left >= item.rect.left - 1 && other.rect.right <= item.rect.right + 1 && other.rect.top >= item.rect.top - 1 && other.rect.bottom <= item.rect.bottom + 1));
+    return enclosing?.text || [...new Set(candidates.filter(item => !candidates.some(other => other !== item && item.element?.contains?.(other.element))).map(item => item.text))].join('\n');
   }
   function readGrid(rootElement) {
     const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')];
@@ -161,7 +188,7 @@
       const cells = new Map();
       cellElements.forEach((element, position) => {
         const ariaIndex = Number(element.getAttribute('aria-colindex'));
-        const value = elementText(element);
+        const value = String(element.innerText || element.textContent || element.getAttribute('aria-label') || '').trim();
         if (!value) return;
         let index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : null;
         if (index === null) {
@@ -194,28 +221,6 @@
     return false;
   }
   function fallbackSelectedRows() {
-    const headerSpecs = [
-      { field: 'campaign', labels: ['campaign name','tên chiến dịch','campaign','chiến dịch'] },
-      { field: 'status', labels: ['lượt phân phối chiến dịch','phân phối','delivery','delivery status','status','trạng thái'] },
-      { field: 'budget', labels: ['ngân sách nhóm quảng cáo','budget','ngân sách'] },
-      { field: 'budgetType', labels: ['loại ngân sách nhóm quảng cáo','budget type'] },
-      { field: 'spend', labels: ['số tiền đã chi tiêu (vnd)','amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'] },
-      { field: 'impressions', labels: ['impressions','lượt hiển thị'] },
-      { field: 'reach', labels: ['reach','người tiếp cận'] },
-      { field: 'results', labels: ['results','kết quả'] },
-      { field: 'resultIndicator', labels: ['result indicator','chỉ báo kết quả'] },
-      { field: 'costPerResult', labels: ['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'] },
-      { field: 'newMessagingContacts', labels: ['new messaging contacts','người liên hệ nhắn tin mới'] },
-      { field: 'costPerNewMessagingContact', labels: ['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'] },
-      { field: 'messagingConversationsStarted', labels: ['messaging conversations started','lượt bắt đầu cuộc trò chuyện qua tin nhắn'] },
-      { field: 'costPerMessagingConversationStart', labels: ['cost per messaging conversation start','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện qua tin nhắn (vnd)'] },
-      { field: 'originalResults', labels: ['original results','kết quả ban đầu'] },
-      { field: 'originalResultIndicator', labels: ['original result indicator','chỉ báo kết quả ban đầu'] },
-      { field: 'reportStart', labels: ['reporting starts','lượt bắt đầu báo cáo'] },
-      { field: 'reportEnd', labels: ['reporting ends','lượt kết thúc báo cáo'] },
-      { field: 'adSetEnd', labels: ['end','kết thúc'] },
-      { field: 'campaignId', labels: ['campaign id','id chiến dịch'] }
-    ];
     const headerTerms = headerSpecs.flatMap(spec => spec.labels.map(key)).filter(term => term.length > 5);
     const minWidth = Math.max(500, innerWidth * 0.45);
     const rowLike = element => {
@@ -229,7 +234,7 @@
       return control.matches('input[type="checkbox"]:checked') || control.getAttribute('aria-checked') === 'true' || control.getAttribute('data-state') === 'checked' || control.getAttribute('data-checked') === 'true' || control.getAttribute('aria-pressed') === 'true' || /\b(deselect|unselect|selected)\b|bỏ chọn/i.test(label);
     });
     const candidates = [];
-    for (const control of selectedControls) {
+    for (const control of selectedControls.filter(control => control.getAttribute('role') !== 'switch' && !control.closest?.('[role="switch"]'))) {
       let ancestor = control.parentElement;
       for (let depth = 0; ancestor && ancestor !== document.body && depth < 12; depth++, ancestor = ancestor.parentElement) {
         if (rowLike(ancestor)) { candidates.push(ancestor); break; }
@@ -259,7 +264,7 @@
     });
     function findHeader(rowRect, spec) {
       const labels = spec.labels.map(key);
-      return allHeaderNodes.map(element => ({ element, text: elementText(element), rect: element.getBoundingClientRect() }))
+      return allHeaderNodes.map(element => ({ element, text: elementText(element), rect: columnBounds(element) }))
         .filter(item => labels.includes(key(item.text)) && item.rect.bottom <= rowRect.top + 6 && rowRect.top - item.rect.bottom < 260 && item.rect.left < rowRect.right && item.rect.right > rowRect.left)
         .sort((a, b) => labels.indexOf(key(a.text)) - labels.indexOf(key(b.text)) || b.rect.bottom - a.rect.bottom || a.rect.width * a.rect.height - b.rect.width * b.rect.height)[0] || null;
     }
@@ -271,13 +276,12 @@
     for (const row of rows) {
       const bounds = row.getBoundingClientRect(), centerY = bounds.top + bounds.height / 2;
       const cells = [...row.querySelectorAll('a,span,div,button,[role="gridcell"],[role="cell"],td')]
-        .map(element => ({element, rect: element.getBoundingClientRect(), text: elementText(element)}));
+        .map(element => ({element, rect: element.getBoundingClientRect(), text: String(element.innerText || element.textContent || '').trim()}));
       const value = field => {
         const spec = headerSpecs.find(header => header.field === field), header = spec && findHeader(row.getBoundingClientRect(), spec);
         if (!header || !cells.length) return '';
         detectedHeaders.add(header.text);
-        const x = header.rect.left + header.rect.width / 2;
-        return cells.sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x))[0]?.text || '';
+        return textInColumn(cells, header.rect, bounds, true);
       };
       const name = (value('campaign') || '').split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
@@ -289,7 +293,7 @@
       const rawBudget = value('budget'), rawBudgetType = value('budgetType');
       const reportStart = value('reportStart') || reportRange.start;
       const reportEnd = value('reportEnd') || reportRange.end;
-      output.push({
+      const item = {
         id: value('campaignId'), name, campaign: name, adSetName: name, account, platform: 'Facebook',
         status: delivery, delivery, budget: numberFrom(rawBudget), budgetType: rawBudgetType || (numberFrom(rawBudget) === null ? rawBudget : ''), spend: numberFrom(value('spend')),
         impressions: numberFrom(value('impressions')), reach: numberFrom(value('reach')), results: resultCount,
@@ -301,10 +305,33 @@
         dailyMessages: resultCount,
         dailyAvgMessageCost: numberFrom(value('costPerResult')),
         source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
-      });
+      };
+      const rawColumns = headerSpecs.map(spec => {const header = findHeader(bounds,spec);return header ? {label: header.text, value: value(spec.field), left:header.rect.left} : null;}).filter(Boolean).sort((a,b)=>a.left-b.left).map(({label,value})=>({label,value}));
+      completeMetric(item, rawColumns, row);
+      output.push(item);
     }
     lastScanInfo = { headers: [...detectedHeaders], rows: rows.length, selected: rows.length, metaSelectedCount };
     return [...new Map(output.map(item => [`${key(item.account)}|${key(item.name)}|${item.spend}`, item])).values()];
+  }
+  function completeMetric(item, rawColumns, row) {
+    item.rawColumns = rawColumns;
+    const headers = rawColumns.map((column,index) => ({label: column.label,index}));
+    const cells = new Map(rawColumns.map((column,index) => [index,column.value]));
+    const raw = field => {const spec=headerSpecs.find(spec=>spec.field===field);return spec?cellValue(headers,cells,spec.labels):'';};
+    for (const field of ['impressions','reach','newMessagingContacts','costPerNewMessagingContact','messagingConversationsStarted','costPerMessagingConversationStart']) item[field] = numberFrom(raw(field));
+    const subline = value => String(value || '').split(/\n/).slice(1).map(normalize).filter(Boolean).join(' ');
+    item.resultIndicator = raw('resultIndicator') || subline(raw('results')) || item.resultIndicator || '';
+    item.costPerResultLabel = subline(raw('costPerResult'));
+    item.budgetType = raw('budgetType') || subline(raw('budget')) || item.budgetType || '';
+    const toggle = row?.querySelector?.('[role="switch"],input[type="checkbox"][aria-label*="campaign" i]');
+    item.enabled = toggle ? (toggle.getAttribute('aria-checked') === 'true' || toggle.checked === true) : null;
+    if (toggle) {
+      const column=rawColumns.find(column => /^(tatbat|battat|offon|tat)$/.test(key(column.label)));
+      if (column) column.value=item.enabled?'Bật':'Tắt';
+      else rawColumns.unshift({label:'Tắt/Bật',value:item.enabled?'Bật':'Tắt'});
+    }
+    item.dailyMessages = item.results;
+    item.dailyAvgMessageCost = item.costPerResult;
   }
   function rowsFromTable() {
     const candidateRoots = [...document.querySelectorAll('[role="grid"],[role="table"],table')];
@@ -322,7 +349,7 @@
     const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const reportRange = activeReportRange();
     const output = [];
-    for (const { cells, fullText } of selectedRows) {
+    for (const { row, cells, fullText } of selectedRows) {
       if (cells.size < 1) continue;
       if (!fullText) continue;
       const campaign = preferredCellValue(headers,cells,['campaign name','tên chiến dịch','campaign','chiến dịch']);
@@ -359,6 +386,7 @@
         dailyAvgMessageCost: numberFrom(cellValue(headers,cells,['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'])),
         source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
       };
+      completeMetric(item, headers.map(header => ({label: header.label, value: cells.get(header.index) || ''})), row);
       output.push(item);
     }
     const distinct = new Map(output.map(item => [item.id ? `id:${item.id}` : `${key(item.account)}|${key(item.name)}|${item.spend}`, item]));
@@ -373,26 +401,19 @@
     title.className = 'fbtq-preview-title';
     title.textContent = 'Dữ liệu sắp chuyển';
     preview.append(title);
-    rows.slice(0, 4).forEach(item => {
-      const line = document.createElement('div');
-      line.className = 'fbtq-preview-row';
-      const name = document.createElement('span');
-      name.textContent = item.campaign || item.name || 'Chưa đọc được tên chiến dịch';
-      const messages = document.createElement('strong');
-      messages.textContent = `Số Mess: ${item.dailyMessages ?? '—'}`;
-      const details = document.createElement('small');
-      const displayNumber = value => value === null || value === undefined || value === '' ? '—' : Number(value).toLocaleString('vi-VN');
-      details.className = 'fbtq-preview-details';
-      details.textContent = `Phân phối: ${item.delivery || item.status || '—'} · Ngân sách: ${displayNumber(item.budget)} · Chi tiêu: ${displayNumber(item.spend)} · Giá mess TB: ${displayNumber(item.dailyAvgMessageCost)}`;
-      line.append(name, messages);
-      preview.append(line, details);
+    const table = document.createElement('table');
+    table.className = 'fbtq-preview-table';
+    const labels = [...new Set(rows.flatMap(item => (item.rawColumns || []).map(column => column.label)))];
+    const head = table.createTHead().insertRow();
+    labels.forEach(label => {const th=document.createElement('th');th.textContent=label;head.append(th);});
+    const body = table.createTBody();
+    rows.forEach(item => {
+      const tr=body.insertRow();
+      labels.forEach(label => {const td=tr.insertCell();td.textContent=item.rawColumns?.find(column=>column.label===label)?.value || '—';});
     });
-    if (rows.length > 4) {
-      const more = document.createElement('small');
-      more.textContent = `Và ${rows.length - 4} chiến dịch khác`;
-      preview.append(more);
-    }
+    preview.append(table);
   }
+
   function collectMetrics() {
     lastRows = rowsFromTable();
     renderMetricPreview(lastRows);

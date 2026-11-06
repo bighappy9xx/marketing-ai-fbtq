@@ -841,3 +841,5 @@ body.dark{color-scheme:dark}
 .daily-history-scroll table{min-width:760px}
 .daily-history-scroll tbody tr:hover{background:#f7f9fd}
 @media(max-width:680px){.daily-history-panel>.panel-heading{display:grid;grid-template-columns:1fr}.daily-history-filters{display:grid;grid-template-columns:1fr 1fr;align-items:end;width:100%}.daily-history-filters label{min-width:0}.daily-history-filters .manager-only{grid-column:1/-1}.daily-history-filters .btn{min-height:39px}.daily-history-scroll{max-height:330px}}
+
+.meta-source-columns{margin:16px 0;border:1px solid #dfe7f2;border-radius:8px;padding:12px}.meta-source-columns summary{cursor:pointer;font-weight:600}.meta-source-table{min-width:1800px;border-collapse:collapse;margin-top:10px}.meta-source-table th,.meta-source-table td{padding:9px;border:1px solid #e2e8f0;text-align:left;vertical-align:top;white-space:pre-line;min-width:110px}.meta-source-table th{background:#edf3ff}

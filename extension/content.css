@@ -21,3 +21,5 @@
 .fbtq-status{min-height:17px;margin-top:11px;padding:0 1px;color:#718099;font-size:10px;line-height:1.5;overflow-wrap:anywhere}.fbtq-status[data-tone="success"]{color:#168760}.fbtq-status[data-tone="warning"]{color:#bb7824}.fbtq-status[data-tone="error"]{color:#cd4854}
 .fbtq-footer{display:flex;align-items:center;gap:7px;margin-top:9px;padding-top:10px;border-top:1px solid #edf1f7;color:#91a0b4;font-size:9px}.fbtq-dot{width:7px;height:7px;border-radius:50%;background:#49c99b;box-shadow:0 0 0 3px #e7f8f2}
 @media(max-width:520px){#fbtq-helper-root{right:12px;bottom:12px}.fbtq-panel{width:min(375px,calc(100vw - 24px))}#fbtq-helper-toggle{min-height:44px;padding-right:12px}}
+
+.fbtq-metric-preview{display:block;max-height:360px;overflow:auto}.fbtq-preview-table{border-collapse:collapse;font-size:10px;margin-top:8px;min-width:1300px}.fbtq-preview-table th,.fbtq-preview-table td{padding:7px 10px;border:1px solid #dfe7f2;text-align:left;vertical-align:top;white-space:pre-line;min-width:100px;max-width:260px}.fbtq-preview-table th{background:#edf3ff;position:sticky;top:0}.fbtq-preview-table td:nth-child(2){min-width:220px}
