@@ -36,3 +36,18 @@ PDF tối đa 5 MB, theo giới hạn form hiện có. PDF scan dạng ảnh có
 - Dữ liệu chỉ được gửi tới website FBTQ sau khi bạn bấm gửi. Nếu website chưa đăng nhập, dữ liệu chờ cục bộ trong Chrome extension cho tới khi trang sẵn sàng.
 - Extension không đọc mật khẩu, không gọi Meta Marketing API và không gửi dữ liệu tới dịch vụ bên ngoài website FBTQ.
 - Meta thường thay đổi cấu trúc giao diện; một số tên cột hoặc liên kết tải PDF có thể cần thao tác thủ công. Luôn đối chiếu số liệu trước khi lưu.
+
+## Cập nhật 2.6.5
+
+Ánh xạ các cột Meta sang chi tiết báo cáo:
+
+| Meta Ads Manager | Báo cáo hàng ngày |
+| --- | --- |
+| Chiến dịch | Bài chạy |
+| Phân phối | Trạng thái |
+| Kết quả | Số Mess |
+| Chi phí mỗi kết quả | Giá mess TB |
+| Ngân sách | Ngân sách |
+| Số tiền đã chi tiêu | Chi tiêu thực tế/ngày |
+
+Giá mess TB lấy trực tiếp từ Chi phí mỗi kết quả, kể cả khi kết quả Meta là tương tác hoặc ThruPlay. Số liệu thuộc khoảng ngày đang chọn trên Meta; chọn một ngày nếu dùng cho báo cáo ngày. Cần cập nhật cả app.js của website và tải lại extension phiên bản 2.6.5.

@@ -9,7 +9,7 @@
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
-          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Kết quả → Số Mess.</p>
+          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
           <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi mục đã chọn vào Báo cáo <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
         </div>
         <div id="fbtq-invoice-view" hidden>
@@ -44,7 +44,7 @@
   let lastScanInfo = { headers: [], rows: 0, selected: 0 };
 
   function numberFrom(value) {
-    let text = normalize(value).replace(/−/g, '-').replace(/[^\d.,kmbKMB-]/g, '');
+    let text = normalize(value).match(/-?\d[\d.,]*(?:\s*[kmb](?=\s|$))?/i)?.[0]?.replace(/\s/g, '') || '';
     if (!text || text === '-') return null;
     const multiplier = /k$/i.test(text) ? 1e3 : /m$/i.test(text) ? 1e6 : /b$/i.test(text) ? 1e9 : 1;
     text = text.replace(/[kmb]$/i, '');
@@ -182,7 +182,7 @@
       { field: 'reach', labels: ['reach','người tiếp cận'] },
       { field: 'results', labels: ['results','kết quả'] },
       { field: 'resultIndicator', labels: ['result indicator','chỉ báo kết quả'] },
-      { field: 'costPerResult', labels: ['cost per result','chi phí trên mỗi kết quả'] },
+      { field: 'costPerResult', labels: ['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'] },
       { field: 'newMessagingContacts', labels: ['new messaging contacts','người liên hệ nhắn tin mới'] },
       { field: 'costPerNewMessagingContact', labels: ['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'] },
       { field: 'messagingConversationsStarted', labels: ['messaging conversations started','lượt bắt đầu cuộc trò chuyện qua tin nhắn'] },
@@ -312,7 +312,8 @@
         messagingConversationsStarted, costPerMessagingConversationStart: numberFrom(value('costPerMessagingConversationStart')),
         originalResults: numberFrom(value('originalResults')), originalResultIndicator: value('originalResultIndicator'),
         attributionSetting: value('attributionSetting') || '', adSetEnd: value('adSetEnd') || '',
-        dailyMessages: resultCount ?? newMessagingContacts ?? messagingConversationsStarted,
+        dailyMessages: resultCount,
+        dailyAvgMessageCost: numberFrom(value('costPerResult')),
         source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
       });
     }
@@ -358,7 +359,7 @@
         reach: numberFrom(cellValue(headers,cells,['reach','người tiếp cận'])),
         results: resultCount,
         resultIndicator: cellValue(headers,cells,['result indicator','chỉ báo kết quả']),
-        costPerResult: numberFrom(cellValue(headers,cells,['cost per result','chi phí trên mỗi kết quả'])),
+        costPerResult: numberFrom(cellValue(headers,cells,['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'])),
         newMessagingContacts,
         costPerNewMessagingContact: numberFrom(cellValue(headers,cells,['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'])),
         messagingConversationsStarted,
@@ -367,7 +368,8 @@
         originalResultIndicator: cellValue(headers,cells,['original result indicator','chỉ báo kết quả ban đầu']),
         attributionSetting: cellValue(headers,cells,['attribution setting','cài đặt ghi nhận']),
         adSetEnd: cellValue(headers,cells,['end','kết thúc']),
-        dailyMessages: resultCount ?? newMessagingContacts ?? messagingConversationsStarted,
+        dailyMessages: resultCount,
+        dailyAvgMessageCost: numberFrom(cellValue(headers,cells,['cost per result','chi phí mỗi kết quả','chi phí trên mỗi kết quả'])),
         source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
       };
       output.push(item);
@@ -394,7 +396,7 @@
       const details = document.createElement('small');
       const displayNumber = value => value === null || value === undefined || value === '' ? '—' : Number(value).toLocaleString('vi-VN');
       details.className = 'fbtq-preview-details';
-      details.textContent = `Phân phối: ${item.delivery || item.status || '—'} · Ngân sách: ${displayNumber(item.budget)} · Chi tiêu: ${displayNumber(item.spend)} · Hiển thị: ${displayNumber(item.impressions)} · Tiếp cận: ${displayNumber(item.reach)}`;
+      details.textContent = `Phân phối: ${item.delivery || item.status || '—'} · Ngân sách: ${displayNumber(item.budget)} · Chi tiêu: ${displayNumber(item.spend)} · Giá mess TB: ${displayNumber(item.dailyAvgMessageCost)}`;
       line.append(name, messages);
       preview.append(line, details);
     });
