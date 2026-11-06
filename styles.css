@@ -271,3 +271,10 @@ body.dark .speech-error-heading{color:#ffc19f}
 body.dark .speech-error-heading>span{background:#4a3428;color:#ffc19f}
 body.dark .speech-inline-error code{background:#202f44;color:#d6dfec}
 body.dark .speech-inline-error details{border-color:#574439}
+
+.studio-nav-panel{margin-bottom:14px;padding:0;overflow:hidden}
+.studio-nav-panel .editor-tabs{border-bottom:0}
+.speech-workspace-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0 2px}
+.speech-workspace-heading h2{margin:4px 0;color:var(--ink);font:750 17px Manrope,sans-serif}
+.speech-workspace-heading p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:600px){.speech-workspace-heading{align-items:flex-start;flex-direction:column;gap:9px}.speech-workspace-heading h2{font-size:15px}}

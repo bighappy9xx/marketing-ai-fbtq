@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261106-shared-firebase-config">
+  <link rel="stylesheet" href="styles.css?v=20261106-studio-unified">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -43,8 +43,7 @@
       <div class="nav-label">WORKSPACE</div><nav class="main-nav">
         <button class="nav-item active" data-page="overview"><span class="nav-icon">◫</span>Tổng quan</button>
         <button class="nav-item" data-page="analytics"><span class="nav-icon">◩</span>Hiệu suất marketing</button><button class="nav-item nav-item-ranking" data-page="leaderboard"><span class="nav-icon">↗</span>Xếp hạng &amp; so sánh nhân sự</button>
-        <button class="nav-item" data-page="content"><span class="nav-icon">✳</span>Studio nội dung <span class="nav-badge">AI</span></button>
-        <button class="nav-item" data-page="speech"><span class="nav-icon">♫</span>Giọng đọc AI</button>
+        <button class="nav-item" data-page="content"><span class="nav-icon">✳</span>Studio Nội Dung <span class="nav-badge">AI</span></button>
         <button class="nav-item" data-page="tasks"><span class="nav-icon">☷</span>Công việc <span class="count-badge" id="taskNavCount">0</span></button>
         <button class="nav-item" data-page="automation"><span class="nav-icon">⟳</span>Tự động hoá</button>
         <button class="nav-item" data-page="inbox"><span class="nav-icon">◌</span>Chatbot AI <span class="live-dot"></span></button>
@@ -65,17 +64,18 @@
 
         <section class="page" id="page-content">
           <div class="page-heading">
-            <div><div class="eyebrow">AI CONTENT STUDIO</div><h1>Studio nội dung</h1><p class="muted">Tạo nội dung theo yêu cầu, dùng mẫu đã duyệt và quản lý bản nháp.</p></div>
+            <div><div class="eyebrow">AI CONTENT STUDIO</div><h1>Studio Nội Dung</h1><p class="muted">Tạo nội dung AI, quản lý bản nháp và chuyển văn bản thành giọng đọc.</p></div>
             <button class="btn btn-secondary" id="openDrafts">▤ Bản nháp <span class="draft-count" id="draftCount">0</span></button>
           </div>
-          <div class="content-layout">
+          <div class="panel studio-nav-panel"><div class="editor-tabs" role="tablist" aria-label="Studio Nội Dung">
+            <button class="selected" data-editor-tab="create" role="tab" aria-selected="true">✳ Tạo nội dung</button>
+            <button data-editor-tab="templates" role="tab" aria-selected="false">▧ Mẫu đã duyệt</button>
+            <button data-editor-tab="drafts" role="tab" aria-selected="false">◷ Bản nháp</button>
+            <button data-editor-tab="speech" role="tab" aria-selected="false">♫ Giọng đọc</button>
+          </div></div>
+          <div class="content-layout" id="contentWorkspace">
             <div class="content-main">
               <div class="panel content-editor">
-                <div class="editor-tabs" role="tablist" aria-label="Studio nội dung">
-                  <button class="selected" data-editor-tab="create" role="tab" aria-selected="true">✳ Tạo nội dung</button>
-                  <button data-editor-tab="templates" role="tab" aria-selected="false">▧ Mẫu đã duyệt</button>
-                  <button data-editor-tab="drafts" role="tab" aria-selected="false">◷ Bản nháp</button>
-                </div>
                 <div id="createTab" class="editor-content">
                   <div class="editor-label-row"><label for="contentPrompt">Ý tưởng hoặc prompt của bạn</label><span class="optional-label">MÔ TẢ CÀNG RÕ, KẾT QUẢ CÀNG TỐT</span></div>
                   <textarea id="contentPrompt" placeholder="Mô tả mục tiêu, khách hàng, thông điệp và thông tin cần đưa vào nội dung..."></textarea>
@@ -93,11 +93,8 @@
             </div>
             <aside class="content-aside"><div class="panel approval-queue"><div class="panel-heading"><div><h3>Chờ duyệt</h3><p class="muted">Nội dung gửi quản lý</p></div><span class="count-badge" id="contentQueueCount">0</span></div><div id="contentQueueList"><p class="muted">Chưa có nội dung chờ duyệt.</p></div><button class="text-button" data-goto="people">Xem hàng chờ duyệt →</button></div></aside>
           </div>
-        </section>
-
-        <section class="page" id="page-speech">
-          <div class="page-heading speech-page-heading"><div><div class="eyebrow">AI VOICE STUDIO</div><h1>Chuyển văn bản thành giọng đọc</h1><p class="muted">Dán nội dung, chọn giọng phù hợp, sau đó nghe thử hoặc tải tệp âm thanh.</p></div><span class="speech-engine-badge"><i>✦</i> Gemini · Firebase AI Logic</span></div>
-          <div class="speech-layout">
+          <div class="speech-layout hidden" id="speechTab">
+            <div class="speech-workspace-heading"><div><div class="eyebrow">AI VOICE STUDIO</div><h2>Chuyển văn bản thành giọng đọc</h2><p class="muted">Dán nội dung, chọn giọng phù hợp, sau đó nghe thử hoặc tải tệp âm thanh.</p></div><span class="speech-engine-badge"><i>✦</i> Gemini · Firebase AI Logic</span></div>
             <section class="panel speech-editor-panel">
               <div class="speech-section-heading"><span class="speech-step">1</span><div><h2>Văn bản cần đọc</h2><p>Nhập tối đa 1.800 ký tự cho mỗi lần tạo.</p></div></div>
               <label class="speech-field-label" for="speechText">Nội dung</label>
@@ -145,7 +142,7 @@
   </div>
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
-  <script src="firebase-config.js?v=20261106-shared-firebase-config"></script>
-  <script type="module" src="app.js?v=20261106-shared-firebase-config"></script>
+  <script src="firebase-config.js?v=20261106-studio-unified"></script>
+  <script type="module" src="app.js?v=20261106-studio-unified"></script>
 </body>
 </html>
