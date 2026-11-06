@@ -556,3 +556,42 @@ body.dark .meta-invoice-validation.success{border-color:#2d543e;background:#1e33
 @media(max-width:1000px){#page-automation .meta-vat-heading{flex-direction:column}#page-automation .meta-vat-filters{justify-content:flex-start}}
 @media(max-width:680px){#page-automation .meta-vat-report{padding:13px}#page-automation .meta-vat-filters{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#page-automation .meta-vat-filters label,#page-automation .meta-vat-filters input,#page-automation .meta-vat-filters select{width:100%;min-width:0}#page-automation .meta-vat-totals{grid-template-columns:1fr}#page-automation .meta-vat-totals article{min-height:65px}#page-automation .meta-vat-statuses{grid-template-columns:repeat(2,minmax(0,1fr))}.meta-invoice-upload-box{grid-template-columns:1fr}.meta-invoice-file-button{width:100%}.meta-invoice-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.meta-invoice-fields .meta-invoice-note{grid-column:1/-1}}
 @media(max-width:420px){.meta-invoice-fields{grid-template-columns:1fr}.meta-invoice-fields .meta-invoice-note{grid-column:auto}}
+
+/* Spreadsheet style daily marketing report */
+.daily-report-modal{width:min(1560px,96vw);max-height:94vh}
+.daily-report-modal .modal-head{position:sticky;top:0;z-index:2;background:var(--surface)}
+.daily-report-modal .modal-body{padding:15px 17px}
+.daily-report-modal .modal-foot{position:sticky;bottom:0;z-index:2;background:var(--surface)}
+.daily-sheet-intro{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:9px;padding:12px 14px;border:1px solid #dce7fb;border-radius:10px;background:color-mix(in srgb,var(--blue-pale) 38%,var(--surface))}
+.daily-sheet-intro>div{display:grid;gap:6px;min-width:180px}.daily-sheet-intro b,.daily-sheet-toolbar>b{font-size:11px;color:var(--ink)}
+.daily-sheet-intro input{height:37px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:11px}
+.daily-sheet-intro>span,.daily-sheet-help{color:var(--muted);font-size:10px;line-height:1.5}
+.daily-sheet-help{margin:0 0 12px}
+.daily-sheet-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.daily-sheet-scroll{max-height:43vh;overflow:auto;border:1px solid var(--line);border-radius:9px;overscroll-behavior:contain}
+.daily-report-sheet{width:100%;min-width:1700px;border-collapse:separate;border-spacing:0;background:var(--surface);font-size:10px}
+.daily-report-sheet th{position:sticky;top:0;z-index:1;background:#fff5a6;color:#4e5665;padding:9px 8px;text-align:left;white-space:nowrap;border-bottom:1px solid #e5d85b}
+.daily-report-sheet td{vertical-align:top;padding:7px;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.daily-report-sheet tr:last-child td{border-bottom:0}.daily-report-sheet th:last-child,.daily-report-sheet td:last-child{width:42px;border-right:0}
+.daily-report-sheet .daily-sheet-cell{display:grid;gap:4px;min-width:88px;margin:0 0 5px;color:var(--muted);font-size:9px;font-weight:700}
+.daily-report-sheet .daily-sheet-cell:last-child{margin-bottom:0}
+.daily-report-sheet .daily-sheet-cell input{width:100%;height:34px;min-width:88px;padding:0 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:10px;outline:none}
+.daily-report-sheet .daily-sheet-cell input:focus,.daily-sheet-intro input:focus,.daily-sheet-manual textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 16%,transparent)}
+.daily-report-sheet td:first-child .daily-sheet-cell{min-width:160px}.daily-report-sheet td:nth-child(14) .daily-sheet-cell{min-width:205px}
+.daily-sheet-remove{width:32px;height:32px;border:0;border-radius:7px;background:#fff0f1;color:#cd4e59;font-size:19px;cursor:pointer}
+.daily-sheet-bottom{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(240px,.8fr);gap:12px;margin-top:13px}
+.daily-sheet-bottom section{min-width:0;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.daily-sheet-bottom h4{margin:0 0 10px;color:var(--ink);font:700 11px Manrope}
+.daily-sheet-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.daily-sheet-totals>div{display:grid;gap:5px;min-height:53px;padding:9px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--canvas) 55%,var(--surface))}
+.daily-sheet-totals span{color:var(--muted);font-size:9px}.daily-sheet-totals b{color:var(--ink);font-size:11px;overflow-wrap:anywhere}
+.daily-sheet-totals .daily-sheet-total-highlight{background:var(--blue-pale);border-color:#cadbff}.daily-sheet-total-highlight b{color:var(--blue)}
+.daily-sheet-manual{display:grid;align-content:start;gap:8px}
+.daily-sheet-manual .daily-sheet-cell{display:grid;gap:5px;margin:0;color:var(--muted);font-size:9px;font-weight:700}
+.daily-sheet-manual input,.daily-sheet-manual textarea{width:100%;min-height:36px;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:10px}
+.daily-sheet-manual textarea{min-height:66px;resize:vertical}
+body.dark .daily-sheet-intro{background:#1d2d43;border-color:#34445a}body.dark .daily-report-sheet th{background:#554f27;color:#f2e8ad;border-color:#6c6330}body.dark .daily-sheet-remove{background:#462d38;color:#ff9aa2}body.dark .daily-sheet-totals .daily-sheet-total-highlight{background:#263a57;border-color:#344c70}
+@media(max-width:760px){.daily-report-modal{width:96vw}.daily-sheet-intro{align-items:stretch;flex-direction:column}.daily-sheet-intro>span{line-height:1.6}.daily-sheet-scroll{max-height:42vh}.daily-sheet-bottom{grid-template-columns:1fr}.daily-sheet-totals{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-sheet-toolbar .btn{min-height:38px}.daily-report-modal .modal-foot .btn{min-height:42px}}
+.daily-sheet-row-mark{display:grid;width:28px;height:28px;place-items:center;border-radius:7px;background:var(--blue-pale);color:var(--blue);font-size:10px;font-weight:800}
+.daily-report-sheet{min-width:1900px}.daily-report-sheet td:first-child .daily-sheet-cell,.daily-report-sheet td:nth-child(2) .daily-sheet-cell{min-width:150px}.daily-report-sheet td:nth-child(15) .daily-sheet-cell,.daily-report-sheet td:nth-child(16) .daily-sheet-cell{min-width:180px}
+.daily-report-sheet td:nth-child(14) .daily-sheet-cell{min-width:88px}

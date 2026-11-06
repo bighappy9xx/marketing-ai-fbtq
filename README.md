@@ -8,6 +8,15 @@ Website quản trị marketing dạng file tĩnh, không cần bước build. Gi
 
 Các tệp giao diện chính: `index.html`, `styles.css`, `app.js`, `firebase-config.js`.
 
+### Báo cáo quảng cáo hàng ngày
+
+1. Vào **Hiệu suất marketing** và nhập tệp CSV/JSON như bình thường.
+2. Bấm **Báo cáo hàng ngày**. Bảng sẽ lấy các dòng của chính tài khoản đang đăng nhập trong kỳ đang chọn, tự điền tài khoản quảng cáo, chiến dịch, trạng thái, ngân sách, chi tiêu và các chỉ số tin nhắn có trong tệp.
+3. Kiểm tra ngày báo cáo, bổ sung SĐT/doanh thu và các thông tin còn thiếu, rồi bấm **Lưu báo cáo**. Tổng chi tiêu, số Mess, doanh thu, ngưỡng còn và KPI tháng được tính ngay trên bảng.
+
+Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ cập nhật bản ghi doanh thu hiện tại thay vì cộng lặp vào bảng xếp hạng. Những cột không có trong tệp được để trống để nhân viên xác nhận thủ công.
+
+
 ## Triển khai Firebase Hosting
 
 1. Tạo Firebase project và Web App. Bật **Authentication → Email/Password** và **Cloud Firestore**. Trong **Authentication → Settings → Authorized domains**, thêm `bighappy9xx.github.io` (chỉ tên miền, không thêm `/marketing-ai-fbtq`).
