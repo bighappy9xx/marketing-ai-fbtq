@@ -473,3 +473,12 @@ body.dark #page-tasks .task-history-search input{border-color:#34455b;background
 #page-tasks .task-toolbar{flex-wrap:wrap}
 #page-tasks .task-tabs{max-width:100%;overflow-x:auto}
 #page-tasks .task-filter-tools{margin-left:auto}
+/* More generous date range controls in the task toolbar */
+#page-tasks .task-date-range{display:grid;grid-template-columns:minmax(145px,1fr) minmax(145px,1fr) auto;align-items:end;gap:12px;width:min(470px,100%);min-width:430px;padding:10px 11px}
+#page-tasks .task-date-range label{gap:6px;min-width:0;color:#6f7f96;font-size:10px;font-weight:700}
+#page-tasks .task-date-range input{display:block;width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid #dce4ef;border-radius:8px;background:#fff;color:#40516a;font-size:12px;outline:none;transition:border-color .16s,box-shadow .16s}
+#page-tasks .task-date-range input:focus{border-color:#8fb1f7;box-shadow:0 0 0 3px #3978f615}
+#page-tasks .task-clear-dates{height:38px;padding:0 12px;font-size:10px}
+body.dark #page-tasks .task-date-range input{border-color:#3a4c64;background:#1a293c;color:#dce6f3}
+body.dark #page-tasks .task-date-range input:focus{border-color:#6f95d2;box-shadow:0 0 0 3px #6795e51f}
+@media(max-width:680px){#page-tasks .task-date-range{grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;min-width:0;padding:10px;gap:9px}#page-tasks .task-date-range input{height:40px;padding:0 7px;font-size:10px}#page-tasks .task-clear-dates{grid-column:1/-1;width:100%;height:38px}}
