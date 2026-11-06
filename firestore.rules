@@ -74,6 +74,63 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.revenue == request.resource.data.revenue
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.createdBy == request.auth.uid;
       }
+      function validInvoice() {
+        return request.resource.data.keys().hasAll(['invoiceNumber','customer','item','quantity','unitPrice','total','createdBy','createdAt'])
+          && request.resource.data.keys().hasOnly(['id','invoiceNumber','customer','taxId','item','quantity','unitPrice','total','note','issueDate','status','createdBy','createdByName','employee','createdAt','updatedAt','updatedBy','documentType','provider','supplier','supplierTaxId','employeeName','accountHolderName','department','metaInvoiceNumber','adAccountId','transactionIds','invoiceDate','billingPeriod','taxPeriod','amountBeforeVat','vatAmount','vatRate','pdfFileName','attachmentChunkCount','attachmentSize','attachmentMimeType'])
+          && request.resource.data.customer is string
+          && request.resource.data.item is string
+          && request.resource.data.quantity is int
+          && request.resource.data.unitPrice is number
+          && request.resource.data.total is number
+          && request.resource.data.total >= 0
+          && (!request.resource.data.keys().hasAny(['documentType']) || (
+            request.resource.data.documentType == 'meta_ads'
+            && request.resource.data.provider is string
+            && request.resource.data.supplier is string
+            && request.resource.data.employeeName is string
+            && request.resource.data.accountHolderName is string
+            && request.resource.data.department is string
+            && request.resource.data.adAccountId is string
+            && request.resource.data.transactionIds is string
+            && request.resource.data.invoiceDate is string
+            && request.resource.data.invoiceDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+            && request.resource.data.billingPeriod is string
+            && request.resource.data.taxPeriod is string
+            && request.resource.data.taxPeriod.matches('^[0-9]{4}-Q[1-4]$')
+            && request.resource.data.amountBeforeVat is number
+            && request.resource.data.vatAmount is number
+            && request.resource.data.vatRate is number
+            && request.resource.data.pdfFileName is string
+            && request.resource.data.attachmentChunkCount is int
+            && request.resource.data.attachmentChunkCount > 0
+            && request.resource.data.attachmentChunkCount <= 13
+            && request.resource.data.attachmentSize is int
+            && request.resource.data.attachmentSize > 0
+            && request.resource.data.attachmentSize <= 5242880
+            && request.resource.data.attachmentMimeType == 'application/pdf'
+          ));
+      }
+      function validInvoiceFileChunk() {
+        return request.resource.data.keys().hasAll(['invoiceId','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && request.resource.data.keys().hasOnly(['invoiceId','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && request.resource.data.invoiceId is string
+          && request.resource.data.chunkIndex is int
+          && request.resource.data.chunkCount is int
+          && request.resource.data.chunkCount > 0
+          && request.resource.data.chunkCount <= 13
+          && request.resource.data.chunkIndex >= 0
+          && request.resource.data.chunkIndex < request.resource.data.chunkCount
+          && request.resource.data.base64 is string
+          && request.resource.data.base64.size() <= 600000
+          && request.resource.data.base64.matches('^[A-Za-z0-9+/]+={0,2}$')
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.createdAt is string
+          && existsAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.createdBy == request.auth.uid
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.documentType == 'meta_ads'
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.attachmentChunkCount == request.resource.data.chunkCount;
+      }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
         collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
@@ -86,6 +143,7 @@ service cloud.firestore {
         || collection == 'messages' && (manager() || resource.data.ownerUid == request.auth.uid)
         || collection == 'contentTemplates' && (manager() || resource.data.status == 'approved')
         || collection == 'invoices' && (manager() || owns())
+        || collection == 'invoiceFiles' && (manager() || resource.data.ownerUid == request.auth.uid)
       );
 
       allow create: if signedIn() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
@@ -95,11 +153,8 @@ service cloud.firestore {
         || collection == 'contentTemplates' && (request.resource.data.status == 'pending' || manager() && request.resource.data.status == 'approved')
         || collection == 'tasks' && manager()
         || collection == 'campaigns'
-        || collection == 'invoices' && request.resource.data.status == 'pending'
-          && request.resource.data.keys().hasAll(['invoiceNumber','customer','item','quantity','unitPrice','total','createdBy','createdAt'])
-          && request.resource.data.customer is string && request.resource.data.item is string
-          && request.resource.data.quantity is int && request.resource.data.unitPrice is number && request.resource.data.total is number
-          && request.resource.data.keys().hasOnly(['id','invoiceNumber','customer','taxId','item','quantity','unitPrice','total','note','issueDate','status','createdBy','createdByName','createdAt','updatedAt','updatedBy'])
+        || collection == 'invoices' && request.resource.data.status == 'pending' && validInvoice()
+        || collection == 'invoiceFiles' && validInvoiceFileChunk()
         || collection in ['settings', 'invitations'] && manager()
       );
 
