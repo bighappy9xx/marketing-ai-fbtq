@@ -279,19 +279,24 @@ body.dark .speech-inline-error details{border-color:#574439}
 .speech-workspace-heading p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:600px){.speech-workspace-heading{align-items:flex-start;flex-direction:column;gap:9px}.speech-workspace-heading h2{font-size:15px}}
 
-/* Secondary voice tool menu, separated from the three primary studio tabs */
-.studio-voice-nav-wrap{margin:-4px 0 14px}
-.studio-voice-nav{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:left;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s,transform .18s}
-.studio-voice-nav:hover{transform:translateY(-1px);border-color:#c6d5fb;box-shadow:0 6px 18px #253c650a}
-.studio-voice-nav.selected{border-color:#a9c2ff;background:linear-gradient(95deg,color-mix(in srgb,var(--blue-pale) 70%,var(--surface)),var(--surface) 72%);box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 8%,transparent)}
-.studio-voice-nav-icon{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#f1ebff;color:#8059db;font-size:18px}
-.studio-voice-nav-copy{min-width:0;display:grid;gap:4px}
-.studio-voice-nav-copy b{color:var(--ink);font-size:11px;font-weight:750}
-.studio-voice-nav-copy small{color:var(--muted);font-size:9px;line-height:1.4}
-.studio-voice-nav-action{display:flex;align-items:center;gap:8px;margin-left:auto;color:var(--blue);font-size:9px;font-weight:700;white-space:nowrap}
-.studio-voice-nav-action i{font-size:14px;font-style:normal;transition:transform .18s}
-.studio-voice-nav:hover .studio-voice-nav-action i,.studio-voice-nav.selected .studio-voice-nav-action i{transform:translateX(3px)}
-body.dark .studio-voice-nav{border-color:#34445a;background:var(--surface)}
-body.dark .studio-voice-nav.selected{border-color:#5d83cc;background:linear-gradient(95deg,#263a57,#202f44 72%)}
-body.dark .studio-voice-nav-icon{background:#342c50;color:#c6adff}
-@media(max-width:600px){.studio-voice-nav-wrap{margin-top:-5px}.studio-voice-nav{min-height:54px;padding:9px 10px;gap:9px}.studio-voice-nav-icon{width:32px;height:32px}.studio-voice-nav-action{gap:4px;font-size:8px}}
+/* Consistent card-style navigation for all Studio Nội Dung sections */
+.studio-section-nav-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.studio-section-nav{width:100%;min-height:66px;display:flex;align-items:center;gap:11px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:left;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s,transform .18s}
+.studio-section-nav:hover{transform:translateY(-1px);border-color:#c6d5fb;box-shadow:0 6px 18px #253c650a}
+.studio-section-nav.selected{border-color:#a9c2ff;background:linear-gradient(95deg,color-mix(in srgb,var(--blue-pale) 70%,var(--surface)),var(--surface) 72%);box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 8%,transparent)}
+.studio-section-nav-icon{flex:none;width:35px;height:35px;display:grid;place-items:center;border-radius:10px;font-size:16px}
+.section-icon-create{background:#edf3ff;color:#3978f6}.section-icon-voice{background:#f1ebff;color:#8059db}.section-icon-templates{background:#e8f7f0;color:#2d9a6b}.section-icon-drafts{background:#fff4e3;color:#c98a16}
+.studio-section-nav-copy{min-width:0;display:grid;gap:4px}
+.studio-section-nav-copy b{color:var(--ink);font-size:10px;font-weight:750}
+.studio-section-nav-copy small{color:var(--muted);font-size:9px;line-height:1.4}
+.studio-section-nav-action{display:flex;align-items:center;gap:7px;margin-left:auto;color:var(--blue);font-size:8px;font-weight:700;white-space:nowrap}
+.studio-section-nav-action i{font-size:13px;font-style:normal;transition:transform .18s}
+.studio-section-nav:hover .studio-section-nav-action i,.studio-section-nav.selected .studio-section-nav-action i{transform:translateX(3px)}
+.studio-section-count{flex:none;min-width:21px;height:21px;display:grid;place-items:center;padding:0 5px;border-radius:7px;background:var(--blue-pale);color:var(--blue);font-size:9px;font-weight:800}
+.studio-section-nav:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 38%,transparent);outline-offset:2px}
+body.dark .studio-section-nav{border-color:#34445a;background:var(--surface)}
+body.dark .studio-section-nav.selected{border-color:#5d83cc;background:linear-gradient(95deg,#263a57,#202f44 72%)}
+body.dark .section-icon-create{background:#263a57;color:#9dbbff}body.dark .section-icon-voice{background:#342c50;color:#c6adff}body.dark .section-icon-templates{background:#1e4039;color:#75d5ae}body.dark .section-icon-drafts{background:#463927;color:#ffcb79}
+body.dark .studio-section-count{background:#263a57;color:#a9c6ff}
+@media(max-width:800px){.studio-section-nav-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.studio-section-nav{transition:none}}

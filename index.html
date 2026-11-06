@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261106-studio-menu-clear">
+  <link rel="stylesheet" href="styles.css?v=20261106-studio-cards">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -64,19 +64,20 @@
 
         <section class="page" id="page-content">
           <div class="page-heading">
-            <div><div class="eyebrow">AI CONTENT STUDIO</div><h1>Studio Nội Dung</h1><p class="muted">Tạo nội dung AI, quản lý bản nháp và chuyển văn bản thành giọng đọc.</p></div>
-            <button class="btn btn-secondary" id="openDrafts">▤ Bản nháp <span class="draft-count" id="draftCount">0</span></button>
+            <div><div class="eyebrow">AI CONTENT STUDIO</div><h1>Studio Nội Dung</h1><p class="muted">Tạo nội dung AI, quản lý mẫu và bản nháp, hoặc chuyển văn bản thành giọng đọc.</p></div>
           </div>
-          <div class="panel studio-nav-panel"><div class="editor-tabs" role="tablist" aria-label="Studio Nội Dung">
-            <button class="selected" data-editor-tab="create" role="tab" aria-selected="true">✳ Tạo nội dung</button>
-            <button data-editor-tab="templates" role="tab" aria-selected="false">▧ Mẫu đã duyệt</button>
-            <button data-editor-tab="drafts" role="tab" aria-selected="false">◷ Bản nháp</button>
-          </div></div>
-          <div class="studio-voice-nav-wrap" role="tablist" aria-label="Công cụ giọng đọc">
-            <button class="studio-voice-nav" data-editor-tab="speech" role="tab" aria-selected="false" aria-controls="speechTab">
-              <span class="studio-voice-nav-icon">♫</span>
-              <span class="studio-voice-nav-copy"><b>Giọng đọc AI</b><small>Chuyển văn bản thành giọng nói bằng Gemini</small></span>
-              <span class="studio-voice-nav-action"><span id="voiceNavAction">Mở công cụ</span><i>→</i></span>
+          <div class="studio-section-nav-grid" role="tablist" aria-label="Các mục Studio Nội Dung">
+            <button class="studio-section-nav selected" data-editor-tab="create" role="tab" aria-selected="true" aria-controls="createTab">
+              <span class="studio-section-nav-icon section-icon-create">✳</span><span class="studio-section-nav-copy"><b>Tạo nội dung</b><small>Viết bài bằng AI theo ý tưởng hoặc prompt.</small></span><span class="studio-section-nav-action"><span class="studio-section-action-label">Đang mở</span><i>→</i></span>
+            </button>
+            <button class="studio-section-nav" data-editor-tab="speech" role="tab" aria-selected="false" aria-controls="speechTab">
+              <span class="studio-section-nav-icon section-icon-voice">♫</span><span class="studio-section-nav-copy"><b>Giọng đọc AI</b><small>Chuyển văn bản thành giọng nói bằng Gemini.</small></span><span class="studio-section-nav-action"><span class="studio-section-action-label">Mở mục</span><i>→</i></span>
+            </button>
+            <button class="studio-section-nav" data-editor-tab="templates" role="tab" aria-selected="false" aria-controls="templatesTab">
+              <span class="studio-section-nav-icon section-icon-templates">▧</span><span class="studio-section-nav-copy"><b>Mẫu đã duyệt</b><small>Dùng mẫu nội dung đã được quản lý thông qua.</small></span><span class="studio-section-nav-action"><span class="studio-section-action-label">Mở mục</span><i>→</i></span>
+            </button>
+            <button class="studio-section-nav" data-editor-tab="drafts" role="tab" aria-selected="false" aria-controls="draftsTab">
+              <span class="studio-section-nav-icon section-icon-drafts">◷</span><span class="studio-section-nav-copy"><b>Bản nháp</b><small>Tiếp tục xem và chỉnh sửa nội dung đã lưu.</small></span><span class="studio-section-count" id="draftCount">0</span><span class="studio-section-nav-action"><span class="studio-section-action-label">Mở mục</span><i>→</i></span>
             </button>
           </div>
           <div class="content-layout" id="contentWorkspace">
@@ -149,6 +150,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261106-studio-menu-clear"></script>
+  <script type="module" src="app.js?v=20261106-studio-cards"></script>
 </body>
 </html>
