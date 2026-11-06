@@ -42,6 +42,10 @@ Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ c�
 
 Hosting cần HTTPS để Firebase Authentication, clipboard và webhook hoạt động.
 
+## Extension Meta Helper
+
+Thư mục `extension/` chứa extension Chrome có logo Favicon. Sau khi cài lại/reload extension và tải lại các tab, mở Ads Manager rồi bấm **Gửi vào Báo cáo hàng ngày** để tự nhập chỉ số. Trên Billing/Payment activity, quét liên kết PDF hoặc chọn biên lai đã tải; extension mở form Upload Hóa Đơn Meta và website tự đọc PDF. Cần đăng nhập website trước khi dữ liệu được nhập; hãy kiểm tra báo cáo/hóa đơn rồi tự bấm lưu. Hướng dẫn cài chi tiết nằm trong `extension/README.md`.
+
 ## Tài khoản và phân quyền
 
 Mọi tài khoản đã đăng ký và đăng nhập Firebase đều vào được website; nếu chưa có hồ sơ Firestore, website tự tạo hồ sơ với vai trò **Nhân viên**. Rules giới hạn Nhân viên ở dữ liệu của chính họ: chỉ số quảng cáo theo `createdBy`, công việc được giao, báo cáo/bản nháp/đề xuất hóa đơn do họ tạo, và hội thoại thuộc Fanpage của họ. Giám đốc, Quản lý chi nhánh và Trưởng phòng có thể xem dữ liệu toàn công ty. Mẫu nội dung đã duyệt và cấu hình chatbot là tài nguyên dùng chung.
