@@ -150,7 +150,7 @@ exports.suggestReply = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSe
 exports.setUserRole = onCall({timeoutSeconds:30,memory:'256MiB'},async request=>{
   const auth=await requireDirector(request);const {uidOrEmail,uid,email,role}=request.data||{};
   const identifier=String(uidOrEmail||uid||email||'').trim();
-  if(!identifier||identifier.length>128||!['director','branch_manager','department_manager','employee'].includes(role))throw new HttpsError('invalid-argument','UID/email hoặc vai trò không hợp lệ.');
+  if(!identifier||identifier.length>128||!['director','branch_manager','department_manager','accountant','employee'].includes(role))throw new HttpsError('invalid-argument','UID/email hoặc vai trò không hợp lệ.');
   const lookupByEmail=identifier.includes('@');
   if(lookupByEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier))throw new HttpsError('invalid-argument','Email chưa đúng định dạng.');
   let user;try{user=lookupByEmail?await getAuth().getUserByEmail(identifier.toLowerCase()):await getAuth().getUser(identifier)}catch(error){if(error.code==='auth/invalid-uid'||error.code==='auth/invalid-email')throw new HttpsError('invalid-argument','UID hoặc email không hợp lệ.');throw new HttpsError('not-found','Không tìm thấy tài khoản trong Firebase Authentication. Hãy kiểm tra UID/email và đảm bảo người dùng đã đăng ký.')}
@@ -233,3 +233,5 @@ exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],tim
     return res.sendStatus(200);
   }catch(error){logger.error('Meta webhook event processing failed',{error:String(error)});return res.sendStatus(500)}
 });
+
+Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError }));

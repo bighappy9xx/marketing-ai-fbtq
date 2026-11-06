@@ -5,11 +5,18 @@ service cloud.firestore {
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function role() { return signedIn() ? profile().role : ''; }
     function director() { return role() == 'director'; }
+    function branch() {
+      return profile().get('branch', '') != '' ? profile().branch
+        : profile().get('branchName', '') != '' ? profile().branchName
+        : profile().get('branchId', '');
+    }
+    function department() { return profile().get('department', ''); }
     function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
     function self(uid) { return signedIn() && request.auth.uid == uid; }
 
     match /users/{uid} {
       allow create: if self(uid)
+        && request.resource.data.keys().hasOnly(['name','email','role','approved','createdAt'])
         && request.resource.data.role == 'employee'
         && request.resource.data.approved == true
         && request.resource.data.email == request.auth.token.email;
@@ -132,7 +139,9 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.attachmentChunkCount == request.resource.data.chunkCount;
       }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
-        collection == 'campaigns' && (manager() || owns())
+        collection == 'advanceInvoices' && (owns() || director() || role() == 'accountant' || role() == 'branch_manager' && branch() != '' && resource.data.branch == branch())
+        || collection == 'staffRequests' && (owns() || director() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
+        || collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
         || collection == 'revenueEntries'
         || collection == 'invitations' && manager()
@@ -147,7 +156,7 @@ service cloud.firestore {
       );
 
       allow create: if signedIn() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
-        collection in ['drafts', 'contentReviews', 'requests']
+        collection in ['drafts', 'contentReviews']
         || collection == 'dailyReports' && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
         || collection == 'revenueEntries' && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && (request.resource.data.status == 'pending' || manager() && request.resource.data.status == 'approved')
@@ -169,7 +178,7 @@ service cloud.firestore {
               || (request.resource.data.status != 'done'
                 && (!request.resource.data.keys().hasAny(['completedAt']) || request.resource.data.completedAt == null)))
         )
-        || collection in ['drafts','contentReviews','requests'] && (manager() || owns())
+        || collection in ['drafts','contentReviews'] && (manager() || owns())
         || collection == 'dailyReports' && owns() && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
         || collection == 'revenueEntries' && owns() && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && manager()
@@ -179,7 +188,7 @@ service cloud.firestore {
           && request.resource.data.status in ['approved','rejected']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
       );
-      allow delete: if signedIn() && inWorkspace() && collection != 'pages' && manager();
+      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests']) && manager();
     }
 
     // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.
