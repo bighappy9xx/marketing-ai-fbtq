@@ -9,8 +9,8 @@
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
-          <p class="fbtq-help"><b>1.</b> Trên Meta, tích ô vuông cạnh chiến dịch hoặc nhóm quảng cáo cần báo cáo. <b>2.</b> Bấm Quét mục đã chọn để kiểm tra. <b>3.</b> Bấm gửi để chuyển các dòng đó sang website.</p>
-          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi mục đã chọn vào Báo cáo <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div>
+          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Kết quả → Số Mess.</p>
+          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi mục đã chọn vào Báo cáo <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
         </div>
         <div id="fbtq-invoice-view" hidden>
           <div class="fbtq-section-title"><span class="fbtq-icon fbtq-icon-invoice">▤</span><div><b>Biên lai Meta PDF</b><small id="fbtq-pdf-count">Quét liên kết trên trang</small></div></div>
@@ -111,7 +111,7 @@
       });
       return { row, cells, fullText: elementText(row), selected: rowIsSelected(row) };
     });
-    const nameHeader = headerIndex(headers, ['ad set name','adset name','ad set','adset','tên nhóm quảng cáo','nhóm quảng cáo','bài chạy','campaign name','campaign','tên chiến dịch','chiến dịch','name']);
+    const nameHeader = headerIndex(headers, ['campaign name','tên chiến dịch','campaign','chiến dịch']);
     const spendHeader = headerIndex(headers, ['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu']);
     const score = (nameHeader >= 0 ? 100 : 0) + (spendHeader >= 0 ? 15 : 0) + Math.min(rows.length, 20) + Math.min(headers.length, 20);
     return { headers, rows, score, nameHeader };
@@ -132,8 +132,7 @@
   }
   function fallbackSelectedRows() {
     const headerSpecs = [
-      { field: 'adSet', labels: ['ad set name','adset name','bài chạy','tên nhóm quảng cáo','nhóm quảng cáo'] },
-      { field: 'campaign', labels: ['campaign name','tên chiến dịch','campaign','chiến dịch','bài chạy'] },
+      { field: 'campaign', labels: ['campaign name','tên chiến dịch','campaign','chiến dịch'] },
       { field: 'status', labels: ['phân phối','delivery','delivery status','status','trạng thái'] },
       { field: 'budget', labels: ['budget','ngân sách'] },
       { field: 'spend', labels: ['amount spent','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'] },
@@ -141,7 +140,6 @@
       { field: 'reach', labels: ['reach','người tiếp cận'] },
       { field: 'results', labels: ['results','kết quả'] },
       { field: 'costPerResult', labels: ['cost per result','chi phí trên mỗi kết quả'] },
-      { field: 'messages', labels: ['new messaging contacts','tin nhắn mới','số mess'] }
     ];
     const headerTerms = headerSpecs.flatMap(spec => spec.labels.map(key)).filter(term => term.length > 5);
     const minWidth = Math.max(500, innerWidth * 0.45);
@@ -241,15 +239,16 @@
       const linkedName = [...row.querySelectorAll('a,[role="link"]')].map(element => ({ text: elementText(element), rect: element.getBoundingClientRect() }))
         .filter(item => item.text.length > 3 && item.text.length < 180 && !excludedLink.test(item.text) && item.rect.width > 12 && Math.abs(item.rect.top + item.rect.height / 2 - centerY) < Math.max(22, bounds.height * 0.65) && item.rect.left < bounds.left + bounds.width * 0.55)
         .sort((a, b) => Math.abs(a.rect.top + a.rect.height / 2 - centerY) - Math.abs(b.rect.top + b.rect.height / 2 - centerY) || a.rect.left - b.rect.left)[0]?.text || '';
-      const name = (linkedName || value('adSet') || value('campaign') || cells.find(cell => /[a-zA-ZÀ-ỹ]/.test(cell.text) && !/^(on|off|active|paused|bật|tắt|đang chạy|đang tắt|đã tắt|bản nháp)$/i.test(cell.text) && !headerTerms.includes(key(cell.text)))?.text || '').split(/\n/)[0].trim();
+      const fallbackCampaign = /^(all conversions|tất cả lượt chuyển đổi|engagement|tương tác|lượt tương tác)$/i.test(linkedName) ? '' : linkedName;
+      const name = (value('campaign') || fallbackCampaign || '').split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
-      const messages = numberFrom(value('messages'));
+      const resultCount = numberFrom(value('results'));
       output.push({
         name, campaign: name, adSetName: name, account, platform: 'Facebook', status: value('status') || 'Đang chạy', delivery: value('status') || 'Đang chạy',
         budget: numberFrom(value('budget')), spend: numberFrom(value('spend')),
         impressions: numberFrom(value('impressions')), reach: numberFrom(value('reach')),
-        results: numberFrom(value('results')), costPerResult: numberFrom(value('costPerResult')),
-        dailyMessages: messages, newMessagingContacts: messages, source: 'Meta Ads Manager', reportAt, capturedAt: new Date().toISOString()
+        results: resultCount, costPerResult: numberFrom(value('costPerResult')),
+        dailyMessages: resultCount, newMessagingContacts: resultCount, messagingConversationsStarted: resultCount, source: 'Meta Ads Manager', reportAt, capturedAt: new Date().toISOString()
       });
     }
     lastScanInfo = { headers: [...detectedHeaders], rows: rows.length, selected: rows.length, metaSelectedCount };
@@ -273,15 +272,13 @@
     for (const { cells, fullText } of selectedRows) {
       if (cells.size < 1) continue;
       if (!fullText) continue;
-      const campaign = preferredCellValue(headers,cells,['tên chiến dịch','campaign name','campaign','chiến dịch']);
-      const adSet = preferredCellValue(headers,cells,['bài chạy','ad set name','adset name','ad set','adset','tên nhóm quảng cáo','nhóm quảng cáo']);
-      const fallbackName = [...cells.values()].find(value => value.length > 2 && !/^(on|off|active|paused|đang chạy|đã tắt|bản nháp)$/i.test(value) && !/^\d[\d., ]*$/.test(value));
-      const name = (adSet || campaign || fallbackName || '').split(/\n/)[0].trim();
+      const campaign = preferredCellValue(headers,cells,['campaign name','tên chiến dịch','campaign','chiến dịch']);
+      const name = campaign.split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads|chiến dịch|nhóm quảng cáo)$/i.test(name)) continue;
       const statusText = preferredCellValue(headers,cells,['phân phối','delivery','delivery status','trạng thái phân phối','status','trạng thái']);
-      const messaging = numberFrom(cellValue(headers,cells,['new messaging contacts','messaging conversations started','conversations started','tin nhắn mới','số mess']));
+      const resultCount = numberFrom(cellValue(headers,cells,['results','kết quả']));
       const item = {
-        id: cellValue(headers,cells,['ad set id','campaign id','id nhóm quảng cáo','id chiến dịch','id']),
+        id: cellValue(headers,cells,['campaign id','id chiến dịch','id']),
         name,
         campaign: name,
         adSetName: name,
@@ -293,11 +290,11 @@
         spend: numberFrom(cellValue(headers,cells,['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu'])),
         impressions: numberFrom(cellValue(headers,cells,['impressions','lượt hiển thị','hiển thị'])),
         reach: numberFrom(cellValue(headers,cells,['reach','người tiếp cận'])),
-        results: numberFrom(cellValue(headers,cells,['results','kết quả'])),
+        results: resultCount,
         resultIndicator: cellValue(headers,cells,['result indicator','chỉ báo kết quả']),
-        newMessagingContacts: numberFrom(cellValue(headers,cells,['new messaging contacts','người liên hệ nhắn tin mới'])),
-        messagingConversationsStarted: numberFrom(cellValue(headers,cells,['messaging conversations started','lượt bắt đầu cuộc trò chuyện'])),
-        dailyMessages: messaging,
+        newMessagingContacts: resultCount,
+        messagingConversationsStarted: resultCount,
+        dailyMessages: resultCount,
         dailyPhones: numberFrom(cellValue(headers,cells,['sđt/camp','phone leads','số điện thoại/camp'])),
         dailyPhoneRevenue: numberFrom(cellValue(headers,cells,['doanh thu sđt/camp','phone revenue'])),
         dailyKpi: numberFrom(cellValue(headers,cells,['kpi/ngày','daily kpi'])),
@@ -320,16 +317,42 @@
     const distinct = new Map(output.map(item => [item.id ? `id:${item.id}` : `${key(item.account)}|${key(item.name)}|${item.spend}`, item]));
     return distinct.size ? [...distinct.values()] : fallbackSelectedRows();
   }
+  function renderMetricPreview(rows) {
+    const preview = root.querySelector('#fbtq-metric-preview');
+    preview.replaceChildren();
+    preview.hidden = !rows.length;
+    if (!rows.length) return;
+    const title = document.createElement('b');
+    title.className = 'fbtq-preview-title';
+    title.textContent = 'Dữ liệu sắp chuyển';
+    preview.append(title);
+    rows.slice(0, 4).forEach(item => {
+      const line = document.createElement('div');
+      line.className = 'fbtq-preview-row';
+      const name = document.createElement('span');
+      name.textContent = item.campaign || item.name || 'Chưa đọc được tên chiến dịch';
+      const messages = document.createElement('strong');
+      messages.textContent = `Số Mess: ${item.dailyMessages ?? '—'}`;
+      line.append(name, messages);
+      preview.append(line);
+    });
+    if (rows.length > 4) {
+      const more = document.createElement('small');
+      more.textContent = `Và ${rows.length - 4} chiến dịch khác`;
+      preview.append(more);
+    }
+  }
   function collectMetrics() {
     lastRows = rowsFromTable();
+    renderMetricPreview(lastRows);
     const headerSummary = lastScanInfo.headers.slice(0, 8).join(' · ');
     count.textContent = lastScanInfo.selected ? `${lastScanInfo.selected} hàng đã chọn · ${lastRows.length} hàng nhận diện` : lastScanInfo.metaSelectedCount ? `Meta đã chọn ${lastScanInfo.metaSelectedCount} mục · chưa đọc được hàng` : `${lastScanInfo.rows} hàng trong bảng · chưa chọn`;
     count.title = headerSummary ? `Các cột Meta được đọc: ${headerSummary}` : 'Chưa tìm thấy tiêu đề cột trên trang.';
     const message = lastRows.length
-      ? `Đã quét ${lastRows.length} dòng đã chọn. Số liệu sẽ mở trong Báo cáo hàng ngày; kiểm tra ngày và chỉ số trước khi lưu.`
+      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi gửi sang Báo cáo hàng ngày.`
       : !lastScanInfo.selected
-        ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ bảng Chiến dịch/ Nhóm quảng cáo đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch/nhóm quảng cáo nào được tích chọn. Tích ô vuông bên trái các dòng trên Meta, sau đó bấm Quét mục đã chọn.' : 'Meta chưa hiển thị bảng chiến dịch. Chọn tab Chiến dịch hoặc Nhóm quảng cáo, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
-        : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa đọc được tên chiến dịch. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng. Chọn tab Chiến dịch hoặc Nhóm quảng cáo rồi quét lại.';
+        ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ tab Chiến dịch đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch nào được tích chọn. Tích ô vuông bên trái các dòng trong tab Chiến dịch trên Meta, sau đó quét lại.' : 'Meta chưa hiển thị bảng Chiến dịch. Chọn tab Chiến dịch, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
+        : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa đọc được tên chiến dịch. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';
     setStatus(message, lastRows.length ? 'success' : 'warning');
     return lastRows;
   }
