@@ -11,12 +11,16 @@ Extension Chrome Manifest V3 để chuyển chỉ số quảng cáo và PDF biê
 
 ## Chuyển chỉ số vào Báo cáo hàng ngày
 
-1. Mở Meta Ads Manager, chọn tab **Campaigns/Chiến dịch**, chọn đúng tài khoản và kỳ báo cáo. Extension ánh xạ cột **Chiến dịch** của Meta thành **Bài chạy** trên website, và cột **Kết quả** thành **Số Mess**. Hãy bật các cột Chiến dịch, Kết quả, Phân phối, Ngân sách, Số tiền đã chi tiêu, Lượt hiển thị và Người tiếp cận để chuyển đủ chỉ số.
-2. Tích ô vuông ở đầu các dòng chiến dịch cần báo cáo trên Meta.
-3. Bấm nút nổi **Meta Helper**, chọn **Quét mục đã chọn** để kiểm tra số dòng, rồi bấm **Gửi mục đã chọn vào Báo cáo**.
-4. Extension mở website; nếu chưa đăng nhập, hãy đăng nhập. Sau khi Firebase tải dữ liệu, chỉ số được nhập và cửa sổ **Báo cáo hàng ngày** hiện ra. Kiểm tra ngày, số Mess, SĐT và doanh thu trước khi lưu.
+1. Mở Meta Ads Manager, chọn cấp **Chiến dịch** (không chọn đồng thời Nhóm quảng cáo hoặc Quảng cáo), đúng tài khoản và kỳ báo cáo. Bật các cột **Chiến dịch**, **Phân phối**, **Ngân sách**, **Số tiền đã chi tiêu**, **Kết quả**, **Lượt hiển thị** và **Người tiếp cận**.
+2. Tích ô vuông đầu các chiến dịch cần báo cáo.
+3. Mở **Meta Helper** → **Quét mục đã chọn**. Đối chiếu phần xem trước: tên chiến dịch, phân phối, ngân sách, chi tiêu, hiển thị, tiếp cận và số Mess. Chỉ gửi khi các giá trị khớp với bảng Meta.
+4. Bấm **Gửi mục đã chọn vào Báo cáo**. Extension chuyển dữ liệu qua hàng đợi của Chrome; website cần mở và đăng nhập để nhận, lưu Firebase rồi mở bảng **Báo cáo hàng ngày**. SĐT và doanh thu để trống nếu Meta không cung cấp trong các cột đã chọn.
 
-Meta Ads Manager chỉ tải một số hàng trong bảng cùng lúc. Nếu cần thêm hàng, cuộn bảng Meta để tải tiếp, tích chọn các dòng cần lấy rồi quét lại. Tiện ích chỉ gửi các dòng đã tích chọn. Nếu chưa nhận được dòng nào, hãy kiểm tra dấu tích ở ô vuông đầu hàng; chỉ chọn cấp Chiến dịch; không chọn Nhóm quảng cáo hoặc Quảng cáo để tránh lấy sai tên Bài chạy. Chỉ số được gắn với ngày hiện tại để mở đúng báo cáo ngày; hãy kiểm tra ngày và dữ liệu trước khi lưu.
+Ánh xạ được chuẩn hoá theo tệp CSV Meta: **Tên chiến dịch/Chiến dịch → Bài chạy**, **Lượt phân phối chiến dịch/Phân phối → Trạng thái**, **Kết quả → Số Mess**. Ngân sách, tiền đã chi, kết quả, lượt hiển thị, người tiếp cận và các chỉ số tin nhắn đọc theo tiêu đề cột, không theo vị trí cố định. Nếu ngân sách là dạng chữ (ví dụ dùng ngân sách chiến dịch), website giữ nội dung đó thay vì biến thành số 0. Số có dấu chấm phân cách hàng nghìn như `1.251` được hiểu là một nghìn hai trăm năm mươi mốt.
+
+Kỳ ngày đang chọn trên Meta được lưu cùng dữ liệu và **ngày báo cáo mặc định là ngày kết thúc kỳ đó**. Nếu dữ liệu chỉ dùng cho báo cáo một ngày, hãy chọn khoảng ngày một ngày trên Meta trước khi quét.
+
+Meta Ads Manager chỉ tải một số hàng trong bảng cùng lúc. Nếu cần thêm hàng, cuộn bảng Meta để tải tiếp, tích chọn các dòng cần lấy rồi quét lại. Tiện ích chỉ gửi dòng đã tích chọn. Nếu chưa nhận được dòng nào, hãy kiểm tra dấu tích ở ô đầu hàng và chờ bảng tải xong. Khi cài bản mới, mở `chrome://extensions`, bấm **Reload** trên extension rồi tải lại cả Meta Ads Manager và website FBTQ.
 
 ## Chuyển PDF hóa đơn Meta
 

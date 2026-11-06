@@ -54,6 +54,36 @@
     const parsed = Number(text) * multiplier;
     return Number.isFinite(parsed) ? parsed : null;
   }
+  function parseMetaDateRange(label) {
+    const text = normalize(label);
+    let match = text.match(/(\d{4}-\d{2}-\d{2})\s*(?:–|—|-|đến|to)\s*(\d{4}-\d{2}-\d{2})/i);
+    if (match) return { start: match[1], end: match[2] };
+    match = text.match(/(\d{1,2})\s+(?:tháng|thg)\s+(\d{1,2})(?:,?\s*(\d{4}))?\s*(?:–|—|-|đến|to)\s*(\d{1,2})\s+(?:tháng|thg)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+    if (match) {
+      const endYear = Number(match[6] || match[3]);
+      const startYear = Number(match[3] || endYear);
+      const iso = (day, month, year) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return { start: iso(match[1], match[2], startYear), end: iso(match[4], match[5], endYear) };
+    }
+    match = text.match(/([A-Za-z]{3,9})\s+(\d{1,2})(?:,?\s*(\d{4}))?\s*(?:–|—|-|to)\s*([A-Za-z]{3,9})\s+(\d{1,2})(?:,?\s*(\d{4}))?/i);
+    if (match) {
+      const year = Number(match[6] || match[3]);
+      const startDate = new Date(`${match[1]} ${match[2]}, ${match[3] || year}`);
+      const endDate = new Date(`${match[4]} ${match[5]}, ${match[6] || year}`);
+      if (Number.isFinite(startDate.getTime()) && Number.isFinite(endDate.getTime())) return { start: startDate.toISOString().slice(0, 10), end: endDate.toISOString().slice(0, 10) };
+    }
+    return { start: '', end: '' };
+  }
+  function activeReportRange() {
+    const controls = [...document.querySelectorAll('button,[role="button"],[aria-haspopup]')]
+      .filter(element => { const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; })
+      .map(elementText).filter(Boolean);
+    for (const label of controls) {
+      const range = parseMetaDateRange(label);
+      if (range.start && range.end) return range;
+    }
+    return parseMetaDateRange(document.body?.innerText || '');
+  }
   function headerIndex(headers, alternatives) {
     const aliases = alternatives.map(key).filter(Boolean);
     const exact = headers.find(header => aliases.includes(key(header.label)));
@@ -93,21 +123,32 @@
     const headerMap = new Map();
     headerElements.forEach((element, position) => {
       const label = elementText(element);
-      if (!label) return;
       const ariaIndex = Number(element.getAttribute('aria-colindex'));
       const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
-      if (!headerMap.has(index) || label.length > headerMap.get(index).label.length) headerMap.set(index, { index, label });
+      if (!headerMap.has(index) || label.length > headerMap.get(index).label.length) {
+        const rect = element.getBoundingClientRect();
+        headerMap.set(index, { index, label, centerX: rect.left + rect.width / 2, width: rect.width });
+      }
     });
-    const headers = [...headerMap.values()].sort((a, b) => a.index - b.index);
+    const allHeaders = [...headerMap.values()].sort((a, b) => a.index - b.index);
+    const headers = allHeaders.filter(header => header.label);
     const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => row.querySelector('[role="gridcell"],[role="cell"],td'));
     const rows = rowElements.map(row => {
       const cellElements = [...row.querySelectorAll('[role="gridcell"],[role="cell"],td')];
       const cells = new Map();
       cellElements.forEach((element, position) => {
         const ariaIndex = Number(element.getAttribute('aria-colindex'));
-        const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
         const value = elementText(element);
-        if (value && (!cells.has(index) || value.length > cells.get(index).length)) cells.set(index, value);
+        if (!value) return;
+        let index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : null;
+        if (index === null) {
+          const rect = element.getBoundingClientRect(), centerX = rect.left + rect.width / 2;
+          const nearest = allHeaders.filter(header => header.label && header.width > 0)
+            .map(header => ({ header, distance: Math.abs(header.centerX - centerX) }))
+            .sort((a, b) => a.distance - b.distance)[0];
+          index = nearest && nearest.distance <= Math.max(36, rect.width * 0.6) ? nearest.header.index : position;
+        }
+        if (!cells.has(index) || value.length > cells.get(index).length) cells.set(index, value);
       });
       return { row, cells, fullText: elementText(row), selected: rowIsSelected(row) };
     });
@@ -133,13 +174,25 @@
   function fallbackSelectedRows() {
     const headerSpecs = [
       { field: 'campaign', labels: ['campaign name','tên chiến dịch','campaign','chiến dịch'] },
-      { field: 'status', labels: ['phân phối','delivery','delivery status','status','trạng thái'] },
-      { field: 'budget', labels: ['budget','ngân sách'] },
-      { field: 'spend', labels: ['amount spent','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'] },
+      { field: 'status', labels: ['lượt phân phối chiến dịch','phân phối','delivery','delivery status','status','trạng thái'] },
+      { field: 'budget', labels: ['ngân sách nhóm quảng cáo','budget','ngân sách'] },
+      { field: 'budgetType', labels: ['loại ngân sách nhóm quảng cáo','budget type'] },
+      { field: 'spend', labels: ['số tiền đã chi tiêu (vnd)','amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'] },
       { field: 'impressions', labels: ['impressions','lượt hiển thị'] },
       { field: 'reach', labels: ['reach','người tiếp cận'] },
       { field: 'results', labels: ['results','kết quả'] },
+      { field: 'resultIndicator', labels: ['result indicator','chỉ báo kết quả'] },
       { field: 'costPerResult', labels: ['cost per result','chi phí trên mỗi kết quả'] },
+      { field: 'newMessagingContacts', labels: ['new messaging contacts','người liên hệ nhắn tin mới'] },
+      { field: 'costPerNewMessagingContact', labels: ['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'] },
+      { field: 'messagingConversationsStarted', labels: ['messaging conversations started','lượt bắt đầu cuộc trò chuyện qua tin nhắn'] },
+      { field: 'costPerMessagingConversationStart', labels: ['cost per messaging conversation start','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện qua tin nhắn (vnd)'] },
+      { field: 'originalResults', labels: ['original results','kết quả ban đầu'] },
+      { field: 'originalResultIndicator', labels: ['original result indicator','chỉ báo kết quả ban đầu'] },
+      { field: 'reportStart', labels: ['reporting starts','lượt bắt đầu báo cáo'] },
+      { field: 'reportEnd', labels: ['reporting ends','lượt kết thúc báo cáo'] },
+      { field: 'adSetEnd', labels: ['end','kết thúc'] },
+      { field: 'campaignId', labels: ['campaign id','id chiến dịch'] }
     ];
     const headerTerms = headerSpecs.flatMap(spec => spec.labels.map(key)).filter(term => term.length > 5);
     const minWidth = Math.max(500, innerWidth * 0.45);
@@ -224,6 +277,7 @@
     }
     const account = normalize(document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || new URL(location.href).searchParams.get('act') || 'Meta Ads');
     const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const reportRange = activeReportRange();
     const output = [];
     const detectedHeaders = new Set();
     for (const row of rows) {
@@ -243,12 +297,23 @@
       const name = (value('campaign') || fallbackCampaign || '').split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
       const resultCount = numberFrom(value('results'));
+      const newMessagingContacts = numberFrom(value('newMessagingContacts'));
+      const messagingConversationsStarted = numberFrom(value('messagingConversationsStarted'));
+      const delivery = value('status') || 'Đang chạy';
+      const rawBudget = value('budget'), rawBudgetType = value('budgetType');
+      const reportStart = value('reportStart') || reportRange.start;
+      const reportEnd = value('reportEnd') || reportRange.end;
       output.push({
-        name, campaign: name, adSetName: name, account, platform: 'Facebook', status: value('status') || 'Đang chạy', delivery: value('status') || 'Đang chạy',
-        budget: numberFrom(value('budget')), spend: numberFrom(value('spend')),
-        impressions: numberFrom(value('impressions')), reach: numberFrom(value('reach')),
-        results: resultCount, costPerResult: numberFrom(value('costPerResult')),
-        dailyMessages: resultCount, newMessagingContacts: resultCount, messagingConversationsStarted: resultCount, source: 'Meta Ads Manager', reportAt, capturedAt: new Date().toISOString()
+        id: value('campaignId'), name, campaign: name, adSetName: name, account, platform: 'Facebook',
+        status: delivery, delivery, budget: numberFrom(rawBudget), budgetType: rawBudgetType || (numberFrom(rawBudget) === null ? rawBudget : ''), spend: numberFrom(value('spend')),
+        impressions: numberFrom(value('impressions')), reach: numberFrom(value('reach')), results: resultCount,
+        resultIndicator: value('resultIndicator'), costPerResult: numberFrom(value('costPerResult')),
+        newMessagingContacts, costPerNewMessagingContact: numberFrom(value('costPerNewMessagingContact')),
+        messagingConversationsStarted, costPerMessagingConversationStart: numberFrom(value('costPerMessagingConversationStart')),
+        originalResults: numberFrom(value('originalResults')), originalResultIndicator: value('originalResultIndicator'),
+        attributionSetting: value('attributionSetting') || '', adSetEnd: value('adSetEnd') || '',
+        dailyMessages: resultCount ?? newMessagingContacts ?? messagingConversationsStarted,
+        source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
       });
     }
     lastScanInfo = { headers: [...detectedHeaders], rows: rows.length, selected: rows.length, metaSelectedCount };
@@ -268,6 +333,7 @@
     lastScanInfo = { headers: headers.map(header => header.label), rows: rows.length, selected: selectedRows.length };
     const account = normalize(document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || new URL(location.href).searchParams.get('act') || 'Meta Ads');
     const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const reportRange = activeReportRange();
     const output = [];
     for (const { cells, fullText } of selectedRows) {
       if (cells.size < 1) continue;
@@ -275,42 +341,34 @@
       const campaign = preferredCellValue(headers,cells,['campaign name','tên chiến dịch','campaign','chiến dịch']);
       const name = campaign.split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads|chiến dịch|nhóm quảng cáo)$/i.test(name)) continue;
-      const statusText = preferredCellValue(headers,cells,['phân phối','delivery','delivery status','trạng thái phân phối','status','trạng thái']);
+      const statusText = preferredCellValue(headers,cells,['lượt phân phối chiến dịch','phân phối','delivery','delivery status','trạng thái phân phối','status','trạng thái']);
       const resultCount = numberFrom(cellValue(headers,cells,['results','kết quả']));
+      const newMessagingContacts = numberFrom(cellValue(headers,cells,['new messaging contacts','người liên hệ nhắn tin mới']));
+      const messagingConversationsStarted = numberFrom(cellValue(headers,cells,['messaging conversations started','lượt bắt đầu cuộc trò chuyện qua tin nhắn']));
+      const reportStart = cellValue(headers,cells,['reporting starts','lượt bắt đầu báo cáo']) || reportRange.start;
+      const reportEnd = cellValue(headers,cells,['reporting ends','lượt kết thúc báo cáo']) || reportRange.end;
       const item = {
         id: cellValue(headers,cells,['campaign id','id chiến dịch','id']),
-        name,
-        campaign: name,
-        adSetName: name,
-        account,
-        platform: 'Facebook',
-        status: (statusText || 'Đang chạy').split('\n')[0],
-        delivery: (statusText || 'Đang chạy').split('\n')[0],
-        budget: numberFrom(cellValue(headers,cells,['budget','ngân sách'])),
-        spend: numberFrom(cellValue(headers,cells,['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu'])),
-        impressions: numberFrom(cellValue(headers,cells,['impressions','lượt hiển thị','hiển thị'])),
+        name, campaign: name, adSetName: name, account, platform: 'Facebook',
+        status: (statusText || 'Đang chạy').split('\n')[0], delivery: (statusText || 'Đang chạy').split('\n')[0],
+        budget: numberFrom(cellValue(headers,cells,['ngân sách nhóm quảng cáo','ngân sách','budget'])),
+        budgetType: cellValue(headers,cells,['loại ngân sách nhóm quảng cáo','budget type']) || (() => { const raw = cellValue(headers,cells,['ngân sách nhóm quảng cáo','ngân sách','budget']); return numberFrom(raw) === null ? raw : ''; })(),
+        spend: numberFrom(cellValue(headers,cells,['số tiền đã chi tiêu (vnd)','amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'])),
+        impressions: numberFrom(cellValue(headers,cells,['impressions','lượt hiển thị'])),
         reach: numberFrom(cellValue(headers,cells,['reach','người tiếp cận'])),
         results: resultCount,
         resultIndicator: cellValue(headers,cells,['result indicator','chỉ báo kết quả']),
-        newMessagingContacts: resultCount,
-        messagingConversationsStarted: resultCount,
-        dailyMessages: resultCount,
-        dailyPhones: numberFrom(cellValue(headers,cells,['sđt/camp','phone leads','số điện thoại/camp'])),
-        dailyPhoneRevenue: numberFrom(cellValue(headers,cells,['doanh thu sđt/camp','phone revenue'])),
-        dailyKpi: numberFrom(cellValue(headers,cells,['kpi/ngày','daily kpi'])),
-        dailyAvgMessageCost: numberFrom(cellValue(headers,cells,['giá mess trung bình','cost per messaging conversation'])),
-        dailyAvgPhoneCost: numberFrom(cellValue(headers,cells,['giá số trung bình','cost per phone'])),
-        dailyNewPhoneRate: numberFrom(cellValue(headers,cells,['tỷ lệ xin số mới','new phone rate'])),
-        dailyThreshold: numberFrom(cellValue(headers,cells,['ngưỡng'])),
-        dailyThresholdSpent: numberFrom(cellValue(headers,cells,['ngưỡng đã chi tiêu'])),
-        dailyIssue: cellValue(headers,cells,['vấn đề gặp phải','nguyên nhân vì sao']),
-        dailyResolution: cellValue(headers,cells,['hướng giải quyết']),
         costPerResult: numberFrom(cellValue(headers,cells,['cost per result','chi phí trên mỗi kết quả'])),
-        costPerNewMessagingContact: numberFrom(cellValue(headers,cells,['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới'])),
-        roas: numberFrom(cellValue(headers,cells,['purchase roas','roas','lợi tức trên chi tiêu'])),
-        source: 'Meta Ads Manager',
-        reportAt,
-        capturedAt: new Date().toISOString()
+        newMessagingContacts,
+        costPerNewMessagingContact: numberFrom(cellValue(headers,cells,['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới (vnd)'])),
+        messagingConversationsStarted,
+        costPerMessagingConversationStart: numberFrom(cellValue(headers,cells,['cost per messaging conversation start','chi phí trên mỗi lượt bắt đầu cuộc trò chuyện qua tin nhắn (vnd)'])),
+        originalResults: numberFrom(cellValue(headers,cells,['original results','kết quả ban đầu'])),
+        originalResultIndicator: cellValue(headers,cells,['original result indicator','chỉ báo kết quả ban đầu']),
+        attributionSetting: cellValue(headers,cells,['attribution setting','cài đặt ghi nhận']),
+        adSetEnd: cellValue(headers,cells,['end','kết thúc']),
+        dailyMessages: resultCount ?? newMessagingContacts ?? messagingConversationsStarted,
+        source: 'Meta Ads Manager', reportStart, reportEnd, reportAt, capturedAt: new Date().toISOString()
       };
       output.push(item);
     }
@@ -333,8 +391,12 @@
       name.textContent = item.campaign || item.name || 'Chưa đọc được tên chiến dịch';
       const messages = document.createElement('strong');
       messages.textContent = `Số Mess: ${item.dailyMessages ?? '—'}`;
+      const details = document.createElement('small');
+      const displayNumber = value => value === null || value === undefined || value === '' ? '—' : Number(value).toLocaleString('vi-VN');
+      details.className = 'fbtq-preview-details';
+      details.textContent = `Phân phối: ${item.delivery || item.status || '—'} · Ngân sách: ${displayNumber(item.budget)} · Chi tiêu: ${displayNumber(item.spend)} · Hiển thị: ${displayNumber(item.impressions)} · Tiếp cận: ${displayNumber(item.reach)}`;
       line.append(name, messages);
-      preview.append(line);
+      preview.append(line, details);
     });
     if (rows.length > 4) {
       const more = document.createElement('small');
@@ -407,7 +469,7 @@
   async function sendMetrics() {
     const rows = collectMetrics();
     if (!rows.length) return;
-    try { await queuePayload({ kind: 'metrics', campaigns: rows, reportAt: rows[0]?.reportAt || '', capturedAt: new Date().toISOString(), source: 'Marketing Ai FBTQ Meta Helper' }); }
+    try { await queuePayload({ kind: 'metrics', campaigns: rows, reportAt: rows[0]?.reportAt || '', reportStart: rows[0]?.reportStart || '', reportEnd: rows[0]?.reportEnd || '', capturedAt: new Date().toISOString(), source: 'Marketing Ai FBTQ Meta Helper' }); }
     catch (error) { setStatus(error.message || 'Không gửi được chỉ số.', 'error'); }
   }
   async function fetchAndSendPdf(url, label = '') {
@@ -431,7 +493,7 @@
   async function copyJson() {
     const rows = collectMetrics();
     if (!rows.length) return;
-    const json = JSON.stringify({ source: 'Marketing Ai FBTQ Meta Helper', capturedAt: new Date().toISOString(), campaigns: rows }, null, 2);
+    const json = JSON.stringify({ source: 'Marketing Ai FBTQ Meta Helper', reportAt: rows[0]?.reportAt || '', reportStart: rows[0]?.reportStart || '', reportEnd: rows[0]?.reportEnd || '', capturedAt: new Date().toISOString(), campaigns: rows }, null, 2);
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(json);
       else throw new Error('Clipboard API chưa sẵn sàng.');
@@ -451,7 +513,7 @@
   function downloadJson() {
     const rows = collectMetrics();
     if (!rows.length) return;
-    const blob = new Blob([JSON.stringify({ source: 'Marketing Ai FBTQ Meta Helper', capturedAt: new Date().toISOString(), campaigns: rows }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ source: 'Marketing Ai FBTQ Meta Helper', reportAt: rows[0]?.reportAt || '', reportStart: rows[0]?.reportStart || '', reportEnd: rows[0]?.reportEnd || '', capturedAt: new Date().toISOString(), campaigns: rows }, null, 2)], { type: 'application/json' });
     const anchor = document.createElement('a'); anchor.href = URL.createObjectURL(blob); anchor.download = `fbtq-ads-${new Date().toISOString().slice(0, 10)}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(anchor.href), 1200);
     setStatus(`Đã tải ${rows.length} hàng chỉ số dạng JSON.`, 'success');
