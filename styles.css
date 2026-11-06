@@ -278,3 +278,20 @@ body.dark .speech-inline-error details{border-color:#574439}
 .speech-workspace-heading h2{margin:4px 0;color:var(--ink);font:750 17px Manrope,sans-serif}
 .speech-workspace-heading p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:600px){.speech-workspace-heading{align-items:flex-start;flex-direction:column;gap:9px}.speech-workspace-heading h2{font-size:15px}}
+
+/* Secondary voice tool menu, separated from the three primary studio tabs */
+.studio-voice-nav-wrap{margin:-4px 0 14px}
+.studio-voice-nav{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:left;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s,transform .18s}
+.studio-voice-nav:hover{transform:translateY(-1px);border-color:#c6d5fb;box-shadow:0 6px 18px #253c650a}
+.studio-voice-nav.selected{border-color:#a9c2ff;background:linear-gradient(95deg,color-mix(in srgb,var(--blue-pale) 70%,var(--surface)),var(--surface) 72%);box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 8%,transparent)}
+.studio-voice-nav-icon{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#f1ebff;color:#8059db;font-size:18px}
+.studio-voice-nav-copy{min-width:0;display:grid;gap:4px}
+.studio-voice-nav-copy b{color:var(--ink);font-size:11px;font-weight:750}
+.studio-voice-nav-copy small{color:var(--muted);font-size:9px;line-height:1.4}
+.studio-voice-nav-action{display:flex;align-items:center;gap:8px;margin-left:auto;color:var(--blue);font-size:9px;font-weight:700;white-space:nowrap}
+.studio-voice-nav-action i{font-size:14px;font-style:normal;transition:transform .18s}
+.studio-voice-nav:hover .studio-voice-nav-action i,.studio-voice-nav.selected .studio-voice-nav-action i{transform:translateX(3px)}
+body.dark .studio-voice-nav{border-color:#34445a;background:var(--surface)}
+body.dark .studio-voice-nav.selected{border-color:#5d83cc;background:linear-gradient(95deg,#263a57,#202f44 72%)}
+body.dark .studio-voice-nav-icon{background:#342c50;color:#c6adff}
+@media(max-width:600px){.studio-voice-nav-wrap{margin-top:-5px}.studio-voice-nav{min-height:54px;padding:9px 10px;gap:9px}.studio-voice-nav-icon{width:32px;height:32px}.studio-voice-nav-action{gap:4px;font-size:8px}}

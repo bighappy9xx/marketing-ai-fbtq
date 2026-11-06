@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261106-studio-unified">
+  <link rel="stylesheet" href="styles.css?v=20261106-studio-menu-clear">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -71,8 +71,14 @@
             <button class="selected" data-editor-tab="create" role="tab" aria-selected="true">✳ Tạo nội dung</button>
             <button data-editor-tab="templates" role="tab" aria-selected="false">▧ Mẫu đã duyệt</button>
             <button data-editor-tab="drafts" role="tab" aria-selected="false">◷ Bản nháp</button>
-            <button data-editor-tab="speech" role="tab" aria-selected="false">♫ Giọng đọc</button>
           </div></div>
+          <div class="studio-voice-nav-wrap" role="tablist" aria-label="Công cụ giọng đọc">
+            <button class="studio-voice-nav" data-editor-tab="speech" role="tab" aria-selected="false" aria-controls="speechTab">
+              <span class="studio-voice-nav-icon">♫</span>
+              <span class="studio-voice-nav-copy"><b>Giọng đọc AI</b><small>Chuyển văn bản thành giọng nói bằng Gemini</small></span>
+              <span class="studio-voice-nav-action"><span id="voiceNavAction">Mở công cụ</span><i>→</i></span>
+            </button>
+          </div>
           <div class="content-layout" id="contentWorkspace">
             <div class="content-main">
               <div class="panel content-editor">
@@ -143,6 +149,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261106-studio-unified"></script>
+  <script type="module" src="app.js?v=20261106-studio-menu-clear"></script>
 </body>
 </html>

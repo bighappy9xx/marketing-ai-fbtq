@@ -11,5 +11,5 @@ window.FBTQ_FIREBASE_CONFIG = {
   measurementId: "G-K0YVWXG9X7",
   // Add the reCAPTCHA Enterprise web site key once here; it is public by design.
   // This shared value is loaded by every user from the hosted website.
-  appCheckSiteKey: "6Le4KhEuAAAAAChu92MfpGUrmB7q2Ot0-96LdW-l"
+  appCheckSiteKey: ""
 };
