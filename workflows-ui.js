@@ -1,11 +1,11 @@
-import { STATUS_LABELS, SESSION_LABELS, monthDays, leaveSummary, dayMark, leaveWorkbook } from './workflow-reports.js';
+import { STATUS_LABELS, SESSION_LABELS, monthDays, leaveSummary, dayMark, leaveWorkbook, workflowErrorMessage } from './workflow-reports.js?v=20261106-workflow-load-fix';
 import { downloadWorkbook } from './xlsx-export.js';
 
 export function initWorkflows(api) {
   const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,callFunction,roleName}=api;
   const collections={advance:'advanceInvoices',request:'staffRequests'}, records={advance:[],request:[]};
   const stageNames={manager:'Quản lý chi nhánh',accountant:'Kế toán',department:'Trưởng phòng',branch:'Quản lý chi nhánh'};
-  let subscriptions=[],generation=0,errors={advance:'',request:''},loading={advance:false,request:false};
+  let subscriptions=[],generation=0,errors={advance:'',request:''},warnings={advance:'',request:''},loading={advance:false,request:false};
   const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const branch=p=>p?.branch||p?.branchName||p?.branchId||'';
   const formatDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')?d.split('-').reverse().join('/'):d||'—';
@@ -62,7 +62,7 @@ export function initWorkflows(api) {
   function render(kind) {
     const data=records[kind],roster=kind==='request'?reportPeople():[],branches=[...new Set([...data,...roster].map(row=>row.branch).filter(Boolean))].sort(),people=new Map([...roster.map(row=>[row.uid,row.name]),...data.map(row=>[row.createdBy,row.createdByName||row.employee||row.createdBy])]);
     options(query(kind,'branch'),branches.map(b=>[b,b]),'Tất cả trong phạm vi truy cập');options(query(kind,'user'),[...people].filter(([uid])=>uid),'Tất cả nhân sự');
-    const rows=filtered(kind),message=$('[data-wf-message]',page(kind));message.textContent=errors[kind]||(loading[kind]?'Đang tải hồ sơ…':`${rows.length} hồ sơ trong phạm vi truy cập`);message.classList.toggle('wf-error',!!errors[kind]);
+    const rows=filtered(kind),message=$('[data-wf-message]',page(kind));message.textContent=[errors[kind],warnings[kind],loading[kind]?'Đang tải hồ sơ…':`${rows.length} hồ sơ trong phạm vi truy cập`].filter(Boolean).join(' ');message.classList.toggle('wf-error',!!errors[kind]);
     $('[data-wf-table]',page(kind)).innerHTML=rows.map(row=>`<tr><td>${person(row)}</td><td><b>${esc(row.title||row.type||'Đơn từ')}</b><small class="wf-description">${esc(row.description)}</small><small class="wf-code">${esc(row.id)}</small></td><td>${esc(formatDate(row.date))}${row.type==='leave'?`<small>${esc((row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + '))}</small>`:''}</td>${kind==='advance'?`<td><b>${money(row.amount)}</b>${row.disbursement?`<small>Cấp ngày ${formatDate(row.disbursement.date)}</small>`:''}</td>`:''}<td>${approvals(row)}</td><td>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</td><td class="wf-row-actions">${actionButtons(row)}</td></tr>`).join('')||`<tr><td colspan="${kind==='advance'?7:6}" class="wf-empty">${loading[kind]?'Đang tải…':errors[kind]?'Chưa tải được hồ sơ.':'Chưa có hồ sơ khớp bộ lọc.'}</td></tr>`;
     if(kind==='advance') {
       const sum=status=>rows.filter(row=>row.status===status).reduce((n,row)=>n+row.amount,0);
@@ -116,10 +116,10 @@ export function initWorkflows(api) {
     if(!row)return;
     if(action==='history')history(row);else if(action==='disburse')disburse(row);else if(['approve','reject'].includes(action))decide(row,action);
   }
-  function stop() {generation++;subscriptions.forEach(fn=>fn());subscriptions=[];records.advance=[];records.request=[];errors={advance:'',request:''};loading={advance:false,request:false};}
+  function stop() {generation++;subscriptions.forEach(fn=>fn());subscriptions=[];records.advance=[];records.request=[];errors={advance:'',request:''};warnings={advance:'',request:''};loading={advance:false,request:false};}
   function start() {
     stop();for(const kind of ['advance','request'])render(kind);if(!state.user||!state.firebase)return;
-    const epoch=generation,{db,storeMod:s}=state.firebase,uid=state.user.uid;
+    const epoch=generation,{db,storeMod:s}=state.firebase,uid=state.user.uid,projectId=state.firebase.app?.options?.projectId||window.FBTQ_FIREBASE_CONFIG?.projectId||'';
     for(const kind of ['advance','request']) {
       loading[kind]=true;const ref=s.collection(db,'workspaces','fbtq',collections[kind]),queries=[];
       if(state.role==='director'||kind==='advance'&&state.role==='accountant')queries.push(ref);
@@ -128,13 +128,27 @@ export function initWorkflows(api) {
         if(branch(state.user)&&state.role==='branch_manager')queries.push(s.query(ref,s.where('branch','==',branch(state.user))));
         if(kind==='request'&&state.role==='department_manager'&&branch(state.user)&&state.user.department)queries.push(s.query(ref,s.where('branch','==',branch(state.user)),s.where('department','==',state.user.department)));
       }
+      const primaryCount=queries.length;
       if(kind==='request'){const legacy=s.collection(db,'workspaces','fbtq','requests');queries.push(state.role==='director'?legacy:s.query(legacy,s.where('createdBy','==',uid)));}
-      const buckets=queries.map(()=>[]),ready=new Set();
-      queries.forEach((q,index)=>subscriptions.push(s.onSnapshot(q,snap=>{
-        if(epoch!==generation||state.user?.uid!==uid)return;
-        buckets[index]=snap.docs.map(doc=>{const row={...doc.data(),id:doc.id,kind};return kind==='request'&&index===queries.length-1?{...row,legacy:true,title:row.type,createdByName:row.createdByName||row.employee}:row;});
-        ready.add(index);loading[kind]=ready.size<queries.length;records[kind]=[...new Map(buckets.flat().map(row=>[(row.legacy?'legacy:':'')+row.id,row])).values()];render(kind);
-      },error=>{if(epoch!==generation)return;loading[kind]=false;errors[kind]='Không tải được hồ sơ. Kiểm tra kết nối và triển khai Firestore Rules mới.';console.error(error);render(kind);})));
+      const buckets=queries.map(()=>[]),ready=new Set(),sourceErrors=new Map();
+      const update=()=>{
+        loading[kind]=ready.size<queries.length;
+        errors[kind]=[...sourceErrors].filter(([index])=>index<primaryCount).map(([,message])=>message).join(' ');
+        warnings[kind]=[...sourceErrors].filter(([index])=>index>=primaryCount).map(([,message])=>'Lịch sử cũ chưa tải được: '+message).join(' ');
+        records[kind]=[...new Map(buckets.flat().map(row=>[(row.legacy?'legacy:':'')+row.id,row])).values()];render(kind);
+      };
+      queries.forEach((q,index)=>{
+        const failed=error=>{
+          if(epoch!==generation||state.user?.uid!==uid)return;
+          ready.add(index);buckets[index]=[];sourceErrors.set(index,workflowErrorMessage(error,index<primaryCount?collections[kind]:'requests (hồ sơ cũ)',projectId));
+          console.error('Workflow subscription failed',{collection:index<primaryCount?collections[kind]:'requests',projectId,code:error?.code});update();
+        };
+        try{subscriptions.push(s.onSnapshot(q,snap=>{
+          if(epoch!==generation||state.user?.uid!==uid)return;
+          buckets[index]=snap.docs.map(doc=>{const row={...doc.data(),id:doc.id,kind};return index>=primaryCount?{...row,legacy:true,title:row.type,createdByName:row.createdByName||row.employee}:row;});
+          ready.add(index);sourceErrors.delete(index);update();
+        },failed));}catch(error){failed(error);}
+      });
       render(kind);
     }
   }

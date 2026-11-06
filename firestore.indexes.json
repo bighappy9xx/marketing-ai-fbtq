@@ -1,1 +1,13 @@
-{"indexes":[],"fieldOverrides":[]}
+{
+  "indexes": [
+    {
+      "collectionGroup": "staffRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "branch", "order": "ASCENDING" },
+        { "fieldPath": "department", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

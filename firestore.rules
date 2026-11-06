@@ -139,8 +139,8 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.attachmentChunkCount == request.resource.data.chunkCount;
       }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
-        collection == 'advanceInvoices' && (owns() || director() || role() == 'accountant' || role() == 'branch_manager' && branch() != '' && resource.data.branch == branch())
-        || collection == 'staffRequests' && (owns() || director() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
+        collection == 'advanceInvoices' && (director() || role() == 'accountant' || owns() || role() == 'branch_manager' && branch() != '' && resource.data.branch == branch())
+        || collection == 'staffRequests' && (director() || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
         || collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
         || collection == 'revenueEntries'

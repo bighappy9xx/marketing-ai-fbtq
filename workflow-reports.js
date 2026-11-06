@@ -1,6 +1,15 @@
 // Pure report builders shared by the screen and the spreadsheet export.
 export const STATUS_LABELS = { pending: 'Chờ duyệt', approved: 'Đã duyệt đủ 2 cấp', rejected: 'Từ chối', disbursed: 'Đã cấp tiền' };
 export const SESSION_LABELS = { morning: 'Nghỉ Sáng', afternoon: 'Nghỉ Chiều' };
+export function workflowErrorMessage(error, source, projectId) {
+  const code=String(error?.code||'unknown').replace(/^firestore\//,''),context=`${source} · ${code} · dự án ${projectId||'chưa xác định'}`;
+  if(code==='permission-denied')return `Firebase từ chối đọc hồ sơ (${context}). Triển khai firestore.rules vào đúng dự án, kiểm tra vai trò/chi nhánh rồi đăng nhập lại.`;
+  if(code==='unauthenticated')return `Phiên đăng nhập không hợp lệ (${context}). Đăng xuất rồi đăng nhập lại.`;
+  if(code==='failed-precondition'&&/index/i.test(error?.message||''))return `Truy vấn thiếu index hoặc index đang được tạo (${context}). Triển khai firestore.indexes.json và chờ index sẵn sàng.`;
+  if(['unavailable','deadline-exceeded','network-request-failed'].includes(code))return `Không kết nối được Firebase (${context}). Kiểm tra mạng rồi bấm Tải lại.`;
+  if(code==='resource-exhausted')return `Firebase đã chạm giới hạn sử dụng (${context}). Kiểm tra hạn mức Firestore trong Firebase Console.`;
+  return `Không tải được hồ sơ (${context}). ${String(error?.message||'Bấm Tải lại để thử lại.').slice(0,400)}`;
+}
 export function monthDays(month) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return [];
   const [year, m] = month.split('-').map(Number), count = new Date(Date.UTC(year, m, 0)).getUTCDate();

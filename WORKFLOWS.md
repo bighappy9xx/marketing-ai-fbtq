@@ -16,6 +16,25 @@ Hai menu mới dùng giao diện tĩnh, Firestore để cập nhật danh sách 
 4. Nếu dùng Firebase Hosting, triển khai thêm `firebase deploy --project mediafbtq-6e1bb --only hosting`. Nếu dùng GitHub Pages, đưa các file giao diện lên nhánh đang xuất bản.
 5. Giám đốc vào **Nhân sự & phân quyền → Chỉnh quyền**, gán vai trò **Kế toán** cho đúng người; gán Chi nhánh và Phòng ban qua **Sửa đơn vị**. Người đổi vai trò đăng xuất và đăng nhập lại. Mỗi phòng cần người có vai trò Trưởng phòng và mỗi chi nhánh cần Quản lý chi nhánh.
 
+## Khi hai menu báo không tải được hồ sơ
+
+Cần Publish Rules của chính dự án `mediafbtq-6e1bb`; cập nhật file trong GitHub không tự triển khai Firestore Rules. Trong thư mục dự án, chạy:
+
+```sh
+firebase deploy --project mediafbtq-6e1bb --only "firestore:rules,firestore:indexes"
+```
+
+Nếu chưa có Firebase CLI, cài `npm install -g firebase-tools` và chạy `firebase login` bằng tài khoản quản trị đúng dự án trước. Chờ index `staffRequests` theo `branch` + `department` sẵn sàng, cập nhật website rồi đăng xuất/đăng nhập lại.
+
+Giao diện bản sửa hiển thị collection, mã lỗi và mã dự án:
+
+- `permission-denied`: Firebase từ chối truy vấn. Kiểm tra Rules đã Publish đúng dự án, vai trò và đơn vị được gán.
+- `failed-precondition` kèm index: triển khai `firestore.indexes.json` và chờ index Ready.
+- `unauthenticated`: đăng nhập lại.
+- `unavailable`: kiểm tra mạng rồi Tải lại.
+
+Lịch sử `requests` cũ được tải độc lập; nếu nguồn cũ bị lỗi thì hồ sơ mới vẫn hiển thị và xuất được khi đã tải đủ các nguồn hồ sơ mới. Nếu một nguồn hồ sơ mới bị từ chối thì giao diện tiếp tục báo rõ dữ liệu chưa đầy đủ và không xuất thống kê thiếu dữ liệu.
+
 Không có thay đổi thực tế trên ngân hàng. Nút **Xác nhận cấp tiền** ghi nhận khoản tiền kế toán đã chuyển/chi bên ngoài, kèm ngày và mã giao dịch/phiếu chi.
 
 ## Quyền và quy trình
