@@ -106,7 +106,13 @@ service cloud.firestore {
       allow update: if signedIn() && inWorkspace() && collection != 'pages' && (
         collection == 'tasks' && (
           manager() || taskAssignee()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy','completedAt'])
+            && request.resource.data.status in ['todo','doing','done']
+            && ((request.resource.data.status == 'done'
+              && request.resource.data.completedAt is string
+              && request.resource.data.completedAt.size() <= 40)
+              || (request.resource.data.status != 'done'
+                && (!request.resource.data.keys().hasAny(['completedAt']) || request.resource.data.completedAt == null)))
         )
         || collection in ['drafts','contentReviews','requests'] && (manager() || owns())
         || collection == 'dailyReports' && owns() && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
