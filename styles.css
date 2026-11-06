@@ -300,3 +300,131 @@ body.dark .section-icon-create{background:#263a57;color:#9dbbff}body.dark .secti
 body.dark .studio-section-count{background:#263a57;color:#a9c6ff}
 @media(max-width:800px){.studio-section-nav-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.studio-section-nav{transition:none}}
+
+/* Task board: clear status lanes, deadlines and larger touch targets */
+#page-tasks .task-toolbar{align-items:center;gap:14px;margin:0 0 18px}
+#page-tasks .task-tabs{display:flex;gap:7px;flex-wrap:wrap;overflow:visible}
+#page-tasks .task-tabs button{min-height:42px;padding:0 15px;border:1px solid transparent;border-radius:9px;background:transparent;color:#66758c;font-size:12px;font-weight:700;white-space:nowrap;transition:background .18s,border-color .18s,color .18s,transform .18s}
+#page-tasks .task-tabs button:hover{background:#fff;border-color:#dce5f2;color:#26364d;transform:translateY(-1px)}
+#page-tasks .task-tabs button.selected{background:#eaf1ff;border-color:#d8e5ff;color:#2869ee}
+#page-tasks .task-tabs button.task-overdue-filter{color:#c94048}
+#page-tasks .task-tabs button.task-overdue-filter.selected{background:#fff0f0;border-color:#ffd5d5;color:#cf3842}
+#page-tasks .task-tabs button span{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:7px;background:rgba(112,130,156,.1);font-size:10px}
+#page-tasks #taskAssigneeFilter{min-height:42px;min-width:190px;padding:0 34px 0 13px;border:1px solid #dce4ef;border-radius:9px;background:#fff;color:#506079;font-size:12px}
+#page-tasks #newTaskBtn{min-height:44px;padding:0 19px;border-radius:10px;font-size:12px;font-weight:800;box-shadow:0 5px 13px #3978f62a}
+#page-tasks .task-board{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+#page-tasks .task-column{min-height:330px;padding:16px;border:1px solid #e5eaf1;border-radius:14px;background:#fff;transition:border-color .18s,background .18s}
+#page-tasks .task-column--todo{background:#fff;border-color:#e2e8f0}
+#page-tasks .task-column--doing{background:#f1f6ff;border-color:#d7e5ff}
+#page-tasks .task-column--done{background:#eff9f3;border-color:#d5efdf}
+#page-tasks .task-column-head{min-height:46px;padding:0 2px 13px;margin-bottom:13px;border-bottom:1px solid #e8edf3}
+#page-tasks .task-column-head>div{display:grid;gap:4px}
+#page-tasks .task-column-head b{font-size:14px;font-weight:800;color:#26364d}
+#page-tasks .task-column-head small{font-size:10px;color:#8290a4}
+#page-tasks .task-column--doing .task-column-head b{color:#2869df}
+#page-tasks .task-column--done .task-column-head b{color:#248451}
+#page-tasks .task-column-head .column-count{display:grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border-radius:9px;background:#edf1f6;color:#61718a;font-size:11px;font-weight:800}
+#page-tasks .task-column--doing .column-count{background:#dce9ff;color:#2869df}
+#page-tasks .task-column--done .column-count{background:#d9f1e2;color:#248451}
+#page-tasks .task-column-list{grid-template-columns:minmax(0,1fr);gap:12px}
+#page-tasks .task-card{position:relative;overflow:hidden;padding:16px;border:1px solid #e3e9f1;border-radius:12px;background:#fff;box-shadow:0 3px 12px rgba(32,53,84,.055);transition:transform .18s,box-shadow .18s,border-color .18s}
+#page-tasks .task-card:before{position:absolute;inset:0 auto 0 0;width:4px;background:#d8dee8;content:""}
+#page-tasks .task-card--doing:before{background:#3d7cf6}
+#page-tasks .task-card--done:before{background:#31a66b}
+#page-tasks .task-card--overdue{border-color:#f3c9ca;box-shadow:0 3px 14px rgba(193,48,57,.08)}
+#page-tasks .task-card--overdue:before{background:#e24b52}
+#page-tasks .task-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(32,53,84,.1)}
+#page-tasks .task-card-top{gap:8px;margin-bottom:11px}
+#page-tasks .task-tag{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border-radius:7px;background:#f1f4f8;color:#62738d;font-size:10px;font-weight:700}
+#page-tasks .task-state-chip{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;border-radius:8px;background:#f1f4f8;color:#68778d;font-size:10px;font-weight:800;white-space:nowrap}
+#page-tasks .task-state-chip--doing{background:#e6efff;color:#2869df}
+#page-tasks .task-state-chip--done{background:#e4f5e9;color:#25824e}
+#page-tasks .task-state-chip--overdue{background:#ffebeb;color:#c83840}
+#page-tasks .task-card h4{margin:0 0 7px;color:#223148;font-size:15px;font-weight:800;line-height:1.45}
+#page-tasks .task-card .task-description{margin:0 0 14px;color:#77859a;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+#page-tasks .task-assignee-row{display:flex;align-items:center;gap:10px;min-height:46px;padding:10px 0;border-top:1px solid #edf0f4}
+#page-tasks .task-avatar{width:38px;height:38px;flex:none;border-radius:50%;font-size:12px;font-weight:800;overflow:hidden}
+#page-tasks .task-avatar img,#page-tasks .priority-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+#page-tasks .task-assignee-copy{display:grid;gap:4px;min-width:0}
+#page-tasks .task-assignee-copy small{color:#93a0b2;font-size:9px;font-weight:800;letter-spacing:.06em}
+#page-tasks .task-assignee-copy b{overflow:hidden;color:#34445b;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+#page-tasks .priority-label{margin-left:auto;color:#db4b57;font-size:11px;font-weight:700;white-space:nowrap}
+#page-tasks .task-deadline{display:flex;align-items:center;gap:10px;min-height:62px;margin-top:4px;padding:10px 11px;border:1px solid #e8edf4;border-radius:10px;background:#f8fafc}
+#page-tasks .task-deadline--soon{border-color:#dce8ff;background:#f4f8ff}
+#page-tasks .task-deadline--done{border-color:#dcefe2;background:#f3faf5}
+#page-tasks .task-deadline--overdue{border-color:#f4d0d0;background:#fff5f5}
+#page-tasks .task-deadline-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:9px;background:#e9edf3;color:#65758c;font-size:18px}
+#page-tasks .task-deadline--soon .task-deadline-icon{background:#e4edff;color:#3976e8}
+#page-tasks .task-deadline--done .task-deadline-icon{background:#e1f2e6;color:#25824e}
+#page-tasks .task-deadline--overdue .task-deadline-icon{background:#ffe3e3;color:#ce3942}
+#page-tasks .task-deadline-copy{display:grid;gap:4px;min-width:0}
+#page-tasks .task-deadline-copy small{color:#8b99ad;font-size:9px;font-weight:800;letter-spacing:.05em}
+#page-tasks .task-deadline-copy b{color:#3c4d65;font-size:11px;line-height:1.35}
+#page-tasks .task-countdown{margin-left:auto;color:#60728c;font-size:10px;font-weight:800;text-align:right;white-space:nowrap}
+#page-tasks .task-deadline--soon .task-countdown{color:#2769df}
+#page-tasks .task-deadline--done .task-countdown{color:#25824e}
+#page-tasks .task-deadline--overdue .task-countdown{color:#c83840}
+#page-tasks .task-deadline--missing .task-countdown{color:#8390a3}
+#page-tasks .task-card-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid #edf0f4}
+#page-tasks .task-created{color:#8794a7;font-size:10px;line-height:1.4}
+#page-tasks .task-status-control{display:grid;gap:4px;justify-items:end;color:#8190a4;font-size:9px;font-weight:700}
+#page-tasks .task-status-select{min-width:146px;min-height:42px;padding:0 30px 0 12px;border:1px solid #d9e1ec;border-radius:9px;background:#f5f7fa;color:#52627a;font-size:11px;font-weight:800;cursor:pointer}
+#page-tasks .task-select--doing{border-color:#c9dcff;background:#edf4ff;color:#2869df}
+#page-tasks .task-select--done{border-color:#ccebd6;background:#eaf7ee;color:#248451}
+#page-tasks .task-select--overdue{border-color:#f2c9ca;background:#fff0f0;color:#c83840}
+#page-tasks .task-empty{display:grid;justify-items:center;gap:8px;padding:28px 14px;text-align:center}
+#page-tasks .task-empty>span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(115,134,163,.11);color:#8290a4;font-size:20px;font-weight:700}
+#page-tasks .task-column--doing .task-empty>span{background:#e1ecff;color:#3976e8}
+#page-tasks .task-column--done .task-empty>span{background:#e0f2e6;color:#25824e}
+#page-tasks .task-empty b{color:#56667e;font-size:12px}
+#page-tasks .task-empty small{max-width:210px;color:#929eb0;font-size:10px;line-height:1.5}
+#page-tasks .priority-task{gap:8px;min-height:52px}
+#page-tasks .priority-avatar{width:30px;height:30px;flex:none;border-radius:50%;font-size:9px;overflow:hidden}
+body.dark #page-tasks .task-tabs button:hover{background:#202f43;border-color:#3a4b62;color:#e5edf8}
+body.dark #page-tasks .task-tabs button.selected{background:#263a57;border-color:#364e70;color:#9cbcff}
+body.dark #page-tasks .task-tabs button.task-overdue-filter.selected{background:#452d38;border-color:#68404a;color:#ff9da2}
+body.dark #page-tasks #taskAssigneeFilter{background:#202f44;border-color:#34455b;color:#d4dfef}
+body.dark #page-tasks .task-column{border-color:#2d3e54}
+body.dark #page-tasks .task-column--todo{background:#182538}
+body.dark #page-tasks .task-column--doing{background:#1c2d43;border-color:#304968}
+body.dark #page-tasks .task-column--done{background:#1c302c;border-color:#2b4a3d}
+body.dark #page-tasks .task-column-head{border-color:#2c3d52}
+body.dark #page-tasks .task-column-head b,body.dark #page-tasks .task-card h4{color:#e2eaf5}
+body.dark #page-tasks .task-column--doing .task-column-head b{color:#8eb4ff}
+body.dark #page-tasks .task-column--done .task-column-head b{color:#79d39e}
+body.dark #page-tasks .task-card{background:#202f43;border-color:#34455a}
+body.dark #page-tasks .task-card--overdue{border-color:#74424a}
+body.dark #page-tasks .task-tag{background:#2b3b50;color:#b5c3d6}
+body.dark #page-tasks .task-state-chip{background:#2b3b50;color:#b5c3d6}
+body.dark #page-tasks .task-state-chip--doing{background:#263a57;color:#9cbcff}
+body.dark #page-tasks .task-state-chip--done{background:#244637;color:#8bdbab}
+body.dark #page-tasks .task-state-chip--overdue{background:#4b303a;color:#ff9da2}
+body.dark #page-tasks .task-assignee-row,body.dark #page-tasks .task-card-actions{border-color:#34445a}
+body.dark #page-tasks .task-assignee-copy b,body.dark #page-tasks .task-deadline-copy b{color:#dbe5f2}
+body.dark #page-tasks .task-deadline{border-color:#35465b;background:#1a293d}
+body.dark #page-tasks .task-deadline--soon{border-color:#344d70;background:#1c2d43}
+body.dark #page-tasks .task-deadline--done{border-color:#305340;background:#1d3029}
+body.dark #page-tasks .task-deadline--overdue{border-color:#68404a;background:#382831}
+body.dark #page-tasks .task-deadline-icon{background:#2b3b50;color:#bdc9da}
+body.dark #page-tasks .task-deadline--soon .task-deadline-icon{background:#293e5d;color:#9cbcff}
+body.dark #page-tasks .task-deadline--done .task-deadline-icon{background:#254435;color:#8bdbab}
+body.dark #page-tasks .task-deadline--overdue .task-deadline-icon{background:#55333d;color:#ff9da2}
+body.dark #page-tasks .task-countdown{color:#b7c5d8}
+body.dark #page-tasks .task-deadline--soon .task-countdown{color:#9cbcff}
+body.dark #page-tasks .task-deadline--done .task-countdown{color:#8bdbab}
+body.dark #page-tasks .task-deadline--overdue .task-countdown{color:#ff9da2}
+body.dark #page-tasks .task-status-select{border-color:#3a4b62;background:#26364c;color:#d6e1f0}
+body.dark #page-tasks .task-select--doing{border-color:#405a7e;background:#253c5c;color:#a7c3ff}
+body.dark #page-tasks .task-select--done{border-color:#365a45;background:#234233;color:#90d7a9}
+body.dark #page-tasks .task-select--overdue{border-color:#70424a;background:#432d36;color:#ff9da2}
+body.dark #page-tasks .task-empty b{color:#d5e0ef}
+@media(max-width:1000px){#page-tasks .task-board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){#page-tasks .task-toolbar{align-items:stretch}#page-tasks .task-tabs{width:100%;flex-wrap:nowrap;padding-bottom:4px}#page-tasks .task-tabs button{min-height:42px;padding:0 12px;font-size:11px}#page-tasks .task-toolbar>div:last-child,#page-tasks #taskAssigneeFilter{width:100%}#page-tasks .task-board{grid-template-columns:1fr;gap:12px}#page-tasks .task-column{min-height:190px;padding:13px}#page-tasks .task-column-list{grid-template-columns:1fr}#page-tasks .task-card{padding:14px}#page-tasks .task-card-actions{align-items:stretch;flex-direction:column}#page-tasks .task-status-control{justify-items:stretch}#page-tasks .task-status-select{width:100%;min-height:46px}#page-tasks .task-deadline{flex-wrap:wrap}#page-tasks .task-countdown{font-size:10px}}
+#page-tasks .task-status-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:-4px 0 14px;color:#7d8ba0;font-size:10px;font-weight:700}
+#page-tasks .task-status-legend span{display:inline-flex;align-items:center;gap:7px}
+#page-tasks .task-status-legend i{width:10px;height:10px;border-radius:4px;background:#fff;border:1px solid #cbd5e2}
+#page-tasks .task-status-legend .legend-doing{background:#4b83f4;border-color:#4b83f4}
+#page-tasks .task-status-legend .legend-done{background:#37a96f;border-color:#37a96f}
+#page-tasks .task-status-legend .legend-overdue{background:#e24b52;border-color:#e24b52}
+body.dark #page-tasks .task-status-legend{color:#aab8ca}
+body.dark #page-tasks .task-status-legend .legend-todo{background:#1b293c;border-color:#65758a}
