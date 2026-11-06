@@ -296,7 +296,8 @@ async function receiveExtensionImport(payload){
   if(!state.user||!state.firebase)throw new Error('Hãy đăng nhập website và kết nối Firebase trước khi chuyển dữ liệu.');
   if(payload?.kind==='metrics'){
     if(!Array.isArray(payload.campaigns)||!payload.campaigns.length)throw new Error('Extension không gửi được dòng chiến dịch nào.');
-    navigate('analytics');await importCampaignData({source:'Marketing Ai FBTQ Meta Helper',campaigns:payload.campaigns});openDailyReportForm();return;
+    const capturedDate=new Date(),todayKey=capturedDate.getFullYear()+'-'+String(capturedDate.getMonth()+1).padStart(2,'0')+'-'+String(capturedDate.getDate()).padStart(2,'0'),reportAt=/^\d{4}-\d{2}-\d{2}$/.test(String(payload.reportAt||''))?payload.reportAt:todayKey,campaigns=payload.campaigns.map(item=>({...item,reportAt:/^\d{4}-\d{2}-\d{2}$/.test(String(item.reportAt||''))?item.reportAt:reportAt}));
+    navigate('analytics');await importCampaignData({source:'Marketing Ai FBTQ Meta Helper',campaigns});openDailyReportForm();return;
   }
   if(payload?.kind==='invoice-pdf'){
     if(!payload.base64||payload.base64.length>7_200_000)throw new Error('PDF rỗng hoặc vượt giới hạn 5 MB.');

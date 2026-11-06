@@ -803,3 +803,11 @@ body.dark{color-scheme:dark}
 @media(max-width:680px){
   .overview-stats>.overview-revenue-card,.analytics-stats>.revenue-stat-card{grid-column:1/-1}
 }
+
+/* Larger, clearer brand mark */
+.brand-logo{width:205px}
+.side-brand .brand-logo{width:204px;max-width:100%}
+.auth-brand .brand-logo{width:225px}
+.auth-mobile-brand .brand-logo{width:210px;max-width:calc(100vw - 48px)}
+@media(max-width:1150px){.side-brand .brand-logo{width:179px}}
+@media(max-width:900px){.side-brand .brand-logo{width:180px;max-width:calc(100vw - 92px)}}

@@ -9,9 +9,9 @@
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
-          <p class="fbtq-help">Đọc các hàng chiến dịch đang được Meta tải trên trang. Có thể cuộn bảng Meta để tải thêm dòng trước khi quét.</p>
+          <p class="fbtq-help">Đọc các hàng chiến dịch đang được Meta tải trên trang. Chọn đúng tab và kỳ báo cáo, rồi bấm Quét lại nếu vừa đổi bảng hoặc bộ lọc.</p>
           <label class="fbtq-check"><input type="checkbox" id="fbtq-visible-only"> Chỉ lấy các hàng đang nhìn thấy</label>
-          <div class="fbtq-actions"><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi vào Báo cáo hàng ngày <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON</button></div>
+          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét lại bảng</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi vào Báo cáo hàng ngày <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON</button></div>
         </div>
         <div id="fbtq-invoice-view" hidden>
           <div class="fbtq-section-title"><span class="fbtq-icon fbtq-icon-invoice">▤</span><div><b>Biên lai Meta PDF</b><small id="fbtq-pdf-count">Quét liên kết trên trang</small></div></div>
@@ -38,9 +38,11 @@
   let lastPath = location.pathname;
 
   const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
+  const elementText = element => normalize(element?.innerText || element?.textContent || element?.getAttribute('aria-label') || element?.getAttribute('title') || '');
   const key = value => normalize(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]/g, '');
   const setStatus = (message, tone = 'info') => { status.textContent = message; status.dataset.tone = tone; };
   const billingPage = () => /\/billing_hub\//i.test(location.pathname) || /\/billing\//i.test(location.pathname);
+  let lastScanInfo = { headers: [], rows: 0 };
 
   function numberFrom(value) {
     let text = normalize(value).replace(/−/g, '-').replace(/[^\d.,kmbKMB-]/g, '');
@@ -53,39 +55,82 @@
     const parsed = Number(text) * multiplier;
     return Number.isFinite(parsed) ? parsed : null;
   }
+  function headerIndex(headers, alternatives) {
+    const aliases = alternatives.map(key).filter(Boolean);
+    const exact = headers.find(header => aliases.includes(key(header.label)));
+    if (exact) return exact.index;
+    const matches = headers.filter(header => aliases.some(alias => alias.length > 8 && key(header.label).includes(alias)));
+    return matches[0]?.index ?? -1;
+  }
   function cellValue(headers, cells, alternatives) {
-    const index = headers.findIndex(header => alternatives.some(alias => key(header).includes(key(alias))));
-    return index >= 0 ? cells[index] || '' : '';
+    const index = headerIndex(headers, alternatives);
+    return index >= 0 ? cells.get(index) || '' : '';
+  }
+  function readGrid(rootElement, onlyVisible) {
+    const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')];
+    const headerMap = new Map();
+    headerElements.forEach((element, position) => {
+      const label = elementText(element);
+      if (!label) return;
+      const ariaIndex = Number(element.getAttribute('aria-colindex'));
+      const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
+      if (!headerMap.has(index) || label.length > headerMap.get(index).label.length) headerMap.set(index, { index, label });
+    });
+    const headers = [...headerMap.values()].sort((a, b) => a.index - b.index);
+    const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => row.querySelector('[role="gridcell"],[role="cell"],td') && (!onlyVisible || visibleOnScreen(row)));
+    const rows = rowElements.map(row => {
+      const cellElements = [...row.querySelectorAll('[role="gridcell"],[role="cell"],td')];
+      const cells = new Map();
+      cellElements.forEach((element, position) => {
+        const ariaIndex = Number(element.getAttribute('aria-colindex'));
+        const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
+        const value = elementText(element);
+        if (value && (!cells.has(index) || value.length > cells.get(index).length)) cells.set(index, value);
+      });
+      return { row, cells, fullText: elementText(row) };
+    });
+    const nameHeader = headerIndex(headers, ['ad set name','adset name','ad set','adset','tên nhóm quảng cáo','nhóm quảng cáo','bài chạy','campaign name','campaign','tên chiến dịch','chiến dịch','name']);
+    const spendHeader = headerIndex(headers, ['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu']);
+    const score = (nameHeader >= 0 ? 100 : 0) + (spendHeader >= 0 ? 15 : 0) + Math.min(rows.length, 20) + Math.min(headers.length, 20);
+    return { headers, rows, score, nameHeader };
   }
   function visibleOnScreen(element) {
     const rect = element.getBoundingClientRect();
     return rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth;
   }
   function rowsFromTable() {
-    const headers = [...document.querySelectorAll('[role="columnheader"],thead th')].map(element => normalize(element.innerText));
     const onlyVisible = root.querySelector('#fbtq-visible-only').checked;
-    const rows = [...document.querySelectorAll('[role="row"],tbody tr')].filter(row => row.querySelector('[role="gridcell"],td') && (!onlyVisible || visibleOnScreen(row)));
+    const candidateRoots = [...document.querySelectorAll('[role="grid"],[role="table"],table')];
+    let grids = candidateRoots.map(element => readGrid(element, onlyVisible)).filter(grid => grid.rows.length);
+    if (grids.some(candidate => candidate.nameHeader >= 0)) grids = grids.filter(candidate => candidate.nameHeader >= 0);
+    else {
+      const pageGrid = readGrid(document, onlyVisible);
+      if (pageGrid.rows.length && (pageGrid.nameHeader >= 0 || !grids.length)) grids = [pageGrid];
+    }
+    const grid = grids.sort((a, b) => b.score - a.score)[0] || { headers: [], rows: [] };
+    const { headers, rows } = grid;
+    lastScanInfo = { headers: headers.map(header => header.label), rows: rows.length };
     const account = normalize(document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || new URL(location.href).searchParams.get('act') || 'Meta Ads');
+    const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const output = [];
-    for (const row of rows) {
-      const cells = [...row.querySelectorAll('[role="gridcell"],td')].map(cell => normalize(cell.innerText));
-      if (cells.length < 3) continue;
-      const full = normalize(row.innerText);
-      if (!full || /campaign name.*delivery|tên chiến dịch.*phân phối/i.test(full)) continue;
-      const campaign = cellValue(headers,cells,['campaign name','tên chiến dịch','campaign']);
-      const adSet = cellValue(headers,cells,['ad set name','adset name','tên nhóm quảng cáo','bài chạy']);
-      const name = (adSet || campaign || cells.find(value => value.length > 2 && !/^(on|off|active|paused)$/i.test(value)) || '').split('\n')[0].trim();
-      if (!name || /^(total results|kết quả tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
-      const statusText = cellValue(headers,cells,['delivery','phân phối','status','trạng thái']);
+    for (const { cells, fullText } of rows) {
+      if (cells.size < 3) continue;
+      if (!fullText) continue;
+      const campaign = cellValue(headers,cells,['campaign name','tên chiến dịch','campaign','chiến dịch']);
+      const adSet = cellValue(headers,cells,['ad set name','adset name','ad set','adset','tên nhóm quảng cáo','nhóm quảng cáo','bài chạy']);
+      const fallbackName = [...cells.values()].find(value => value.length > 2 && !/^(on|off|active|paused|đang chạy|đã tắt|bản nháp)$/i.test(value) && !/^\d[\d., ]*$/.test(value));
+      const name = (adSet || campaign || fallbackName || '').split(/\n/)[0].trim();
+      if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads|chiến dịch|nhóm quảng cáo)$/i.test(name)) continue;
+      const statusText = cellValue(headers,cells,['delivery','phân phối','status','trạng thái','trạng thái phân phối']);
       const messaging = numberFrom(cellValue(headers,cells,['new messaging contacts','messaging conversations started','conversations started','tin nhắn mới','số mess']));
       const item = {
-        id: cellValue(headers,cells,['ad set id','campaign id','id']),
+        id: cellValue(headers,cells,['ad set id','campaign id','id nhóm quảng cáo','id chiến dịch','id']),
         name,
         account,
         platform: 'Facebook',
         status: (statusText || 'Đang chạy').split('\n')[0],
         budget: numberFrom(cellValue(headers,cells,['budget','ngân sách'])),
-        spend: numberFrom(cellValue(headers,cells,['amount spent','số tiền đã chi','chi tiêu'])),
+        spend: numberFrom(cellValue(headers,cells,['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu'])),
         impressions: numberFrom(cellValue(headers,cells,['impressions','lượt hiển thị','hiển thị'])),
         reach: numberFrom(cellValue(headers,cells,['reach','người tiếp cận'])),
         results: numberFrom(cellValue(headers,cells,['results','kết quả'])),
@@ -107,6 +152,7 @@
         costPerNewMessagingContact: numberFrom(cellValue(headers,cells,['cost per new messaging contact','chi phí trên mỗi người liên hệ nhắn tin mới'])),
         roas: numberFrom(cellValue(headers,cells,['purchase roas','roas','lợi tức trên chi tiêu'])),
         source: 'Meta Ads Manager',
+        reportAt,
         capturedAt: new Date().toISOString()
       };
       output.push(item);
@@ -116,8 +162,10 @@
   }
   function collectMetrics() {
     lastRows = rowsFromTable();
+    const headerSummary = lastScanInfo.headers.slice(0, 8).join(' · ');
     count.textContent = `${lastRows.length} hàng chiến dịch được nhận diện`;
-    setStatus(lastRows.length ? 'Đã quét bảng Meta. Kiểm tra bộ lọc, ngày và các chỉ số trước khi chuyển.' : 'Chưa nhận diện được hàng dữ liệu. Chọn tab Chiến dịch hoặc Nhóm quảng cáo và bật các cột cần báo cáo.', lastRows.length ? 'success' : 'warning');
+    count.title = headerSummary ? `Các cột Meta được đọc: ${headerSummary}` : 'Chưa tìm thấy tiêu đề cột trên trang.';
+    setStatus(lastRows.length ? 'Đã quét bảng Meta. Số liệu sẽ được chuyển sang Báo cáo hàng ngày cho ngày hôm nay; hãy kiểm tra trước khi lưu.' : headerSummary ? `Chưa nhận diện được tên chiến dịch. Các cột hiện đọc được: ${headerSummary}. Bật cột Tên chiến dịch/Tên nhóm quảng cáo rồi quét lại.` : 'Meta chưa hiển thị bảng chiến dịch. Chọn tab Chiến dịch hoặc Nhóm quảng cáo, chờ bảng tải xong rồi quét lại.', lastRows.length ? 'success' : 'warning');
     return lastRows;
   }
   function scanPdfLinks() {
@@ -171,7 +219,7 @@
   async function sendMetrics() {
     const rows = collectMetrics();
     if (!rows.length) return;
-    try { await queuePayload({ kind: 'metrics', campaigns: rows, capturedAt: new Date().toISOString(), source: 'Marketing Ai FBTQ Meta Helper' }); }
+    try { await queuePayload({ kind: 'metrics', campaigns: rows, reportAt: rows[0]?.reportAt || '', capturedAt: new Date().toISOString(), source: 'Marketing Ai FBTQ Meta Helper' }); }
     catch (error) { setStatus(error.message || 'Không gửi được chỉ số.', 'error'); }
   }
   async function fetchAndSendPdf(url, label = '') {
@@ -213,6 +261,7 @@
   });
   root.querySelector('.fbtq-close').addEventListener('click', () => { panel.hidden = true; root.querySelector('#fbtq-helper-toggle').setAttribute('aria-expanded', 'false'); });
   root.querySelector('#fbtq-send-metrics').addEventListener('click', sendMetrics);
+  root.querySelector('#fbtq-rescan').addEventListener('click', collectMetrics);
   root.querySelector('#fbtq-copy').addEventListener('click', copyJson);
   root.querySelector('#fbtq-download').addEventListener('click', downloadJson);
   root.querySelector('#fbtq-scan-pdfs').addEventListener('click', renderPdfLinks);
