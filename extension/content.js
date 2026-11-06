@@ -118,6 +118,29 @@
       return blue > red + 12 && blue > green + 2;
     });
   }
+  // Use the full header cell, never the center of its short text label.
+  function columnBounds(element) {
+    let node = element;
+    const explicit = element.closest?.('[role="columnheader"],th');
+    if (explicit) return explicit.getBoundingClientRect();
+    let rect = node.getBoundingClientRect();
+    for (let depth = 0; node.parentElement && depth < 6; depth++) {
+      const parent = node.parentElement, next = parent.getBoundingClientRect();
+      if (next.width > 420 || next.height > 80 || next.height < rect.height || Math.abs(next.top - rect.top) > 35) break;
+      node = parent; rect = next;
+    }
+    return rect;
+  }
+  function textInColumn(items, column, row) {
+    const candidates = items.filter(item => {
+      const r = item.rect;
+      return r.width > 0 && r.height > 0 && r.left >= column.left - 2 && r.right <= column.right + 2 &&
+        r.top >= row.top - 2 && r.bottom <= row.bottom + 2 && item.text;
+    });
+    // Pick the upper text line first: numeric value precedes its attribution label.
+    candidates.sort((a,b) => a.rect.top - b.rect.top || a.rect.height - b.rect.height || a.rect.width - b.rect.width);
+    return candidates[0]?.text || '';
+  }
   function readGrid(rootElement) {
     const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')];
     const headerMap = new Map();
@@ -127,14 +150,14 @@
       const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
       if (!headerMap.has(index) || label.length > headerMap.get(index).label.length) {
         const rect = element.getBoundingClientRect();
-        headerMap.set(index, { index, label, centerX: rect.left + rect.width / 2, width: rect.width });
+        headerMap.set(index, { index, label, left: rect.left, right: rect.right, centerX: rect.left + rect.width / 2, width: rect.width });
       }
     });
     const allHeaders = [...headerMap.values()].sort((a, b) => a.index - b.index);
     const headers = allHeaders.filter(header => header.label);
     const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => row.querySelector('[role="gridcell"],[role="cell"],td'));
     const rows = rowElements.map(row => {
-      const cellElements = [...row.querySelectorAll('[role="gridcell"],[role="cell"],td')];
+      const cellElements = [...row.querySelectorAll('[role="gridcell"],[role="cell"],td')].filter(cell => cell.closest('[role="row"],tr') === row);
       const cells = new Map();
       cellElements.forEach((element, position) => {
         const ariaIndex = Number(element.getAttribute('aria-colindex'));
@@ -142,11 +165,10 @@
         if (!value) return;
         let index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : null;
         if (index === null) {
-          const rect = element.getBoundingClientRect(), centerX = rect.left + rect.width / 2;
-          const nearest = allHeaders.filter(header => header.label && header.width > 0)
-            .map(header => ({ header, distance: Math.abs(header.centerX - centerX) }))
-            .sort((a, b) => a.distance - b.distance)[0];
-          index = nearest && nearest.distance <= Math.max(36, rect.width * 0.6) ? nearest.header.index : position;
+          const rect = element.getBoundingClientRect();
+          const matches = allHeaders.filter(header => header.width > 0 && rect.left >= header.left - 2 && rect.right <= header.right + 2);
+          if (matches.length !== 1) return;
+          index = matches[0].index;
         }
         if (!cells.has(index) || value.length > cells.get(index).length) cells.set(index, value);
       });
@@ -235,40 +257,6 @@
       const text = key(elementText(element));
       return text && text.length < 65;
     });
-    function textCells(row) {
-      const bounds = row.getBoundingClientRect(), centerY = bounds.top + bounds.height / 2;
-      let best = { score: -1, cells: [] };
-      function inspect(parent, depth) {
-        if (depth > 5) return;
-        const items = [...parent.children].map(element => {
-          const rect = element.getBoundingClientRect(), text = elementText(element);
-          return { element, rect, text, x: rect.left + rect.width / 2 };
-        }).filter(item => item.text && item.rect.width > 16 && item.rect.height > 8 && item.rect.height < bounds.height + 28 && Math.abs(item.rect.top + item.rect.height / 2 - centerY) < Math.max(16, bounds.height * 0.55));
-        const columns = [];
-        for (const item of items.sort((a, b) => a.x - b.x)) {
-          const existing = columns.find(column => Math.abs(column.x - item.x) < 14);
-          if (!existing) columns.push(item);
-          else if (item.rect.width > existing.rect.width) Object.assign(existing, item);
-        }
-        const coverage = columns.length > 1 ? (columns.at(-1).x - columns[0].x) / Math.max(1, bounds.width) : 0;
-        const score = columns.length * 10 + coverage * 5 - depth * 0.1;
-        if (columns.length >= 2 && coverage > 0.25 && score > best.score) best = { score, cells: columns };
-        for (const item of items) inspect(item.element, depth + 1);
-      }
-      inspect(row, 0);
-      if (best.cells.length >= 2) return best.cells;
-      const visualItems = [...row.querySelectorAll('a,span,div,button,[role="link"],[role="button"]')].map(element => {
-        const rect = element.getBoundingClientRect(), text = elementText(element);
-        return { element, rect, text, x: rect.left + rect.width / 2 };
-      }).filter(item => item.text.length > 1 && item.text.length < 240 && item.rect.width > 12 && item.rect.width < bounds.width * 0.48 && item.rect.height > 7 && item.rect.height < bounds.height + 32 && Math.abs(item.rect.top + item.rect.height / 2 - centerY) < Math.max(20, bounds.height * 0.65));
-      const visualColumns = [];
-      for (const item of visualItems.sort((a, b) => a.x - b.x)) {
-        const existing = visualColumns.find(column => Math.abs(column.x - item.x) < 34);
-        if (!existing) visualColumns.push(item);
-        else if (item.rect.width > existing.rect.width) Object.assign(existing, item);
-      }
-      return visualColumns;
-    }
     function findHeader(rowRect, spec) {
       const labels = spec.labels.map(key);
       return allHeaderNodes.map(element => ({ element, text: elementText(element), rect: element.getBoundingClientRect() }))
@@ -281,7 +269,9 @@
     const output = [];
     const detectedHeaders = new Set();
     for (const row of rows) {
-      const bounds = row.getBoundingClientRect(), cells = textCells(row), centerY = bounds.top + bounds.height / 2;
+      const bounds = row.getBoundingClientRect(), centerY = bounds.top + bounds.height / 2;
+      const cells = [...row.querySelectorAll('a,span,div,button,[role="gridcell"],[role="cell"],td')]
+        .map(element => ({element, rect: element.getBoundingClientRect(), text: elementText(element)}));
       const value = field => {
         const spec = headerSpecs.find(header => header.field === field), header = spec && findHeader(row.getBoundingClientRect(), spec);
         if (!header || !cells.length) return '';
@@ -289,17 +279,13 @@
         const x = header.rect.left + header.rect.width / 2;
         return cells.sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x))[0]?.text || '';
       };
-      const excludedLink = /^(biểu đồ|chỉnh sửa|nhân bản|xóa|tạo|hành động|mở|edit|duplicate|delete|chart|view|off|on|bật|tắt)$/i;
-      const linkedName = [...row.querySelectorAll('a,[role="link"]')].map(element => ({ text: elementText(element), rect: element.getBoundingClientRect() }))
-        .filter(item => item.text.length > 3 && item.text.length < 180 && !excludedLink.test(item.text) && item.rect.width > 12 && Math.abs(item.rect.top + item.rect.height / 2 - centerY) < Math.max(22, bounds.height * 0.65) && item.rect.left < bounds.left + bounds.width * 0.55)
-        .sort((a, b) => Math.abs(a.rect.top + a.rect.height / 2 - centerY) - Math.abs(b.rect.top + b.rect.height / 2 - centerY) || a.rect.left - b.rect.left)[0]?.text || '';
-      const fallbackCampaign = /^(all conversions|tất cả lượt chuyển đổi|engagement|tương tác|lượt tương tác)$/i.test(linkedName) ? '' : linkedName;
-      const name = (value('campaign') || fallbackCampaign || '').split(/\n/)[0].trim();
+      const name = (value('campaign') || '').split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
       const resultCount = numberFrom(value('results'));
       const newMessagingContacts = numberFrom(value('newMessagingContacts'));
       const messagingConversationsStarted = numberFrom(value('messagingConversationsStarted'));
-      const delivery = value('status') || 'Đang chạy';
+      const delivery = value('status');
+      if (!delivery || /^(?:lượt click trong|lượt nhấp trong|cài đặt ghi nhận|attribution)/i.test(name) || /click|nhấp|attribution|ghi nhận|7 ngày|1 ngày/i.test(delivery)) continue;
       const rawBudget = value('budget'), rawBudgetType = value('budgetType');
       const reportStart = value('reportStart') || reportRange.start;
       const reportEnd = value('reportEnd') || reportRange.end;
@@ -343,6 +329,7 @@
       const name = campaign.split(/\n/)[0].trim();
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads|chiến dịch|nhóm quảng cáo)$/i.test(name)) continue;
       const statusText = preferredCellValue(headers,cells,['lượt phân phối chiến dịch','phân phối','delivery','delivery status','trạng thái phân phối','status','trạng thái']);
+      if (!statusText || /^(?:lượt click trong|lượt nhấp trong|cài đặt ghi nhận|attribution)/i.test(name) || /click|nhấp|attribution|ghi nhận|7 ngày|1 ngày/i.test(statusText)) continue;
       const resultCount = numberFrom(cellValue(headers,cells,['results','kết quả']));
       const newMessagingContacts = numberFrom(cellValue(headers,cells,['new messaging contacts','người liên hệ nhắn tin mới']));
       const messagingConversationsStarted = numberFrom(cellValue(headers,cells,['messaging conversations started','lượt bắt đầu cuộc trò chuyện qua tin nhắn']));

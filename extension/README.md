@@ -51,3 +51,11 @@ PDF tối đa 5 MB, theo giới hạn form hiện có. PDF scan dạng ảnh có
 | Số tiền đã chi tiêu | Chi tiêu thực tế/ngày |
 
 Giá mess TB lấy trực tiếp từ Chi phí mỗi kết quả, kể cả khi kết quả Meta là tương tác hoặc ThruPlay. Số liệu thuộc khoảng ngày đang chọn trên Meta; chọn một ngày nếu dùng cho báo cáo ngày. Cần cập nhật cả app.js của website và tải lại extension phiên bản 2.6.5.
+
+## Cập nhật 2.6.6
+
+- Đọc ô theo phạm vi cột, bỏ cách đoán ô gần nhất và vị trí thay thế khi không khớp cột.
+- Đường đọc giao diện không có ARIA lấy dòng chữ trên cùng trong đúng phạm vi cột, không lấy chú thích kết quả ở dòng dưới.
+- Không nhập dòng nhận nhầm nội dung cài đặt ghi nhận thành chiến dịch/trạng thái.
+- Khi mở báo cáo từ extension, sáu trường ánh xạ ưu tiên dữ liệu vừa quét thay cho báo cáo đã lưu; các trường bổ sung vẫn giữ dữ liệu đã nhập.
+- Cập nhật cả website app.js và extension, sau đó tải lại hai tab. Kiểm tra: node tests/extension-mapping.cjs.
