@@ -428,6 +428,7 @@ service cloud.firestore {
         || collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'
         || collection == 'revenueEntries'
+        || collection == 'workAwardScores'
         || collection == 'invitations' && manager()
         || collection == 'requests' && (manager() || owns())
         || collection == 'tasks' && (manager() || taskAssignee() || owns())
@@ -451,6 +452,7 @@ service cloud.firestore {
         || collection == 'revenueEntries' && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && (request.resource.data.status == 'pending' || manager() && request.resource.data.status == 'approved')
         || collection == 'tasks' && manager()
+        || collection == 'workAwardScores' && manager()
         || collection == 'campaigns'
         || collection == 'invoices' && request.resource.data.status == 'pending' && validInvoice()
         || collection == 'invoiceFiles' && (validInvoiceFileChunk() || validAdvanceFileChunk())
@@ -476,6 +478,7 @@ service cloud.firestore {
         || collection == 'revenueEntries' && owns() && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
         || collection == 'contentTemplates' && manager()
         || collection == 'campaigns' && (manager() || owns())
+        || collection == 'workAwardScores' && manager()
         || collection == 'staffRequests' && validRequestReview()
         || collection == 'advanceInvoices' && (validAdvanceReview() || validDisbursement())
         || collection in ['settings','invitations'] && manager()
