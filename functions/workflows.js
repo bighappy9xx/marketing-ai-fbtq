@@ -2,12 +2,23 @@
 const core = require('./workflow-core');
 
 // Inject Firestore and callable wrappers to exercise transactions without production credentials.
-function registerWorkflows({ db, onCall, HttpsError }) {
-  function callable(work) {
+function registerWorkflows({ db, onCall, HttpsError, logger = console }) {
+  function callable(operation, work) {
     return onCall({ timeoutSeconds: 30, memory: '256MiB' }, async request => {
       if (!request.auth) throw new HttpsError('unauthenticated', 'Vui lòng đăng nhập.');
       try { return await work(request); }
-      catch (error) { if (error instanceof core.WorkflowError) throw new HttpsError(error.code, error.message); throw error; }
+      catch (error) {
+        if (error instanceof core.WorkflowError) throw new HttpsError(error.code, error.message);
+        if (error instanceof HttpsError) throw error;
+        // Never log form contents or personal details. The operation and error
+        // class/code are enough to find the failed server execution safely.
+        logger.error('Workflow operation failed', {
+          operation,
+          errorName: String(error?.name || 'Error').slice(0, 80),
+          errorCode: String(error?.code || 'unknown').slice(0, 80)
+        });
+        throw new HttpsError('internal', 'Lỗi máy chủ khi xử lý hồ sơ. Hãy thử lại; nếu lỗi tiếp tục, quản trị viên cần kiểm tra nhật ký Cloud Functions.');
+      }
     });
   }
   function recordRef(kind, id) {
@@ -15,7 +26,7 @@ function registerWorkflows({ db, onCall, HttpsError }) {
     return db.doc(`workspaces/fbtq/${core.COLLECTIONS[kind]}/${id}`);
   }
   return {
-    createWorkflow: callable(async request => {
+    createWorkflow: callable('createWorkflow', async request => {
       const input = request.data || {};
       if (typeof input.clientRequestId !== 'string' || !/^[a-zA-Z0-9-]{16,60}$/.test(input.clientRequestId)) throw new HttpsError('invalid-argument', 'Mã gửi hồ sơ không hợp lệ.');
       const id = `${request.auth.uid}_${input.clientRequestId}`, ref = recordRef(input.kind, id);
@@ -37,7 +48,7 @@ function registerWorkflows({ db, onCall, HttpsError }) {
       });
       return { ok: true, id };
     }),
-    reviewWorkflow: callable(async request => {
+    reviewWorkflow: callable('reviewWorkflow', async request => {
       const input = request.data || {}, ref = recordRef(input.kind, input.id);
       await db.runTransaction(async tx => {
         const [profile, snap] = await Promise.all([tx.get(db.doc(`users/${request.auth.uid}`)), tx.get(ref)]);
@@ -49,7 +60,7 @@ function registerWorkflows({ db, onCall, HttpsError }) {
       });
       return { ok: true };
     }),
-    disburseAdvance: callable(async request => {
+    disburseAdvance: callable('disburseAdvance', async request => {
       const input = request.data || {}, ref = recordRef('advance', input.id);
       await db.runTransaction(async tx => {
         const [profile, snap] = await Promise.all([tx.get(db.doc(`users/${request.auth.uid}`)), tx.get(ref)]);

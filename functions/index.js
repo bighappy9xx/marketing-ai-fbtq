@@ -234,4 +234,4 @@ exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],tim
   }catch(error){logger.error('Meta webhook event processing failed',{error:String(error)});return res.sendStatus(500)}
 });
 
-Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError }));
+Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
