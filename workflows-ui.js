@@ -5,6 +5,9 @@ export function initWorkflows(api) {
   const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,roleName}=api;
   const collections={advance:'advanceInvoices',request:'staffRequests'}, records={advance:[],request:[]};
   const stageNames={manager:'Quản lý chi nhánh',accountant:'Kế toán',department:'Trưởng phòng',branch:'Quản lý chi nhánh'};
+  const advanceGroups=['Doanh thu bán hàng','Facebook Ads','GG Ads','TikTok Ads','Nhập hàng','Lương','Vận chuyển','Phí sàn','Thuê mặt bằng','Chi phí khác'];
+  const advanceSubgroups=['FB Ads','GG Ads','GG Ads 1','GG Ads 2','GG Ads 3','TikTok / Zalo Ads'];
+  const attachmentLabels={invoice:'Chứng từ / hóa đơn GTGT',contract:'Hợp đồng kinh tế',transfer:'Chứng từ chuyển khoản'};
   let subscriptions=[],generation=0,errors={advance:'',request:''},warnings={advance:'',request:''},loading={advance:false,request:false};
   const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const branch=p=>p?.branch||p?.branchName||p?.branchId||'';
@@ -25,9 +28,9 @@ export function initWorkflows(api) {
   }
   function nextStage(row) { const stages=stageKeys(row.kind);return row.approvals?.[stages[0]]?.status==='approved'?stages[1]:stages[0]; }
   const badge=(status,label)=>`<span class="wf-badge wf-${esc(status||'pending')}">${esc(label||STATUS_LABELS[status]||'Chưa xác định')}</span>`;
-  function approvals(row) {
+  function approvals(row,allowActions=true) {
     if(row.legacy)return '<span class="wf-badge wf-legacy">Hồ sơ cũ · quy trình trước đây</span>';
-    return stageKeys(row.kind).map(stage=>{const status=row.approvals?.[stage]?.status||'pending',label=status==='approved'?'Đã duyệt':status==='rejected'?'Từ chối':'Chờ duyệt';return `<div class="wf-stage"><span>${stageNames[stage]}</span>${stageDecisionButtons(row,stage)||badge(status,label)}</div>`;}).join('');
+    return stageKeys(row.kind).map(stage=>{const status=row.approvals?.[stage]?.status||'pending',label=status==='approved'?'Đã duyệt':status==='rejected'?'Từ chối':'Chờ duyệt',decision=allowActions?stageDecisionButtons(row,stage):'';return `<div class="wf-stage"><span>${stageNames[stage]}</span>${decision||badge(status,label)}</div>`;}).join('');
   }
   function stageDecisionButtons(row,stage) {
     const base=`data-wf-kind="${row.kind}" data-wf-id="${esc((row.legacy?'legacy:':'')+row.id)}"`;
@@ -68,7 +71,7 @@ export function initWorkflows(api) {
     const data=records[kind],roster=kind==='request'?reportPeople():[],branches=[...new Set([...data,...roster].map(row=>row.branch).filter(Boolean))].sort(),people=new Map([...roster.map(row=>[row.uid,row.name]),...data.map(row=>[row.createdBy,row.createdByName||row.employee||row.createdBy])]);
     options(query(kind,'branch'),branches.map(b=>[b,b]),'Tất cả trong phạm vi truy cập');options(query(kind,'user'),[...people].filter(([uid])=>uid),'Tất cả nhân sự');
     const rows=filtered(kind),message=$('[data-wf-message]',page(kind));message.textContent=[errors[kind],warnings[kind],loading[kind]?'Đang tải hồ sơ…':`${rows.length} hồ sơ trong phạm vi truy cập`].filter(Boolean).join(' ');message.classList.toggle('wf-error',!!errors[kind]);
-    $('[data-wf-table]',page(kind)).innerHTML=rows.map(row=>`<tr><td>${person(row)}</td><td><b>${esc(row.title||row.type||'Đơn từ')}</b><small class="wf-description">${esc(row.description)}</small><small class="wf-code">${esc(row.id)}</small></td><td>${esc(formatDate(row.date))}${row.type==='leave'?`<small>${esc((row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + '))}</small>`:''}</td>${kind==='advance'?`<td><b>${money(row.amount)}</b>${row.disbursement?`<small>Cấp ngày ${formatDate(row.disbursement.date)}</small>`:''}</td>`:''}<td>${approvals(row)}</td><td>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</td><td class="wf-row-actions">${actionButtons(row)}</td></tr>`).join('')||`<tr><td colspan="${kind==='advance'?7:6}" class="wf-empty">${loading[kind]?'Đang tải…':errors[kind]?'Chưa tải được hồ sơ.':'Chưa có hồ sơ khớp bộ lọc.'}</td></tr>`;
+    $('[data-wf-table]',page(kind)).innerHTML=rows.map(row=>`<tr><td>${person(row)}</td><td><b>${esc(row.title||row.type||'Đơn từ')}</b>${kind==='advance'?`<small>${row.direction==='income'?'Thu nhập':'Chi phí'} · ${esc(row.costGroup||'—')}${row.subgroup?` · ${esc(row.subgroup)}`:''}</small><small>${row.accountingMode==='advance_pending'?'Tạm ứng / chờ đối soát':'Chi phí thực tế đã đối soát'} · Kỳ ${esc(row.accountingPeriod||'—')}</small>`:''}<small class="wf-description">${esc(row.description)}</small><small class="wf-code">${esc(row.id)}</small></td><td>${esc(formatDate(row.date))}${row.type==='leave'?`<small>${esc((row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + '))}</small>`:''}</td>${kind==='advance'?`<td><b>${money(row.amount)}</b><small>VAT ${money(row.vatAmount||0)}</small>${row.disbursement?`<small>Cấp ngày ${formatDate(row.disbursement.date)}</small>`:''}</td>`:''}<td>${approvals(row)}</td><td>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</td><td class="wf-row-actions">${actionButtons(row)}</td></tr>`).join('')||`<tr><td colspan="${kind==='advance'?7:6}" class="wf-empty">${loading[kind]?'Đang tải…':errors[kind]?'Chưa tải được hồ sơ.':'Chưa có hồ sơ khớp bộ lọc.'}</td></tr>`;
     if(kind==='advance') {
       const sum=status=>rows.filter(row=>row.status===status).reduce((n,row)=>n+row.amount,0);
       $('[data-wf-summary]',page(kind)).innerHTML=[['Chờ phê duyệt',sum('pending'),'pending'],['Đã duyệt · chờ cấp',sum('approved'),'approved'],['Đã cấp tiền',sum('disbursed'),'disbursed'],['Từ chối',sum('rejected'),'rejected']].map(([label,value,tone])=>`<article class="wf-summary-${tone}"><span>${label}</span><b>${money(value)}</b></article>`).join('');
@@ -88,12 +91,17 @@ export function initWorkflows(api) {
   function create(kind) {
     if(!state.user||!state.firebase)return showToast('Vui lòng đăng nhập và kết nối Firebase.','error');
     const requestId=crypto.randomUUID();
-    const advance=`<label>Số tiền tạm ứng (VND)<input name="amount" type="number" min="1" max="1000000000000" step="1" required></label><label>Ngày đề nghị<input name="date" type="date" value="${today()}" required></label><label>Thông tin nhận tiền<textarea name="paymentInfo" maxlength="500" placeholder="Ngân hàng, số tài khoản, chủ tài khoản hoặc hình thức nhận tiền"></textarea></label>`;
+    const currentPeriod=today().slice(0,7),currentDepartment=String(state.user.department||''),currentEmployee=String(state.user.name||state.user.email||'Nhân viên');
+    const advance=`<div class="wf-advance-form"><div class="wf-advance-upload-grid">${[['invoice','Chứng từ / hóa đơn GTGT','Có thể gửi tạm ứng trước, chứng từ bổ sung sau.'],['contract','Hợp đồng kinh tế','Bắt buộc khi chi phí thực tế trên 20 triệu có VAT.'],['transfer','Chứng từ chuyển khoản','Bắt buộc khi chi phí thực tế trên 20 triệu có VAT.']].map(([key,label,note])=>`<label class="wf-file-field${key==='invoice'?' wf-file-full':''}">${label}<input type="file" name="${key}File" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><small>${note} · PDF/JPG/PNG, tổng tối đa 5 MB.</small></label>`).join('')}</div><div class="wf-advance-grid"><label>Loại<select name="direction"><option value="expense">Chi phí</option><option value="income">Thu nhập</option></select></label><label>Nhóm<select name="costGroup" id="wfAdvanceGroup">${advanceGroups.map(group=>`<option value="${esc(group)}"${group==='Facebook Ads'?' selected':''}>${esc(group)}</option>`).join('')}</select></label><label>Bộ phận<select name="department"><option value="${esc(currentDepartment)}">${esc(currentDepartment||'Chưa được gán')}</option></select><small>Chỉ ghi nhận cho bộ phận được gán trong tài khoản.</small></label><label>Nhóm / đội con<select name="subgroup" id="wfAdvanceSubgroup">${advanceSubgroups.map(value=>`<option value="${esc(value)}"${value==='GG Ads'?' selected':''}>${esc(value)}</option>`).join('')}</select></label><label>Loại chi phí<select name="costType"><option value="business">Chi phí nghiệp vụ</option><option value="operating">Chi phí vận hành</option></select></label><label>Hạch toán<select name="accountingMode" id="wfAdvanceAccounting"><option value="reconciled">Chi phí thực tế đã đối soát</option><option value="advance_pending">Tạm ứng / chờ đối soát</option></select><small>Tạm ứng được theo dõi riêng, chưa cộng vào chi phí bộ phận.</small></label><label>Nhân sự MKT<div class="wf-advance-employee"><b>${esc(currentEmployee)}</b><small>${esc(currentDepartment||'Chưa gán bộ phận')}</small></div></label><label>Số tiền (₫)<input name="amount" type="number" min="1" max="1000000000000" step="1" placeholder="VD: 15.000.000" required></label><label>VAT (₫)<input name="vatAmount" type="number" min="0" max="1000000000000" step="1" value="0" required><small>Khoản tạm ứng để VAT bằng 0; cập nhật khi chốt chi phí thực tế.</small></label><label>Ngày phát sinh<input name="date" type="date" value="${today()}" required></label><label>Kỳ kế toán<input name="accountingPeriod" type="month" value="${currentPeriod}" required></label><label class="wf-advance-description">Nội dung khoản thu / chi<textarea name="description" minlength="5" maxlength="2000" placeholder="Mục đích, chiến dịch hoặc nội dung chi phí" required></textarea></label><label class="wf-advance-description">Thông tin nhận tiền (tuỳ chọn)<textarea name="paymentInfo" maxlength="500" placeholder="Ngân hàng, số tài khoản, chủ tài khoản hoặc hình thức nhận tiền"></textarea></label></div><p class="wf-advance-hint" id="wfAdvanceEvidenceHint">Với chi phí thực tế trên 20 triệu có VAT, cần kèm hợp đồng kinh tế và chứng từ chuyển khoản. Chọn “Tạm ứng / chờ đối soát” nếu chứng từ sẽ bổ sung sau.</p></div>`;
     const request=`<label>Loại đơn<select name="type" id="wfRequestType"><option value="leave">Đơn xin nghỉ</option><option value="proposal">Đơn đề xuất</option></select></label><label>Ngày áp dụng<input name="date" type="date" value="${today()}" required></label><fieldset id="wfLeaveFields"><label>Buổi nghỉ<select name="session"><option value="morning">Nghỉ Sáng · 0,5 ngày</option><option value="afternoon">Nghỉ Chiều · 0,5 ngày</option><option value="full">Cả ngày · 1 ngày</option></select></label></fieldset><fieldset id="wfProposalFields" hidden disabled><label>Tiêu đề đề xuất<input name="title" maxlength="160" minlength="3" required></label></fieldset>`;
-    openModal(kind==='advance'?'Tạo hóa đơn tạm ứng':'Tạo đơn từ & đề xuất',unitNote()+`<div class="modal-fields">${kind==='advance'?advance:request}<label>${kind==='advance'?'Mục đích chạy quảng cáo':'Lý do / nội dung đề xuất'}<textarea name="description" minlength="5" maxlength="2000" required></textarea></label></div>`,'Gửi phê duyệt',async form=>{
-      const data=Object.fromEntries(form);data.kind=kind;data.clientRequestId=requestId;if(kind==='advance')data.amount=Number(data.amount);else data.sessions=data.type==='leave'?(data.session==='full'?['morning','afternoon']:[data.session]).sort():[];
+    openModal(kind==='advance'?'Tạo hóa đơn tạm ứng':'Tạo đơn từ & đề xuất',unitNote()+(kind==='advance'?advance:`<div class="modal-fields">${request}<label>Lý do / nội dung đề xuất<textarea name="description" minlength="5" maxlength="2000" required></textarea></label></div>`),'Gửi phê duyệt',async form=>{
+      const data=Object.fromEntries(form);data.kind=kind;data.clientRequestId=requestId;if(kind==='advance'){data.amount=Number(data.amount);data.vatAmount=Number(data.vatAmount);const files=await prepareAdvanceAttachments(form);data.attachments=files.manifest;data.preparedFiles=files.chunks;}else data.sessions=data.type==='leave'?(data.session==='full'?['morning','afternoon']:[data.session]).sort():[];
       await createWorkflowDirect(data);closeModal();showToast('Đã gửi hồ sơ. Lịch sử sẽ cập nhật sau mỗi bước duyệt.');
     });
+    if(kind==='advance') {
+      const syncEvidence=()=>{const amount=Number($('#activeModalForm [name="amount"]')?.value)||0,vatInput=$('#activeModalForm [name="vatAmount"]'),actual=$('#wfAdvanceAccounting')?.value==='reconciled';if(!actual){vatInput.value='0';vatInput.readOnly=true}else vatInput.readOnly=false;const required=$('#activeModalForm [name="direction"]')?.value==='expense'&&actual&&amount>20000000&&Number(vatInput.value)>0;$('#activeModalForm [name="contractFile"]').required=required;$('#activeModalForm [name="transferFile"]').required=required;$('#wfAdvanceEvidenceHint').classList.toggle('required',required)};
+      $('#activeModalForm').addEventListener('input',syncEvidence);$('#activeModalForm').addEventListener('change',syncEvidence);const modal=$('#modalRoot .modal');if(modal)modal.classList.add('wf-advance-modal');syncEvidence();
+    }
     $('#wfRequestType')?.addEventListener('change',event=>{const leave=event.target.value==='leave';$('#wfLeaveFields').hidden=!leave;$('#wfLeaveFields').disabled=!leave;$('#wfProposalFields').hidden=leave;$('#wfProposalFields').disabled=leave;});
   }
   function workflowStore() {
@@ -120,8 +128,29 @@ export function initWorkflows(api) {
   }
   function sameRequest(row,data) {
     if(row.kind!==data.kind||row.date!==data.date||row.description!==String(data.description||'').trim())return false;
-    if(data.kind==='advance')return Number(row.amount)===Number(data.amount)&&String(row.paymentInfo||'')===String(data.paymentInfo||'');
+    if(data.kind==='advance')return Number(row.amount)===Number(data.amount)&&String(row.paymentInfo||'')===String(data.paymentInfo||'')&&row.direction===data.direction&&row.costGroup===data.costGroup&&row.subgroup===data.subgroup&&row.costType===data.costType&&row.accountingMode===data.accountingMode&&Number(row.vatAmount)===Number(data.vatAmount)&&row.accountingPeriod===data.accountingPeriod&&sameAttachmentManifest(row.attachments,data.attachments);
     return row.type===data.type&&row.title===(data.type==='leave'?'Đơn xin nghỉ':String(data.title||'').trim())&&JSON.stringify(row.sessions||[])===JSON.stringify(data.sessions||[]);
+  }
+  function sameAttachmentManifest(a={},b={}) {
+    return ['invoice','contract','transfer'].every(key=>{const left=a?.[key],right=b?.[key];return !left&&!right||!!left&&!!right&&left.fileName===right.fileName&&left.size===right.size&&left.mimeType===right.mimeType&&left.chunkCount===right.chunkCount;});
+  }
+  function encodeBase64(bytes) {
+    let binary='';for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+0x8000,bytes.length)));
+    return btoa(binary);
+  }
+  async function prepareAdvanceAttachments(form) {
+    const manifest={},chunks={},chunkSize=420*1024;let totalSize=0;
+    for(const key of ['invoice','contract','transfer']) {
+      const file=form.get(`${key}File`);
+      if(!(file instanceof File)||!file.size){manifest[key]=null;continue;}
+      if(file.size>5*1024*1024)throw new Error(`${attachmentLabels[key]} không được vượt quá 5 MB.`);
+      if(!['application/pdf','image/jpeg','image/png'].includes(file.type))throw new Error(`${attachmentLabels[key]} chỉ nhận PDF, JPG hoặc PNG.`);
+      totalSize+=file.size;if(totalSize>5*1024*1024)throw new Error('Tổng dung lượng các chứng từ không được vượt quá 5 MB.');
+      const bytes=new Uint8Array(await file.arrayBuffer()),fileChunks=[];
+      for(let offset=0;offset<bytes.length;offset+=chunkSize)fileChunks.push(encodeBase64(bytes.subarray(offset,Math.min(offset+chunkSize,bytes.length))));
+      manifest[key]={fileName:file.name.replace(/[\\/:*?"<>|]/g,'_'),size:file.size,mimeType:file.type,chunkCount:fileChunks.length};chunks[key]=fileChunks;
+    }
+    return {manifest,chunks};
   }
   async function createWorkflowDirect(data) {
     const {db,s}=workflowStore(),uid=state.user.uid,requestId=`${uid}_${data.clientRequestId}`;
@@ -129,7 +158,14 @@ export function initWorkflows(api) {
     if(!validateLeaveDate(data.date))throw new Error('Ngày áp dụng không hợp lệ.');
     if(String(data.description||'').trim().length<5)throw new Error('Nội dung cần ít nhất 5 ký tự.');
     if(data.kind==='request'&&(!['leave','proposal'].includes(data.type)||data.type==='leave'&&(!Array.isArray(data.sessions)||!data.sessions.length||data.sessions.some(value=>!['morning','afternoon'].includes(value)))||data.type==='proposal'&&String(data.title||'').trim().length<3))throw new Error('Kiểm tra loại đơn, buổi nghỉ và nội dung trước khi gửi.');
-    if(data.kind==='advance'&&(!Number.isSafeInteger(data.amount)||data.amount<=0||data.amount>1e12))throw new Error('Số tiền tạm ứng phải là số nguyên dương, tối đa 1.000 tỷ đồng.');
+    if(data.kind==='advance') {
+      const requiresEvidence=data.direction==='expense'&&data.accountingMode==='reconciled'&&data.amount>20000000&&data.vatAmount>0;
+      if(!Number.isSafeInteger(data.amount)||data.amount<=0||data.amount>1e12)throw new Error('Số tiền phải là số nguyên dương, tối đa 1.000 tỷ đồng.');
+      if(!advanceGroups.includes(data.costGroup)||!['expense','income'].includes(data.direction)||!['business','operating'].includes(data.costType)||!['reconciled','advance_pending'].includes(data.accountingMode))throw new Error('Chọn loại khoản thu/chi, nhóm và cách hạch toán hợp lệ.');
+      if(!Number.isSafeInteger(data.vatAmount)||data.vatAmount<0||data.vatAmount>1e12)throw new Error('VAT phải là số tiền nguyên không âm.');
+      if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(data.accountingPeriod||''))throw new Error('Chọn kỳ kế toán hợp lệ.');
+      if(requiresEvidence&&(!data.attachments?.contract||!data.attachments?.transfer))throw new Error('Với chi phí thực tế trên 20 triệu có VAT, hãy đính kèm hợp đồng kinh tế và chứng từ chuyển khoản.');
+    }
     const ref=workflowPath(s,data.kind,requestId),profileRef=s.doc(db,'users',uid);
     if(!collections[data.kind])throw new Error('Loại hồ sơ không hợp lệ.');
     const sessionList=data.kind==='request'&&data.type==='leave'?[...new Set(data.sessions)].sort():[];
@@ -146,17 +182,32 @@ export function initWorkflows(api) {
       if(slotSnaps.some(snap=>snap.exists()))throw new Error('Buổi nghỉ này đã có đơn chờ duyệt hoặc đã được duyệt.');
       const now=new Date().toISOString(),stageFirst=data.kind==='advance'?'manager':'department',stageSecond=data.kind==='advance'?'accountant':'branch';
       const record={schemaVersion:1,kind:data.kind,createdBy:uid,createdByName:user.name,photoData:user.photoData,branch:user.branch,department:user.department,description:String(data.description).trim(),status:'pending',createdAt:s.serverTimestamp(),createdDate:today(),updatedAt:s.serverTimestamp(),approvals:{[stageFirst]:{status:'pending'},[stageSecond]:{status:'pending'}},history:[{action:'submitted',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note:''}]};
-      if(data.kind==='advance')Object.assign(record,{amount:data.amount,date:data.date,title:'Tạm ứng chạy quảng cáo',paymentInfo:String(data.paymentInfo||'').trim(),disbursement:null});
+      if(data.kind==='advance')Object.assign(record,{amount:data.amount,date:data.date,title:`${data.direction==='income'?'Khoản thu':'Khoản chi'} · ${data.costGroup}`,paymentInfo:String(data.paymentInfo||'').trim(),direction:data.direction,costGroup:data.costGroup,subgroup:String(data.subgroup||''),costType:data.costType,accountingMode:data.accountingMode,employeeName:user.name,vatAmount:data.vatAmount,accountingPeriod:data.accountingPeriod,attachments:data.attachments||{invoice:null,contract:null,transfer:null},disbursement:null});
       else Object.assign(record,{type:data.type,title:data.type==='leave'?'Đơn xin nghỉ':String(data.title||'').trim(),date:data.date,sessions:sessionList});
       transaction.set(ref,record);
+      if(data.kind==='advance')for(const [fileKey,fileChunks] of Object.entries(data.preparedFiles||{}))fileChunks.forEach((base64,chunkIndex)=>transaction.set(s.doc(db,'workspaces','fbtq','invoiceFiles',`${requestId}_${fileKey}_${chunkIndex}`),{fileScope:'advance',workflowId:requestId,fileKey,chunkIndex,chunkCount:fileChunks.length,base64,ownerUid:uid,createdBy:uid,createdAt:now}));
       slotRefs.forEach((slot,index)=>transaction.set(slot,{requestId,createdBy:uid,date:data.date,session:sessionList[index],branch:user.branch,department:user.department}));
     });
     return {ok:true,id:requestId,duplicate};
   }
+  function advanceAttachmentButtons(row) {
+    return Object.entries(row.attachments||{}).filter(([,file])=>file?.chunkCount).map(([key,file])=>`<button type="button" class="btn btn-secondary" data-wf-attachment="${esc(key)}" data-wf-id="${esc(row.id)}">↓ ${esc(attachmentLabels[key]||'Tệp đính kèm')} · ${esc(file.fileName)}</button>`).join('')||'<span class="muted">Chưa có chứng từ đính kèm.</span>';
+  }
+  async function downloadAdvanceAttachment(row,key) {
+    const descriptor=row.attachments?.[key];if(!descriptor?.chunkCount)return showToast('Không tìm thấy tệp đính kèm.','error');
+    try {
+      const {db,s}=workflowStore(),refs=Array.from({length:descriptor.chunkCount},(_,index)=>s.doc(db,'workspaces','fbtq','invoiceFiles',`${row.id}_${key}_${index}`)),snapshots=await Promise.all(refs.map(ref=>s.getDoc(ref)));
+      if(snapshots.some(snapshot=>!snapshot.exists()))throw new Error('Tệp đính kèm chưa đủ dữ liệu.');
+      const chunks=snapshots.sort((a,b)=>a.data().chunkIndex-b.data().chunkIndex).map(snapshot=>{const binary=atob(snapshot.data().base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes});
+      const url=URL.createObjectURL(new Blob(chunks,{type:descriptor.mimeType||'application/octet-stream'})),link=document.createElement('a');link.href=url;link.download=descriptor.fileName||'chung-tu';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+    } catch(error) {showToast(error.message||'Không tải được chứng từ. Kiểm tra quyền Firestore.','error');}
+  }
   function history(row) {
     const events=row.history||[{action:'submitted',at:row.submittedAt,actorName:row.createdByName||row.employee,note:row.description},...(row.reviewedAt?[{action:row.status==='approved'?'approve':'reject',at:row.reviewedAt,actorName:row.reviewedBy||'Người duyệt',note:'Hồ sơ theo quy trình cũ'}]:[])];
     const labels={submitted:'Tạo và gửi hồ sơ',approve:'Phê duyệt',reject:'Từ chối',disbursed:'Ghi nhận cấp tiền'};
-    openModal(row.kind==='advance'?'Chi tiết hóa đơn tạm ứng':'Chi tiết đơn từ',`<div class="wf-detail">${person(row)}<p>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</p><dl><dt>Mã hồ sơ</dt><dd>${esc(row.id)}</dd><dt>Ngày áp dụng</dt><dd>${formatDate(row.date)}</dd>${row.kind==='advance'?`<dt>Số tiền</dt><dd>${money(row.amount)}</dd><dt>Thông tin nhận tiền</dt><dd>${esc(row.paymentInfo||'Chưa cung cấp')}</dd>`:`<dt>Loại đơn / buổi</dt><dd>${esc(row.title||row.type)} ${(row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + ')}</dd>`}<dt>Nội dung</dt><dd>${esc(row.description)}</dd>${row.disbursement?`<dt>Cấp tiền</dt><dd>${money(row.disbursement.amount)} · ${formatDate(row.disbursement.date)} · ${esc(row.disbursement.reference)}</dd>`:''}</dl><div class="wf-approval-detail">${approvals(row)}</div><h4>Lịch sử xử lý</h4><ol class="wf-timeline">${events.map(e=>`<li><b>${labels[e.action]||esc(e.action)}${e.stage?' · '+stageNames[e.stage]:''}</b><span>${esc(e.actorName||'Chưa ghi nhận')} ${e.actorRole?'· '+esc(roleName(e.actorRole)):''}</span><time>${esc(time(e.at))}</time>${e.note?`<p>${esc(e.note)}</p>`:''}</li>`).join('')}</ol></div>`,'',null);
+    const advanceDetails=row.kind==='advance'?`<dt>Loại khoản</dt><dd>${row.direction==='income'?'Thu nhập':'Chi phí'} · ${esc(row.costGroup||'—')}</dd><dt>Nhóm / đội con</dt><dd>${esc(row.subgroup||'Không áp dụng')}</dd><dt>Bộ phận</dt><dd>${esc(row.department||'Chưa gán')}</dd><dt>Loại chi phí</dt><dd>${row.costType==='operating'?'Chi phí vận hành':'Chi phí nghiệp vụ'}</dd><dt>Hạch toán</dt><dd>${row.accountingMode==='advance_pending'?'Tạm ứng / chờ đối soát':'Chi phí thực tế đã đối soát'}</dd><dt>Nhân sự MKT</dt><dd>${esc(row.employeeName||row.createdByName||'—')}</dd><dt>Số tiền / VAT</dt><dd>${money(row.amount)} / ${money(row.vatAmount||0)}</dd><dt>Kỳ kế toán</dt><dd>${esc(row.accountingPeriod||'—')}</dd><dt>Chứng từ</dt><dd><div class="wf-attachment-list">${advanceAttachmentButtons(row)}</div></dd><dt>Thông tin nhận tiền</dt><dd>${esc(row.paymentInfo||'Chưa cung cấp')}</dd>`:`<dt>Loại đơn / buổi</dt><dd>${esc(row.title||row.type)} ${(row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + ')}</dd>`;
+    openModal(row.kind==='advance'?'Chi tiết hóa đơn tạm ứng':'Chi tiết đơn từ',`<div class="wf-detail">${person(row)}<p>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</p><dl><dt>Mã hồ sơ</dt><dd>${esc(row.id)}</dd><dt>Ngày phát sinh</dt><dd>${formatDate(row.date)}</dd>${advanceDetails}<dt>Nội dung</dt><dd>${esc(row.description)}</dd>${row.disbursement?`<dt>Cấp tiền</dt><dd>${money(row.disbursement.amount)} · ${formatDate(row.disbursement.date)} · ${esc(row.disbursement.reference)}</dd>`:''}</dl><div class="wf-approval-detail">${approvals(row,false)}</div><h4>Lịch sử xử lý</h4><ol class="wf-timeline">${events.map(e=>`<li><b>${labels[e.action]||esc(e.action)}${e.stage?' · '+stageNames[e.stage]:''}</b><span>${esc(e.actorName||'Chưa ghi nhận')} ${e.actorRole?'· '+esc(roleName(e.actorRole)):''}</span><time>${esc(time(e.at))}</time>${e.note?`<p>${esc(e.note)}</p>`:''}</li>`).join('')}</ol></div>`,'',null);
+    document.querySelectorAll('#modalRoot [data-wf-attachment]').forEach(button=>button.addEventListener('click',()=>downloadAdvanceAttachment(row,button.dataset.wfAttachment)));
   }
   function decide(row,decision) {
     const stage=nextStage(row);if(!canReview(row,stage))return showToast('Bạn không có quyền duyệt bước này.','error');

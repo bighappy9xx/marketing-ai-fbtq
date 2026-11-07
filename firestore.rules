@@ -138,6 +138,41 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.documentType == 'meta_ads'
           && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.attachmentChunkCount == request.resource.data.chunkCount;
       }
+      function validAdvanceAttachmentDescriptor(file) {
+        return file == null || (file is map
+          && file.keys().hasAll(['fileName','size','mimeType','chunkCount'])
+          && file.keys().hasOnly(['fileName','size','mimeType','chunkCount'])
+          && file.fileName is string && file.fileName.size() > 0 && file.fileName.size() <= 200
+          && file.size is int && file.size > 0 && file.size <= 5242880
+          && file.mimeType in ['application/pdf','image/jpeg','image/png']
+          && file.chunkCount is int && file.chunkCount > 0 && file.chunkCount <= 13);
+      }
+      function validAdvanceFileChunk() {
+        let d = request.resource.data;
+        let parentPath = /databases/$(database)/documents/workspaces/fbtq/advanceInvoices/$(d.workflowId);
+        return d.keys().hasAll(['fileScope','workflowId','fileKey','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && d.keys().hasOnly(['fileScope','workflowId','fileKey','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && d.fileScope == 'advance'
+          && d.workflowId is string
+          && d.fileKey in ['invoice','contract','transfer']
+          && d.chunkIndex is int && d.chunkIndex >= 0
+          && d.chunkCount is int && d.chunkCount > 0 && d.chunkCount <= 13 && d.chunkIndex < d.chunkCount
+          && d.base64 is string && d.base64.size() <= 600000 && d.base64.matches('^[A-Za-z0-9+/]+={0,2}$')
+          && d.ownerUid == request.auth.uid && d.createdBy == request.auth.uid && d.createdAt is string
+          && existsAfter(parentPath)
+          && getAfter(parentPath).data.createdBy == request.auth.uid
+          && getAfter(parentPath).data.attachments.keys().hasAny([d.fileKey])
+          && getAfter(parentPath).data.attachments[d.fileKey].chunkCount == d.chunkCount;
+      }
+      function canReadAdvanceFile() {
+        let parentPath = /databases/$(database)/documents/workspaces/fbtq/advanceInvoices/$(resource.data.workflowId);
+        return resource.data.get('fileScope', '') == 'advance'
+          && exists(parentPath)
+          && (get(parentPath).data.createdBy == request.auth.uid
+            || director()
+            || role() == 'accountant'
+            || role() == 'branch_manager' && branch() != '' && branch() == get(parentPath).data.branch);
+      }
       function workflowUser() { return signedIn() && profile().get('approved', true) != false; }
       function workflowName() { return profile().get('name', profile().get('email', 'Nhân viên')); }
       function validWorkflowBase(d) {
@@ -202,15 +237,32 @@ service cloud.firestore {
       }
       function validAdvanceCreate() {
         let d = request.resource.data;
-        return d.keys().hasAll(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement'])
-          && d.keys().hasOnly(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement'])
+        return d.keys().hasAll(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement','direction','costGroup','subgroup','costType','accountingMode','employeeName','vatAmount','accountingPeriod','attachments'])
+          && d.keys().hasOnly(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement','direction','costGroup','subgroup','costType','accountingMode','employeeName','vatAmount','accountingPeriod','attachments'])
           && validWorkflowBase(d)
           && d.kind == 'advance'
           && validInitialApprovals(d, 'manager', 'accountant')
           && d.amount is int && d.amount > 0 && d.amount <= 1000000000000
           && validWorkflowDate(d.date)
-          && d.title == 'Tạm ứng chạy quảng cáo'
+          && d.title is string && d.title.size() >= 3 && d.title.size() <= 160
           && d.paymentInfo is string && d.paymentInfo.size() <= 500
+          && d.direction in ['expense','income']
+          && d.costGroup in ['Doanh thu bán hàng','Facebook Ads','GG Ads','TikTok Ads','Nhập hàng','Lương','Vận chuyển','Phí sàn','Thuê mặt bằng','Chi phí khác']
+          && d.subgroup in ['Không áp dụng','FB Ads','GG Ads','GG Ads 1','GG Ads 2','GG Ads 3','TikTok / Zalo Ads']
+          && d.costType in ['business','operating']
+          && d.accountingMode in ['reconciled','advance_pending']
+          && d.employeeName == workflowName()
+          && d.vatAmount is int && d.vatAmount >= 0 && d.vatAmount <= 1000000000000
+          && (d.accountingMode != 'advance_pending' || d.vatAmount == 0)
+          && d.accountingPeriod is string && d.accountingPeriod.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && d.attachments is map
+          && d.attachments.keys().hasAll(['invoice','contract','transfer'])
+          && d.attachments.keys().hasOnly(['invoice','contract','transfer'])
+          && validAdvanceAttachmentDescriptor(d.attachments.invoice)
+          && validAdvanceAttachmentDescriptor(d.attachments.contract)
+          && validAdvanceAttachmentDescriptor(d.attachments.transfer)
+          && (!(d.direction == 'expense' && d.accountingMode == 'reconciled' && d.amount > 20000000 && d.vatAmount > 0)
+            || d.attachments.contract != null && d.attachments.transfer != null)
           && d.disbursement == null;
       }
       function historyOnlyAppended(before, after) {
@@ -351,7 +403,7 @@ service cloud.firestore {
         || collection == 'messages' && (manager() || resource.data.ownerUid == request.auth.uid)
         || collection == 'contentTemplates' && (manager() || resource.data.status == 'approved')
         || collection == 'invoices' && (manager() || owns())
-        || collection == 'invoiceFiles' && (manager() || resource.data.ownerUid == request.auth.uid)
+        || collection == 'invoiceFiles' && ((resource.data.get('fileScope', '') == 'advance' && canReadAdvanceFile()) || (!resource.data.keys().hasAny(['fileScope']) && (manager() || resource.data.ownerUid == request.auth.uid)))
       );
       allow get: if signedIn() && inWorkspace()
         && collection in ['advanceInvoices','staffRequests']
@@ -366,7 +418,7 @@ service cloud.firestore {
         || collection == 'tasks' && manager()
         || collection == 'campaigns'
         || collection == 'invoices' && request.resource.data.status == 'pending' && validInvoice()
-        || collection == 'invoiceFiles' && validInvoiceFileChunk()
+        || collection == 'invoiceFiles' && (validInvoiceFileChunk() || validAdvanceFileChunk())
         || collection == 'advanceInvoices' && validAdvanceCreate()
         || collection == 'staffRequests' && validStaffRequestCreate()
         || collection in ['settings', 'invitations'] && manager()
