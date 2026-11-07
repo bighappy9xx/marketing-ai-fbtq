@@ -2,14 +2,14 @@ import { STATUS_LABELS, SESSION_LABELS, monthDays, leaveSummary, dayMark, leaveW
 import { downloadWorkbook } from './xlsx-export.js';
 
 export function initWorkflows(api) {
-  const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,callFunction,roleName}=api;
+  const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,roleName}=api;
   const collections={advance:'advanceInvoices',request:'staffRequests'}, records={advance:[],request:[]};
   const stageNames={manager:'Quản lý chi nhánh',accountant:'Kế toán',department:'Trưởng phòng',branch:'Quản lý chi nhánh'};
   let subscriptions=[],generation=0,errors={advance:'',request:''},warnings={advance:'',request:''},loading={advance:false,request:false};
   const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const branch=p=>p?.branch||p?.branchName||p?.branchId||'';
   const formatDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')?d.split('-').reverse().join('/'):d||'—';
-  const time=value=>value?new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa ghi nhận';
+  const time=value=>value?new Date(value?.toDate?value.toDate():value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}):'Chưa ghi nhận';
   const stageKeys=kind=>kind==='advance'?['manager','accountant']:['department','branch'];
   const page=kind=>$('#page-'+(kind==='advance'?'advances':'requests'));
   const query=(kind,name)=>$(`[data-wf-filter="${name}"]`,page(kind));
@@ -57,7 +57,8 @@ export function initWorkflows(api) {
   }
   function filtered(kind) {
     const val=name=>query(kind,name)?.value||'all';
-    return records[kind].filter(row=>(val('branch')==='all'||row.branch===val('branch'))&&(val('user')==='all'||row.createdBy===val('user'))&&(val('status')==='all'||row.status===val('status'))&&(val('type')==='all'||(row.legacy?'legacy':row.type)===val('type'))&&(val('period')==='all'||String(row.date||'').startsWith(val('date')))).sort((a,b)=>String(b.createdAt||b.submittedAt||'').localeCompare(String(a.createdAt||a.submittedAt||'')));
+    const stamp=row=>row.createdAt?.toMillis?row.createdAt.toMillis():Date.parse(row.createdAt||row.submittedAt||'')||0;
+    return records[kind].filter(row=>(val('branch')==='all'||row.branch===val('branch'))&&(val('user')==='all'||row.createdBy===val('user'))&&(val('status')==='all'||row.status===val('status'))&&(val('type')==='all'||(row.legacy?'legacy':row.type)===val('type'))&&(val('period')==='all'||String(row.date||'').startsWith(val('date')))).sort((a,b)=>stamp(b)-stamp(a));
   }
   function render(kind) {
     const data=records[kind],roster=kind==='request'?reportPeople():[],branches=[...new Set([...data,...roster].map(row=>row.branch).filter(Boolean))].sort(),people=new Map([...roster.map(row=>[row.uid,row.name]),...data.map(row=>[row.createdBy,row.createdByName||row.employee||row.createdBy])]);
@@ -86,10 +87,67 @@ export function initWorkflows(api) {
     const advance=`<label>Số tiền tạm ứng (VND)<input name="amount" type="number" min="1" max="1000000000000" step="1" required></label><label>Ngày đề nghị<input name="date" type="date" value="${today()}" required></label><label>Thông tin nhận tiền<textarea name="paymentInfo" maxlength="500" placeholder="Ngân hàng, số tài khoản, chủ tài khoản hoặc hình thức nhận tiền"></textarea></label>`;
     const request=`<label>Loại đơn<select name="type" id="wfRequestType"><option value="leave">Đơn xin nghỉ</option><option value="proposal">Đơn đề xuất</option></select></label><label>Ngày áp dụng<input name="date" type="date" value="${today()}" required></label><fieldset id="wfLeaveFields"><label>Buổi nghỉ<select name="session"><option value="morning">Nghỉ Sáng · 0,5 ngày</option><option value="afternoon">Nghỉ Chiều · 0,5 ngày</option><option value="full">Cả ngày · 1 ngày</option></select></label></fieldset><fieldset id="wfProposalFields" hidden disabled><label>Tiêu đề đề xuất<input name="title" maxlength="160" minlength="3" required></label></fieldset>`;
     openModal(kind==='advance'?'Tạo hóa đơn tạm ứng':'Tạo đơn từ & đề xuất',unitNote()+`<div class="modal-fields">${kind==='advance'?advance:request}<label>${kind==='advance'?'Mục đích chạy quảng cáo':'Lý do / nội dung đề xuất'}<textarea name="description" minlength="5" maxlength="2000" required></textarea></label></div>`,'Gửi phê duyệt',async form=>{
-      const data=Object.fromEntries(form);data.kind=kind;data.clientRequestId=requestId;if(kind==='advance')data.amount=Number(data.amount);else data.sessions=data.type==='leave'?(data.session==='full'?['morning','afternoon']:[data.session]):[];
-      await callFunction('createWorkflow',data);closeModal();showToast('Đã gửi hồ sơ. Lịch sử sẽ cập nhật sau mỗi bước duyệt.');
+      const data=Object.fromEntries(form);data.kind=kind;data.clientRequestId=requestId;if(kind==='advance')data.amount=Number(data.amount);else data.sessions=data.type==='leave'?(data.session==='full'?['morning','afternoon']:[data.session]).sort():[];
+      await createWorkflowDirect(data);closeModal();showToast('Đã gửi hồ sơ. Lịch sử sẽ cập nhật sau mỗi bước duyệt.');
     });
     $('#wfRequestType')?.addEventListener('change',event=>{const leave=event.target.value==='leave';$('#wfLeaveFields').hidden=!leave;$('#wfLeaveFields').disabled=!leave;$('#wfProposalFields').hidden=leave;$('#wfProposalFields').disabled=leave;});
+  }
+  function workflowStore() {
+    if(!state.firebase?.storeMod||!state.firebase?.db)throw new Error('Firebase Firestore chưa kết nối. Hãy đăng nhập lại rồi thử tiếp.');
+    return {db:state.firebase.db,s:state.firebase.storeMod};
+  }
+  async function runWorkflowTransaction(s,db,work) {
+    try{return await s.runTransaction(db,work);}
+    catch(error){
+      if(error?.code==='permission-denied')throw new Error('Firestore từ chối thao tác. Hãy triển khai Rules mới và kiểm tra tài khoản đã được gán đúng chi nhánh/phòng ban.');
+      if(error?.code==='unavailable')throw new Error('Không kết nối được Firestore. Kiểm tra mạng rồi thử lại.');
+      throw error;
+    }
+  }
+  function workflowPath(s,kind,id) {return s.doc(state.firebase.db,'workspaces','fbtq',collections[kind],id);}
+  function actorFromProfile(uid,profile) {
+    if(!profile||profile.approved===false)throw new Error('Tài khoản chưa được duyệt để sử dụng chức năng này.');
+    const userBranch=branch(profile),name=profile.name||profile.email||'Nhân viên';
+    if(!userBranch)throw new Error('Nhờ Giám đốc gán chi nhánh cho tài khoản trước khi tạo hoặc duyệt hồ sơ.');
+    return {uid,name,role:profile.role||'employee',branch:userBranch,department:profile.department||'',photoData:profile.photoData||''};
+  }
+  function validateLeaveDate(value) {
+    return /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value||'')&&Number.isFinite(Date.parse(value))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+  }
+  function sameRequest(row,data) {
+    if(row.kind!==data.kind||row.date!==data.date||row.description!==String(data.description||'').trim())return false;
+    if(data.kind==='advance')return Number(row.amount)===Number(data.amount)&&String(row.paymentInfo||'')===String(data.paymentInfo||'');
+    return row.type===data.type&&row.title===(data.type==='leave'?'Đơn xin nghỉ':String(data.title||'').trim())&&JSON.stringify(row.sessions||[])===JSON.stringify(data.sessions||[]);
+  }
+  async function createWorkflowDirect(data) {
+    const {db,s}=workflowStore(),uid=state.user.uid,requestId=`${uid}_${data.clientRequestId}`;
+    if(!/^[a-zA-Z0-9-]{16,60}$/.test(data.clientRequestId||''))throw new Error('Mã gửi hồ sơ không hợp lệ. Hãy đóng form và tạo lại.');
+    if(!validateLeaveDate(data.date))throw new Error('Ngày áp dụng không hợp lệ.');
+    if(String(data.description||'').trim().length<5)throw new Error('Nội dung cần ít nhất 5 ký tự.');
+    if(data.kind==='request'&&(!['leave','proposal'].includes(data.type)||data.type==='leave'&&(!Array.isArray(data.sessions)||!data.sessions.length||data.sessions.some(value=>!['morning','afternoon'].includes(value)))||data.type==='proposal'&&String(data.title||'').trim().length<3))throw new Error('Kiểm tra loại đơn, buổi nghỉ và nội dung trước khi gửi.');
+    if(data.kind==='advance'&&(!Number.isSafeInteger(data.amount)||data.amount<=0||data.amount>1e12))throw new Error('Số tiền tạm ứng phải là số nguyên dương, tối đa 1.000 tỷ đồng.');
+    const ref=workflowPath(s,data.kind,requestId),profileRef=s.doc(db,'users',uid);
+    if(!collections[data.kind])throw new Error('Loại hồ sơ không hợp lệ.');
+    const sessionList=data.kind==='request'&&data.type==='leave'?[...new Set(data.sessions)].sort():[];
+    const slotRefs=sessionList.map(session=>s.doc(db,'workspaces','fbtq','leaveSlots',`${uid}_${data.date}_${session}`));
+    let duplicate=false;
+    await runWorkflowTransaction(s,db,async transaction=>{
+      const [profileSnap,existingSnap,...slotSnaps]=await Promise.all([transaction.get(profileRef),transaction.get(ref),...slotRefs.map(slot=>transaction.get(slot))]);
+      const profile=profileSnap.exists()?profileSnap.data():null,user=actorFromProfile(uid,profile);
+      if(data.kind==='request'&&!user.department)throw new Error('Nhờ Giám đốc gán phòng ban cho tài khoản trước khi tạo đơn từ.');
+      if(existingSnap.exists()){
+        if(!sameRequest(existingSnap.data(),data))throw new Error('Mã gửi này đã gắn với nội dung hồ sơ khác. Đóng form và tạo hồ sơ mới.');
+        duplicate=true;return;
+      }
+      if(slotSnaps.some(snap=>snap.exists()))throw new Error('Buổi nghỉ này đã có đơn chờ duyệt hoặc đã được duyệt.');
+      const now=new Date().toISOString(),stageFirst=data.kind==='advance'?'manager':'department',stageSecond=data.kind==='advance'?'accountant':'branch';
+      const record={schemaVersion:1,kind:data.kind,createdBy:uid,createdByName:user.name,photoData:user.photoData,branch:user.branch,department:user.department,description:String(data.description).trim(),status:'pending',createdAt:s.serverTimestamp(),createdDate:today(),updatedAt:s.serverTimestamp(),approvals:{[stageFirst]:{status:'pending'},[stageSecond]:{status:'pending'}},history:[{action:'submitted',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note:''}]};
+      if(data.kind==='advance')Object.assign(record,{amount:data.amount,date:data.date,title:'Tạm ứng chạy quảng cáo',paymentInfo:String(data.paymentInfo||'').trim(),disbursement:null});
+      else Object.assign(record,{type:data.type,title:data.type==='leave'?'Đơn xin nghỉ':String(data.title||'').trim(),date:data.date,sessions:sessionList});
+      transaction.set(ref,record);
+      slotRefs.forEach((slot,index)=>transaction.set(slot,{requestId,createdBy:uid,date:data.date,session:sessionList[index],branch:user.branch,department:user.department}));
+    });
+    return {ok:true,id:requestId,duplicate};
   }
   function history(row) {
     const events=row.history||[{action:'submitted',at:row.submittedAt,actorName:row.createdByName||row.employee,note:row.description},...(row.reviewedAt?[{action:row.status==='approved'?'approve':'reject',at:row.reviewedAt,actorName:row.reviewedBy||'Người duyệt',note:'Hồ sơ theo quy trình cũ'}]:[])];
@@ -98,10 +156,44 @@ export function initWorkflows(api) {
   }
   function decide(row,decision) {
     const stage=nextStage(row);if(!canReview(row,stage))return showToast('Bạn không có quyền duyệt bước này.','error');
-    openModal(decision==='approve'?'Phê duyệt hồ sơ':'Từ chối hồ sơ',`${person(row)}<p>${esc(row.title)}${row.kind==='advance'?' · '+money(row.amount):''}</p><p>Bước duyệt: <b>${stageNames[stage]}</b></p><div class="modal-fields"><label>${decision==='reject'?'Lý do từ chối (bắt buộc)':'Ghi chú phê duyệt'}<textarea name="note" maxlength="2000" ${decision==='reject'?'required minlength="3"':''}></textarea></label></div>`,decision==='approve'?'Phê Duyệt':'Từ Chối',async form=>{await callFunction('reviewWorkflow',{kind:row.kind,id:row.id,stage,decision,note:form.get('note')});closeModal();showToast(decision==='approve'?'Đã ghi nhận phê duyệt.':'Đã ghi nhận từ chối.');});
+    openModal(decision==='approve'?'Phê duyệt hồ sơ':'Từ chối hồ sơ',`${person(row)}<p>${esc(row.title)}${row.kind==='advance'?' · '+money(row.amount):''}</p><p>Bước duyệt: <b>${stageNames[stage]}</b></p><div class="modal-fields"><label>${decision==='reject'?'Lý do từ chối (bắt buộc)':'Ghi chú phê duyệt'}<textarea name="note" maxlength="2000" ${decision==='reject'?'required minlength="3"':''}></textarea></label></div>`,decision==='approve'?'Phê Duyệt':'Từ Chối',async form=>{await reviewWorkflowDirect(row,stage,decision,String(form.get('note')||'').trim());closeModal();showToast(decision==='approve'?'Đã ghi nhận phê duyệt.':'Đã ghi nhận từ chối.');});
+  }
+  function nextStageForRecord(record) {const stages=stageKeys(record.kind);return record.approvals?.[stages[0]]?.status==='approved'?stages[1]:stages[0];}
+  async function reviewWorkflowDirect(row,stage,decision,note) {
+    const {db,s}=workflowStore(),uid=state.user.uid,ref=workflowPath(s,row.kind,row.id),profileRef=s.doc(db,'users',uid);
+    if(!['approve','reject'].includes(decision)||decision==='reject'&&note.length<3)throw new Error('Vui lòng kiểm tra quyết định và lý do từ chối.');
+    await runWorkflowTransaction(s,db,async transaction=>{
+      const [profileSnap,recordSnap]=await Promise.all([transaction.get(profileRef),transaction.get(ref)]);
+      if(!recordSnap.exists())throw new Error('Không tìm thấy hồ sơ. Tải lại danh sách rồi thử lại.');
+      const user=actorFromProfile(uid,profileSnap.exists()?profileSnap.data():null),record={...recordSnap.data(),id:recordSnap.id};
+      if(record.status!=='pending')throw new Error('Hồ sơ đã được xử lý. Tải lại danh sách.');
+      if(nextStageForRecord(record)!==stage||!canReview(record,stage))throw new Error('Bạn không có quyền duyệt bước này hoặc chưa đến lượt duyệt.');
+      const second=stageKeys(record.kind)[1];
+      if(Object.values(record.approvals||{}).some(item=>item.actorUid===uid))throw new Error('Hai cấp phê duyệt phải do hai người khác nhau thực hiện.');
+      const now=new Date().toISOString(),status=decision==='reject'?'rejected':stage===second?'approved':'pending';
+      const approval={status:decision==='approve'?'approved':'rejected',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note};
+      const approvals={...record.approvals,[stage]:approval},history=[...(record.history||[]),{...approval,action:decision,stage}];
+      const slotRefs=record.kind==='request'&&record.type==='leave'&&decision==='reject'?(record.sessions||[]).map(session=>s.doc(db,'workspaces','fbtq','leaveSlots',`${record.createdBy}_${record.date}_${session}`)):[];
+      const slots=await Promise.all(slotRefs.map(slot=>transaction.get(slot)));
+      transaction.update(ref,{approvals,status,updatedAt:s.serverTimestamp(),history});
+      slots.forEach((snap,index)=>{if(snap.exists())transaction.delete(slotRefs[index]);});
+    });
   }
   function disburse(row) {
-    openModal('Xác nhận đã cấp tiền',`${person(row)}<p>Số tiền: <b>${money(row.amount)}</b></p><p>Ghi nhận sau khi đã chuyển tiền hoặc chi tiền mặt cho người nhận.</p><div class="modal-fields"><label>Ngày cấp tiền<input name="date" type="date" value="${today()}" max="${today()}" required></label><label>Mã giao dịch / phiếu chi<input name="reference" minlength="3" maxlength="200" required></label></div>`,'Xác nhận đã cấp tiền',async form=>{await callFunction('disburseAdvance',{id:row.id,date:form.get('date'),reference:form.get('reference')});closeModal();showToast('Đã lưu lịch sử cấp tiền.');});
+    openModal('Xác nhận đã cấp tiền',`${person(row)}<p>Số tiền: <b>${money(row.amount)}</b></p><p>Ghi nhận sau khi đã chuyển tiền hoặc chi tiền mặt cho người nhận.</p><div class="modal-fields"><label>Ngày cấp tiền<input name="date" type="date" value="${today()}" max="${today()}" required></label><label>Mã giao dịch / phiếu chi<input name="reference" minlength="3" maxlength="200" required></label></div>`,'Xác nhận đã cấp tiền',async form=>{await disburseAdvanceDirect(row,String(form.get('date')||''),String(form.get('reference')||'').trim());closeModal();showToast('Đã lưu lịch sử cấp tiền.');});
+  }
+  async function disburseAdvanceDirect(row,date,reference) {
+    const {db,s}=workflowStore(),uid=state.user.uid,ref=workflowPath(s,'advance',row.id),profileRef=s.doc(db,'users',uid);
+    if(!validateLeaveDate(date)||date>today()||reference.length<3)throw new Error('Nhập ngày cấp tiền không ở tương lai và mã giao dịch/phiếu chi hợp lệ.');
+    await runWorkflowTransaction(s,db,async transaction=>{
+      const [profileSnap,recordSnap]=await Promise.all([transaction.get(profileRef),transaction.get(ref)]);
+      if(!recordSnap.exists())throw new Error('Không tìm thấy hóa đơn tạm ứng. Tải lại danh sách.');
+      const user=actorFromProfile(uid,profileSnap.exists()?profileSnap.data():null),record=recordSnap.data();
+      if(user.role!=='accountant'||uid===record.createdBy)throw new Error('Chỉ kế toán được ghi nhận cấp tiền cho người khác.');
+      if(record.status!=='approved'||record.disbursement||record.approvals?.manager?.status!=='approved'||record.approvals?.accountant?.status!=='approved')throw new Error('Hóa đơn phải được duyệt đủ hai cấp và chưa cấp tiền.');
+      const now=new Date().toISOString(),disbursement={amount:record.amount,reference,date,actorUid:uid,actorName:user.name,at:now},history=[...(record.history||[]),{action:'disbursed',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note:reference}];
+      transaction.update(ref,{status:'disbursed',disbursement,updatedAt:s.serverTimestamp(),history});
+    });
   }
   function handleAction(kind,button) {
     const action=button.dataset.wfAction,row=records[kind].find(row=>(row.legacy?'legacy:':'')+row.id===button.dataset.wfId);

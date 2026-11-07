@@ -22,7 +22,7 @@ Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ c�
 1. Tạo Firebase project và Web App. Bật **Authentication → Email/Password** và **Cloud Firestore**. Trong **Authentication → Settings → Authorized domains**, thêm `bighappy9xx.github.io` (chỉ tên miền, không thêm `/marketing-ai-fbtq`).
 2. Tạo Firestore ở chế độ production; Rules cho phép mọi tài khoản đã đăng nhập sử dụng website và giới hạn thao tác theo vai trò.
 3. Điền `apiKey`, `authDomain`, `projectId`, `appId` và `appCheckSiteKey` (reCAPTCHA Enterprise site key) vào `firebase-config.js`. Tệp này được tải chung khi website mở nên quản trị viên cấu hình một lần, không cần gửi site key cho từng user. Sau khi sửa, commit và triển khai lại GitHub Pages. Firebase Web API key và reCAPTCHA site key là mã công khai; tuyệt đối không đưa private key hoặc service account key vào thư mục public.
-4. Nếu cần triển khai Rules hoặc Cloud Functions, cài Firebase CLI và đăng nhập. Bỏ qua bước cài dependencies bên dưới nếu chỉ dùng Gemini AI Logic:
+4. Để triển khai Rules trên Spark, cài Firebase CLI và đăng nhập. Không cần cài dependencies trong `functions/` cho quy trình đơn từ/tạm ứng. Chỉ cài dependencies nếu dự án dùng Blaze và cần triển khai backend:
 
    ```sh
    npm install -g firebase-tools
@@ -31,7 +31,7 @@ Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ c�
    cd functions && npm install && cd ..
    ```
 
-5. Gemini trong **Studio nội dung** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp, không cần Cloud Function hoặc Gemini API Key riêng. ChatGPT, Claude và các chức năng máy chủ khác vẫn cần Cloud Functions cùng cấu hình tương ứng.
+5. Gemini trong **Studio nội dung** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp. Quy trình **Đơn Từ & Đề Xuất** và **Hoá Đơn Tạm Ứng** dùng Firestore Security Rules trực tiếp, không cần Cloud Functions. ChatGPT, Claude, chatbot Messenger, Meta webhook và các phần máy chủ khác vẫn cần Cloud Functions, vì vậy không hoạt động trên Spark.
 
 6. Chỉ khi kết nối Fanpage: đặt biến môi trường `META_GRAPH_VERSION` trong `functions/.env.<PROJECT_ID>` theo phiên bản Graph API mà Meta App của công ty hỗ trợ.
 7. Nếu dùng Firebase Hosting, triển khai giao diện và Rules. Với GitHub Pages, đẩy file website lên GitHub như thường lệ; triển khai Cloud Functions riêng bằng lệnh trong mục AI bên dưới.
@@ -50,17 +50,15 @@ Thư mục `extension/` chứa extension Chrome có logo Favicon. Sau khi cài l
 
 Mọi tài khoản đã đăng ký và đăng nhập Firebase đều vào được website; nếu chưa có hồ sơ Firestore, website tự tạo hồ sơ với vai trò **Nhân viên**. Rules giới hạn Nhân viên ở dữ liệu của chính họ: chỉ số quảng cáo theo `createdBy`, công việc được giao, báo cáo/bản nháp/đề xuất hóa đơn do họ tạo, và hội thoại thuộc Fanpage của họ. Giám đốc, Quản lý chi nhánh và Trưởng phòng có thể xem dữ liệu toàn công ty. Mẫu nội dung đã duyệt và cấu hình chatbot là tài nguyên dùng chung.
 
-Triển khai Rules mới để áp dụng phân quyền riêng tư theo người dùng và vai trò:
+Triển khai Rules mới để áp dụng phân quyền riêng tư theo người dùng và vai trò, đồng thời bật ghi/duyệt hồ sơ trực tiếp trên Spark:
 
 ```sh
-firebase deploy --project mediafbtq-6e1bb --only firestore:rules
+firebase deploy --project mediafbtq-6e1bb --only "firestore:rules,firestore:indexes"
 ```
 
-Giám đốc đổi vai trò tại **Nhân sự & phân quyền** bằng UID trong Firebase Authentication hoặc email. Website đồng bộ vai trò vào hồ sơ `users/{UID}` và custom claim. Nếu vừa sửa mã nguồn, triển khai hàm phân quyền:
+Các đơn xin nghỉ/đề xuất được duyệt theo thứ tự **Trưởng phòng → Quản lý chi nhánh**; tạm ứng theo **Quản lý chi nhánh → Kế toán**. Firestore Rules kiểm tra mỗi bước và bắt buộc hai người duyệt khác nhau. Đơn nghỉ và khóa buổi nghỉ được ghi trong cùng giao dịch, tránh đăng ký trùng ngày/buổi. Hai quy trình này dùng Firestore trực tiếp; không cần bật billing hay triển khai Cloud Functions.
 
-```sh
-firebase deploy --project mediafbtq-6e1bb --only functions:setUserRole
-```
+Giám đốc đổi vai trò tại **Nhân sự & phân quyền** bằng UID trong Firebase Authentication hoặc email. Website ghi vai trò vào hồ sơ `users/{UID}`; Firestore Rules chỉ cho Giám đốc thực hiện việc này. Người được phân quyền cần đăng xuất rồi đăng nhập lại để tải quyền mới. Không cần custom claim hoặc Cloud Function cho phân quyền trên website.
 
 Các mã vai trò: `director` (Giám đốc), `branch_manager` (Quản lý chi nhánh), `department_manager` (Trưởng phòng), `employee` (Nhân viên). Cloud Functions cần bật thanh toán theo yêu cầu hiện hành của Firebase.
 
