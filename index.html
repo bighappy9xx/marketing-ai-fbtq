@@ -8,7 +8,7 @@
   <title>Marketing Ai FBTQ</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261106-brand-refresh">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261106-brand-refresh">
-  <link rel="stylesheet" href="styles.css?v=20261107-invoice-tabs">
+  <link rel="stylesheet" href="styles.css?v=20261107-system-notifications">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -50,7 +50,7 @@
       <div class="sidebar-bottom"><div class="help-card"><div class="help-orb">✦</div><b>Cần trợ giúp?</b><p>Đội ngũ FBTQ luôn sẵn sàng hỗ trợ bạn.</p><a href="mailto:support@fbtq.vn">Liên hệ hỗ trợ <span>↗</span></a></div><div class="side-user"><div class="avatar avatar-blue" id="sideAvatar">NV</div><div class="user-meta"><b id="sideUserName">Tài khoản</b><small id="sideUserRole">Nhân viên</small></div><button id="logoutBtn" class="icon-button" title="Đăng xuất">⇥</button></div></div>
     </aside>
     <div class="sidebar-scrim" id="sidebarScrim"></div>
-    <main class="main-area"><header class="topbar"><button class="icon-button mobile-menu" id="mobileMenu" aria-label="Mở menu">☰</button><div class="breadcrumbs"><span>FBTQ Company</span><i>/</i><b id="crumbPage">Tổng quan</b></div><div class="top-actions"><button class="icon-button search-trigger" id="searchTrigger" title="Tìm kiếm">⌕</button><div class="search-box hidden" id="searchBox"><input type="search" placeholder="Tìm nhanh trong workspace…"><kbd>ESC</kbd></div><button class="icon-button notification-btn" id="notificationBtn" title="Thông báo">♧<i></i></button><div class="top-divider"></div><button class="theme-toggle" id="themeToggle" title="Đổi giao diện"><span>☼</span><span>☾</span><i></i></button><button class="top-profile" id="topProfile" title="Ảnh đại diện và hồ sơ cá nhân" aria-label="Mở hồ sơ cá nhân"><span class="avatar avatar-blue" id="topAvatar">NV</span><span class="profile-chevron">⌄</span></button></div></header>
+    <main class="main-area"><header class="topbar"><button class="icon-button mobile-menu" id="mobileMenu" aria-label="Mở menu">☰</button><div class="breadcrumbs"><span>FBTQ Company</span><i>/</i><b id="crumbPage">Tổng quan</b></div><div class="top-actions"><button class="icon-button search-trigger" id="searchTrigger" title="Tìm kiếm">⌕</button><div class="search-box hidden" id="searchBox"><input type="search" placeholder="Tìm nhanh trong workspace…"><kbd>ESC</kbd></div><div class="notification-area"><button class="icon-button notification-btn" id="notificationBtn" type="button" title="Thông báo hệ thống" aria-label="Mở thông báo hệ thống" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="notification-count hidden" id="notificationCount">0</span></button><section class="system-notification-panel hidden" id="systemNotificationPanel" aria-label="Thông báo và trạng thái hệ thống"><div class="system-notification-head"><div><b>Thông báo hệ thống</b><small>Cập nhật hoạt động trong workspace</small></div><button class="text-button" type="button" id="markNotificationsRead">Đánh dấu đã đọc</button></div><div class="system-health-grid" id="systemHealthGrid"></div><div class="system-notification-list" id="systemNotificationList"><div class="system-notification-empty">Đang tải trạng thái hệ thống…</div></div><div class="system-notification-foot"><span id="systemNotificationFootnote">Hoạt động mới nhất</span><button class="system-notification-close" type="button" id="closeSystemNotifications">Đóng</button></div></section></div><div class="top-divider"></div><button class="theme-toggle" id="themeToggle" title="Đổi giao diện"><span>☼</span><span>☾</span><i></i></button><button class="top-profile" id="topProfile" title="Ảnh đại diện và hồ sơ cá nhân" aria-label="Mở hồ sơ cá nhân"><span class="avatar avatar-blue" id="topAvatar">NV</span><span class="profile-chevron">⌄</span></button></div></header>
       <div class="page-wrap">
         <section class="page active" id="page-overview">
           <div class="page-heading"><div><div class="eyebrow" id="overviewDate">TỔNG QUAN MARKETING</div><h1>Chào bạn, <span id="greetingName">Tài khoản</span> <span class="wave">✦</span></h1><p class="muted">Tổng hợp hiệu suất theo quyền truy cập, chi nhánh và kỳ báo cáo.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-goto="analytics">⌁ <span>Xem báo cáo</span></button><button class="btn btn-primary manager-only" data-goto="tasks">＋ Giao công việc</button></div></div>
@@ -154,6 +154,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261107-invoice-tabs"></script>
+  <script type="module" src="app.js?v=20261107-system-notifications"></script>
 </body>
 </html>

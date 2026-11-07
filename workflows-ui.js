@@ -2,7 +2,7 @@ import { STATUS_LABELS, SESSION_LABELS, monthDays, leaveSummary, dayMark, leaveW
 import { downloadWorkbook } from './xlsx-export.js';
 
 export function initWorkflows(api) {
-  const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,roleName}=api;
+  const {state,$,esc,money,avatarMarkup,openModal,closeModal,showToast,roleName,onDataChange}=api;
   const collections={advance:'advanceInvoices',request:'staffRequests'}, records={advance:[],request:[]};
   const stageNames={manager:'Quản lý chi nhánh',accountant:'Kế toán',department:'Trưởng phòng',branch:'Quản lý chi nhánh'};
   const advanceGroups=['Doanh thu bán hàng','Facebook Ads','GG Ads','TikTok Ads','Nhập hàng','Lương','Vận chuyển','Phí sàn','Thuê mặt bằng','Chi phí khác'];
@@ -76,6 +76,14 @@ export function initWorkflows(api) {
       const sum=status=>rows.filter(row=>row.status===status).reduce((n,row)=>n+row.amount,0);
       $('[data-wf-summary]',page(kind)).innerHTML=[['Chờ phê duyệt',sum('pending'),'pending'],['Đã duyệt · chờ cấp',sum('approved'),'approved'],['Đã cấp tiền',sum('disbursed'),'disbursed'],['Từ chối',sum('rejected'),'rejected']].map(([label,value,tone])=>`<article class="wf-summary-${tone}"><span>${label}</span><b>${money(value)}</b></article>`).join('');
     } else renderLeave();
+    onDataChange?.();
+  }
+  function notifications(){
+    const labels={pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối',disbursed:'Đã cấp tiền'};
+    return [...records.advance,...records.request].map(row=>{
+      const event=(row.history||[]).at(-1),status=row.status||'pending',typeLabel=row.kind==='advance'?'Hóa đơn tạm ứng':row.type==='leave'?'Đơn xin nghỉ':'Đề xuất nhân sự',statusLabel=labels[status]||'Đang cập nhật',detail=[row.description||row.title||'Hồ sơ',row.kind==='advance'?money(row.amount||0):''].filter(Boolean).join(' · ');
+      return{id:`${row.kind}:${row.id}:${status}:${event?.at||row.updatedAt||row.createdAt||''}`,title:`${typeLabel} · ${statusLabel}`,detail,status:statusLabel,statusTone:status==='approved'||status==='disbursed'?'success':status==='rejected'?'danger':'pending',page:row.kind==='advance'?'advances':'requests',actorUid:event?.actorUid||row.createdBy,actorName:event?.actorName||row.createdByName||row.employee,photoData:event?.photoData||row.photoData,time:event?.at||row.updatedAt||row.createdAt};
+    });
   }
   function reportPeople() {
     const roster=[...state.users];if(state.user&&!roster.some(p=>p.uid===state.user.uid))roster.push(state.user);
@@ -181,7 +189,7 @@ export function initWorkflows(api) {
       }
       if(slotSnaps.some(snap=>snap.exists()))throw new Error('Buổi nghỉ này đã có đơn chờ duyệt hoặc đã được duyệt.');
       const now=new Date().toISOString(),stageFirst=data.kind==='advance'?'manager':'department',stageSecond=data.kind==='advance'?'accountant':'branch';
-      const record={schemaVersion:1,kind:data.kind,createdBy:uid,createdByName:user.name,photoData:user.photoData,branch:user.branch,department:user.department,description:String(data.description).trim(),status:'pending',createdAt:s.serverTimestamp(),createdDate:today(),updatedAt:s.serverTimestamp(),approvals:{[stageFirst]:{status:'pending'},[stageSecond]:{status:'pending'}},history:[{action:'submitted',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note:''}]};
+      const record={schemaVersion:1,kind:data.kind,createdBy:uid,createdByName:user.name,photoData:user.photoData,branch:user.branch,department:user.department,description:String(data.description).trim(),status:'pending',createdAt:s.serverTimestamp(),createdDate:today(),updatedAt:s.serverTimestamp(),approvals:{[stageFirst]:{status:'pending'},[stageSecond]:{status:'pending'}},history:[{action:'submitted',actorUid:uid,actorName:user.name,actorRole:user.role,photoData:user.photoData,at:now,note:''}]};
       if(data.kind==='advance')Object.assign(record,{amount:data.amount,date:data.date,title:`${data.direction==='income'?'Khoản thu':'Khoản chi'} · ${data.costGroup}`,paymentInfo:String(data.paymentInfo||'').trim(),direction:data.direction,costGroup:data.costGroup,subgroup:String(data.subgroup||''),costType:data.costType,accountingMode:data.accountingMode,employeeName:user.name,vatAmount:data.vatAmount,accountingPeriod:data.accountingPeriod,attachments:data.attachments||{invoice:null,contract:null,transfer:null},disbursement:null});
       else Object.assign(record,{type:data.type,title:data.type==='leave'?'Đơn xin nghỉ':String(data.title||'').trim(),date:data.date,sessions:sessionList});
       transaction.set(ref,record);
@@ -226,7 +234,7 @@ export function initWorkflows(api) {
       const second=stageKeys(record.kind)[1];
       if(Object.values(record.approvals||{}).some(item=>item.actorUid===uid))throw new Error('Hai cấp phê duyệt phải do hai người khác nhau thực hiện.');
       const now=new Date().toISOString(),status=decision==='reject'?'rejected':stage===second?'approved':'pending';
-      const approval={status:decision==='approve'?'approved':'rejected',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note};
+      const approval={status:decision==='approve'?'approved':'rejected',actorUid:uid,actorName:user.name,actorRole:user.role,photoData:user.photoData,at:now,note};
       const approvals={...record.approvals,[stage]:approval},history=[...(record.history||[]),{...approval,action:decision,stage}];
       const slotRefs=record.kind==='request'&&record.type==='leave'&&decision==='reject'?(record.sessions||[]).map(session=>s.doc(db,'workspaces','fbtq','leaveSlots',`${record.createdBy}_${record.date}_${session}`)):[];
       const slots=await Promise.all(slotRefs.map(slot=>transaction.get(slot)));
@@ -246,7 +254,7 @@ export function initWorkflows(api) {
       const user=actorFromProfile(uid,profileSnap.exists()?profileSnap.data():null),record=recordSnap.data();
       if(user.role!=='accountant'||uid===record.createdBy)throw new Error('Chỉ kế toán được ghi nhận cấp tiền cho người khác.');
       if(record.status!=='approved'||record.disbursement||record.approvals?.manager?.status!=='approved'||record.approvals?.accountant?.status!=='approved')throw new Error('Hóa đơn phải được duyệt đủ hai cấp và chưa cấp tiền.');
-      const now=new Date().toISOString(),disbursement={amount:record.amount,reference,date,actorUid:uid,actorName:user.name,at:now},history=[...(record.history||[]),{action:'disbursed',actorUid:uid,actorName:user.name,actorRole:user.role,at:now,note:reference}];
+      const now=new Date().toISOString(),disbursement={amount:record.amount,reference,date,actorUid:uid,actorName:user.name,photoData:user.photoData,at:now},history=[...(record.history||[]),{action:'disbursed',actorUid:uid,actorName:user.name,actorRole:user.role,photoData:user.photoData,at:now,note:reference}];
       transaction.update(ref,{status:'disbursed',disbursement,updatedAt:s.serverTimestamp(),history});
     });
   }
@@ -300,5 +308,5 @@ export function initWorkflows(api) {
     }
   }
   buildPages();render('advance');render('request');
-  return {start,stop,render};
+  return {start,stop,render,notifications};
 }
