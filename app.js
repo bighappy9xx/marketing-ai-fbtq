@@ -1,4 +1,4 @@
-import { initWorkflows } from './workflows-ui.js?v=20261107-status-actions';
+import { initWorkflows } from './workflows-ui.js?v=20261107-stage-decisions';
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

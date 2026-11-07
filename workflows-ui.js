@@ -27,11 +27,11 @@ export function initWorkflows(api) {
   const badge=(status,label)=>`<span class="wf-badge wf-${esc(status||'pending')}">${esc(label||STATUS_LABELS[status]||'Chưa xác định')}</span>`;
   function approvals(row) {
     if(row.legacy)return '<span class="wf-badge wf-legacy">Hồ sơ cũ · quy trình trước đây</span>';
-    return stageKeys(row.kind).map(stage=>`<div class="wf-stage"><span>${stageNames[stage]}</span>${badge(row.approvals?.[stage]?.status||'pending',row.approvals?.[stage]?.status==='approved'?'Đã duyệt':row.approvals?.[stage]?.status==='rejected'?'Từ chối':'Chờ duyệt')}</div>`).join('');
+    return stageKeys(row.kind).map(stage=>{const status=row.approvals?.[stage]?.status||'pending',label=status==='approved'?'Đã duyệt':status==='rejected'?'Từ chối':'Chờ duyệt';return `<div class="wf-stage"><span>${stageNames[stage]}</span>${stageDecisionButtons(row,stage)||badge(status,label)}</div>`;}).join('');
   }
-  function reviewButtons(row) {
+  function stageDecisionButtons(row,stage) {
     const base=`data-wf-kind="${row.kind}" data-wf-id="${esc((row.legacy?'legacy:':'')+row.id)}"`;
-    if(!canReview(row,nextStage(row)))return '';
+    if(nextStage(row)!==stage||!canReview(row,stage))return '';
     return `<div class="wf-decision-buttons"><button class="approve-btn" type="button" data-wf-action="approve" ${base}>Phê Duyệt</button><button class="reject-btn" type="button" data-wf-action="reject" ${base}>Từ Chối</button></div>`;
   }
   function actionButtons(row) {
@@ -68,7 +68,7 @@ export function initWorkflows(api) {
     const data=records[kind],roster=kind==='request'?reportPeople():[],branches=[...new Set([...data,...roster].map(row=>row.branch).filter(Boolean))].sort(),people=new Map([...roster.map(row=>[row.uid,row.name]),...data.map(row=>[row.createdBy,row.createdByName||row.employee||row.createdBy])]);
     options(query(kind,'branch'),branches.map(b=>[b,b]),'Tất cả trong phạm vi truy cập');options(query(kind,'user'),[...people].filter(([uid])=>uid),'Tất cả nhân sự');
     const rows=filtered(kind),message=$('[data-wf-message]',page(kind));message.textContent=[errors[kind],warnings[kind],loading[kind]?'Đang tải hồ sơ…':`${rows.length} hồ sơ trong phạm vi truy cập`].filter(Boolean).join(' ');message.classList.toggle('wf-error',!!errors[kind]);
-    $('[data-wf-table]',page(kind)).innerHTML=rows.map(row=>`<tr><td>${person(row)}</td><td><b>${esc(row.title||row.type||'Đơn từ')}</b><small class="wf-description">${esc(row.description)}</small><small class="wf-code">${esc(row.id)}</small></td><td>${esc(formatDate(row.date))}${row.type==='leave'?`<small>${esc((row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + '))}</small>`:''}</td>${kind==='advance'?`<td><b>${money(row.amount)}</b>${row.disbursement?`<small>Cấp ngày ${formatDate(row.disbursement.date)}</small>`:''}</td>`:''}<td>${approvals(row)}</td><td><div class="wf-status-cell">${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}${reviewButtons(row)}</div></td><td class="wf-row-actions">${actionButtons(row)}</td></tr>`).join('')||`<tr><td colspan="${kind==='advance'?7:6}" class="wf-empty">${loading[kind]?'Đang tải…':errors[kind]?'Chưa tải được hồ sơ.':'Chưa có hồ sơ khớp bộ lọc.'}</td></tr>`;
+    $('[data-wf-table]',page(kind)).innerHTML=rows.map(row=>`<tr><td>${person(row)}</td><td><b>${esc(row.title||row.type||'Đơn từ')}</b><small class="wf-description">${esc(row.description)}</small><small class="wf-code">${esc(row.id)}</small></td><td>${esc(formatDate(row.date))}${row.type==='leave'?`<small>${esc((row.sessions||[]).map(s=>SESSION_LABELS[s]).join(' + '))}</small>`:''}</td>${kind==='advance'?`<td><b>${money(row.amount)}</b>${row.disbursement?`<small>Cấp ngày ${formatDate(row.disbursement.date)}</small>`:''}</td>`:''}<td>${approvals(row)}</td><td>${badge(row.status,row.legacy?(row.status==='approved'?'Đã duyệt (quy trình cũ)':row.status==='rejected'?'Từ chối (quy trình cũ)':'Hồ sơ cũ · chờ xử lý'):null)}</td><td class="wf-row-actions">${actionButtons(row)}</td></tr>`).join('')||`<tr><td colspan="${kind==='advance'?7:6}" class="wf-empty">${loading[kind]?'Đang tải…':errors[kind]?'Chưa tải được hồ sơ.':'Chưa có hồ sơ khớp bộ lọc.'}</td></tr>`;
     if(kind==='advance') {
       const sum=status=>rows.filter(row=>row.status===status).reduce((n,row)=>n+row.amount,0);
       $('[data-wf-summary]',page(kind)).innerHTML=[['Chờ phê duyệt',sum('pending'),'pending'],['Đã duyệt · chờ cấp',sum('approved'),'approved'],['Đã cấp tiền',sum('disbursed'),'disbursed'],['Từ chối',sum('rejected'),'rejected']].map(([label,value,tone])=>`<article class="wf-summary-${tone}"><span>${label}</span><b>${money(value)}</b></article>`).join('');
