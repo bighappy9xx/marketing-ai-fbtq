@@ -153,22 +153,24 @@ async function generateFbtqAssistantReply(question){
   }
   throw lastError||new Error('Không nhận được phản hồi từ Gemini.');
 }
-function appendFbtqAssistantMessage(role,text,actions=[]){
-  const list=$('#assistantMessages');if(!list)return null;
+function appendFbtqAssistantMessage(role,text,actions=[],list=$('#assistantMessages')){
+  if(!list)return null;
   const isBot=role==='assistant',row=document.createElement('article');row.className=`assistant-message ${isBot?'assistant-message--bot':'assistant-message--user'}`;
   const initials=(state.user?.name||state.user?.email||'NV').split(/\s+/).filter(Boolean).slice(-2).map(part=>part[0]).join('').toUpperCase()||'NV';
-  const avatar=isBot?'<span class="assistant-message-avatar assistant-message-avatar--bot">✦</span>':`<span class="assistant-message-avatar assistant-message-avatar--user">${avatarMarkup(state.user?.photoData||'',initials,'avatar avatar-blue')}</span>`;
+  const avatar=isBot?'<span class="assistant-message-avatar assistant-message-avatar--bot"><img src="assets/fbtq-assistant-robot.png" alt=""></span>':`<span class="assistant-message-avatar assistant-message-avatar--user">${avatarMarkup(state.user?.photoData||'',initials,'avatar avatar-blue')}</span>`;
   row.innerHTML=`${avatar}<div class="assistant-message-body"><b>${isBot?'Trợ lý FBTQ':esc(state.user?.name||'Bạn')}</b><p></p></div>`;row.querySelector('p').textContent=String(text||'');
   if(actions.length){const actionRow=document.createElement('div');actionRow.className='assistant-message-actions';for(const action of actions){const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.textContent=action.label;if(action.copy!==undefined)button.dataset.assistantCopy=action.copy;if(action.openStudio!==undefined){button.dataset.assistantOpenStudio='true';button.dataset.assistantPrompt=action.openStudio}if(action.page){button.dataset.assistantNavigate=action.page}actionRow.append(button)}row.querySelector('.assistant-message-body').append(actionRow)}
   list.append(row);list.scrollTop=list.scrollHeight;return row;
 }
 function normalizeFbtqAssistantText(value){return String(value||'').toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim()}
 function fbtqAssistantDestination(text){const value=normalizeFbtqAssistantText(text);const routes=[['overview',['tong quan','dashboard']],['analytics',['hieu suat marketing','hieu suat','bao cao marketing','bao cao hang ngay','lich su bao cao','quang cao']],['leaderboard',['xep hang','so sanh nhan su','bang xep hang']],['content-review',['kiem duyet noi dung','duyet noi dung']],['content',['studio noi dung','noi dung']],['tasks',['cong viec','giao viec']],['work-awards',['vinh danh','bang vang']],['advances',['bao cao hoa don','hoa don tam ung','hoa don']],['requests',['don tu','de xuat']],['inbox',['chatbot','hop thu','tin nhan']],['people',['nhan su','phan quyen']],['settings',['cai dat']]];return routes.find(([,aliases])=>aliases.some(alias=>value.includes(alias)))?.[0]||''}
-async function processFbtqAssistantCommand(raw){
+async function processFbtqAssistantCommand(raw,{floating=false}={}){
   const command=String(raw||'').trim();if(!command)return;
-  appendFbtqAssistantMessage('user',command);
-  const send=$('#assistantSendButton'),input=$('#assistantCommandInput');send.disabled=true;input.disabled=true;const pending=appendFbtqAssistantMessage('assistant','Đang xử lý câu lệnh…');
-  const finish=(text,actions=[])=>{pending?.remove();appendFbtqAssistantMessage('assistant',text,actions)};
+  const list=$(floating?'#fbtqAssistantMessages':'#assistantMessages'),send=$(floating?'#fbtqAssistantSend':'#assistantSendButton'),input=$(floating?'#fbtqAssistantInput':'#assistantCommandInput');
+  const append=(role,text,actions=[])=>appendFbtqAssistantMessage(role,text,actions,list);
+  append('user',command);
+  send.disabled=true;input.disabled=true;const pending=append('assistant','Đang xử lý câu lệnh…');
+  const finish=(text,actions=[])=>{pending?.remove();append('assistant',text,actions)};
   try{
     const normalized=normalizeFbtqAssistantText(command),createMatch=command.match(/^(?:tạo nội dung|viết nội dung|soạn nội dung|viết bài|soạn bài)\s*[:：-]?\s*/i),taskMatch=command.match(/^(?:giao việc|tạo công việc|giao công việc)\s*[:：-]?\s*/i),openMatch=normalized.match(/^(?:mo|di toi|vao|chuyen den|xem)\s+(.+)$/);
     if(createMatch){const prompt=command.slice(createMatch[0].length).trim();if(!prompt){finish('Bạn hãy thêm ý tưởng sau lệnh “Tạo nội dung: …”.');return}const content=await generateGeminiContent({prompt,tone:$('#contentTone')?.value||'Thân thiện, gần gũi',length:$('#contentLength')?.value||'Tiêu chuẩn'});finish(content,[{label:'Sao chép nội dung',copy:content},{label:'Mở Studio Nội Dung',openStudio:prompt}]);if(geminiFallbackUsed)showToast('Gemini chính đang bận; nội dung được tạo bằng mô hình dự phòng.');return}
@@ -178,7 +180,7 @@ async function processFbtqAssistantCommand(raw){
     if(/\b(duyet|phe duyet|tu choi|xoa|xoa du lieu|phan quyen|cap quyen|gui tin nhan)\b/.test(normalized)){const destination=fbtqAssistantDestination(normalized);finish('Với thao tác phê duyệt, từ chối, xóa, phân quyền hoặc gửi tin nhắn, Trợ lý không tự xác nhận thay bạn. Hãy mở đúng mục nghiệp vụ để kiểm tra nội dung và bấm nút xác nhận.',destination?[{label:`Mở ${pageNames[destination]}`,page:destination}]:[]);return}
     finish(await generateFbtqAssistantReply(command));
   }catch(error){finish(error?.message||'Không xử lý được câu lệnh. Hãy thử lại hoặc kiểm tra kết nối Gemini.');showToast(error?.message||'Trợ lý FBTQ chưa xử lý được lệnh.','error')}
-  finally{send.disabled=false;input.disabled=false;input.focus()}
+  finally{send.disabled=false;input.disabled=false;if(!floating||!$('#fbtqAssistantWindow')?.hidden)input.focus()}
 }
 function pcmToWav(pcmBytes,sampleRate=24000,channels=1,bitsPerSample=16){
   const headerSize=44,buffer=new ArrayBuffer(headerSize+pcmBytes.length),view=new DataView(buffer),bytes=new Uint8Array(buffer);
@@ -274,7 +276,16 @@ $$('.nav-item').forEach(el=>el.addEventListener('click',()=>navigate(el.dataset.
 $('#assistantCommandForm')?.addEventListener('submit',event=>{event.preventDefault();const input=$('#assistantCommandInput'),command=input.value.trim();if(!command)return;input.value='';processFbtqAssistantCommand(command)});
 $('#assistantCommandInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();$('#assistantCommandForm').requestSubmit()}});
 $$('[data-assistant-command]').forEach(button=>button.addEventListener('click',()=>{const input=$('#assistantCommandInput');input.value=button.dataset.assistantCommand||'';$('#assistantCommandForm').requestSubmit()}));
-$('#assistantMessages')?.addEventListener('click',async event=>{const copy=event.target.closest('[data-assistant-copy]');if(copy){try{await navigator.clipboard.writeText(copy.dataset.assistantCopy||'');showToast('Đã sao chép nội dung.')}catch{showToast('Không thể sao chép. Hãy chọn và sao chép nội dung thủ công.','error')}return}const navigateAction=event.target.closest('[data-assistant-navigate]');if(navigateAction){navigate(navigateAction.dataset.assistantNavigate);return}const openStudio=event.target.closest('[data-assistant-open-studio]');if(openStudio){navigate('content');const prompt=$('#contentPrompt');if(prompt){prompt.value=openStudio.dataset.assistantPrompt||'';prompt.focus()}}});
+function setFbtqAssistantWindow(open){const panel=$('#fbtqAssistantWindow'),launcher=$('#fbtqAssistantLauncher');if(!panel||!launcher)return;panel.hidden=!open;launcher.setAttribute('aria-expanded',String(open));if(open)setTimeout(()=>$('#fbtqAssistantInput')?.focus(),40)}
+$('#fbtqAssistantLauncher')?.addEventListener('click',()=>setFbtqAssistantWindow($('#fbtqAssistantWindow')?.hidden));
+$('#fbtqAssistantClose')?.addEventListener('click',()=>setFbtqAssistantWindow(false));
+$('#fbtqAssistantForm')?.addEventListener('submit',event=>{event.preventDefault();const input=$('#fbtqAssistantInput'),command=input.value.trim();if(!command)return;input.value='';processFbtqAssistantCommand(command,{floating:true})});
+$('#fbtqAssistantInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();$('#fbtqAssistantForm').requestSubmit()}});
+$$('[data-fbtq-float-command]').forEach(button=>button.addEventListener('click',()=>{const input=$('#fbtqAssistantInput');input.value=button.dataset.fbtqFloatCommand||'';$('#fbtqAssistantForm').requestSubmit()}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('#fbtqAssistantWindow')?.hidden)setFbtqAssistantWindow(false)});
+async function handleFbtqAssistantMessageAction(event){const copy=event.target.closest('[data-assistant-copy]');if(copy){try{await navigator.clipboard.writeText(copy.dataset.assistantCopy||'');showToast('Đã sao chép nội dung.')}catch{showToast('Không thể sao chép. Hãy chọn và sao chép nội dung thủ công.','error')}return}const navigateAction=event.target.closest('[data-assistant-navigate]');if(navigateAction){setFbtqAssistantWindow(false);navigate(navigateAction.dataset.assistantNavigate);return}const openStudio=event.target.closest('[data-assistant-open-studio]');if(openStudio){setFbtqAssistantWindow(false);navigate('content');const prompt=$('#contentPrompt');if(prompt){prompt.value=openStudio.dataset.assistantPrompt||'';prompt.focus()}}}
+$('#assistantMessages')?.addEventListener('click',handleFbtqAssistantMessageAction);
+$('#fbtqAssistantMessages')?.addEventListener('click',handleFbtqAssistantMessageAction);
 $$('[data-goto]').forEach(el=>el.addEventListener('click',()=>navigate(el.dataset.goto)));
 $$('[data-workspace-subpage]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.workspaceSubpage)));
 $('#mobileMenu').addEventListener('click',()=>{$('#sidebar').classList.add('open');$('#sidebarScrim').classList.add('show')});$('#sidebarClose').addEventListener('click',()=>{$('#sidebar').classList.remove('open');$('#sidebarScrim').classList.remove('show')});$('#sidebarScrim').addEventListener('click',()=>{$('#sidebar').classList.remove('open');$('#sidebarScrim').classList.remove('show')});
