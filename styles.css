@@ -1053,3 +1053,46 @@ body.dark .notification-count{border-color:#192942}body.dark .system-notificatio
 body.dark .system-notification-head,body.dark .system-notification-foot{border-color:rgba(155,180,218,.16)}body.dark .system-notification-head b,body.dark .system-notification-title b,body.dark .system-notification-empty b{color:#edf4ff}body.dark .system-notification-head small,body.dark .system-health-item small,body.dark .system-notification-copy>small,body.dark .system-notification-copy time,body.dark .system-notification-foot{color:#a1b1c9}
 body.dark .system-health-grid{background:rgba(13,26,44,.55);border-color:rgba(155,180,218,.16)}body.dark .system-health-item{border-color:rgba(155,180,218,.15);background:rgba(37,53,78,.72)}body.dark .system-health-item b{color:#d4e1f4}body.dark .system-notification-item:not(.is-read){background:rgba(49,80,126,.22)}body.dark .system-notification-item:hover,body.dark .system-notification-item:not(.is-read):hover{background:rgba(55,94,151,.32)}body.dark .system-notification-empty{color:#a1b1c9}body.dark .system-notification-empty>span{background:rgba(49,139,98,.2)}
 @media(max-width:600px){.system-notification-panel{right:-100px;width:min(390px,calc(100vw - 20px));max-height:calc(100vh - 75px);border-radius:14px}.system-notification-head{padding:14px 13px 11px}.system-health-grid{gap:5px;padding:9px}.system-health-item{gap:5px;padding:7px 5px}.system-health-item small{font-size:7px}.system-health-item b{font-size:8px}.system-notification-list{padding:6px}}
+
+/* Campaign charts show normalized axes, campaign labels, and exact hover values. */
+.big-bars.metric-chart-host{display:block;height:auto;min-height:0;overflow-x:auto;overflow-y:visible;padding:10px 8px 0;border-bottom:0;perspective:none}
+.metric-chart{display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;width:100%;height:270px;min-width:580px}
+.bar-y-axis{display:flex;flex-direction:column;justify-content:space-between;padding:0 0 38px;color:#8795aa;font-size:8px;text-align:right;font-variant-numeric:tabular-nums}.bar-y-axis>span{display:flex;align-items:center;justify-content:space-between;gap:7px;white-space:nowrap}.bar-axis-spend{color:#4d82ed}.bar-axis-results{color:#27a77d}
+.bar-chart-main{display:grid;grid-template-rows:minmax(170px,1fr) 38px;min-width:0}
+.bar-plot{position:relative;min-width:0;height:100%;overflow:visible}
+.bar-gridlines{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.bar-gridlines i{display:block;width:100%;border-top:1px solid rgba(136,159,193,.2)}
+.bar-columns{position:absolute;inset:0;display:flex;align-items:stretch;gap:clamp(5px,1vw,14px);min-width:0}
+.metric-chart-host .bar-group{position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:center;flex:1 1 0;min-width:30px;height:100%;gap:3px;overflow:visible}
+.metric-chart-host .bar-group:hover,.metric-chart-host .bar-group:focus{z-index:5;outline:none}
+.metric-chart-host .bar-group:focus-visible{outline:2px solid #3978f6;outline-offset:3px;border-radius:5px}
+.metric-chart-host .bar-group:after{display:none;content:none}
+.metric-chart-host .bar{position:relative;width:min(16px,38%);height:var(--bar-height);min-height:0;max-height:100%;flex:none;border-radius:4px 4px 0 0;transform:skewY(-1deg);transform-origin:bottom;animation:barIn .7s backwards;animation-delay:var(--bar-delay,0ms);transition:filter .18s,transform .18s}
+.metric-chart-host .bar:hover{filter:brightness(1.08) saturate(1.12);transform:skewY(-1deg) translateY(-2px)}
+.metric-chart-tooltip{position:absolute;z-index:6;top:5px;left:50%;display:grid;gap:6px;width:max-content;min-width:160px;max-width:min(245px,70vw);padding:10px 11px;border:1px solid rgba(255,255,255,.9);border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 10px 28px rgba(34,58,99,.2);color:#62728a;font-size:9px;line-height:1.35;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,-3px);transition:opacity .14s ease,transform .14s ease,visibility .14s}
+.metric-chart-tooltip>b{overflow-wrap:anywhere;color:#1d2d47;font-size:10px;line-height:1.4}
+.metric-chart-tooltip>small{color:#8190a6;font-size:8px}
+.metric-chart-tooltip>span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.metric-chart-tooltip>span>i{width:7px;height:7px;flex:none;border-radius:50%}
+.metric-chart-tooltip strong{margin-left:auto;color:#263b5a;font-size:9px;font-variant-numeric:tabular-nums}
+.metric-chart-host .bar-group:hover .metric-chart-tooltip,.metric-chart-host .bar-group:focus .metric-chart-tooltip,.metric-chart-host .bar-group:focus-within .metric-chart-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.bar-x-axis{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:clamp(5px,1vw,14px);align-items:start;padding-top:8px;color:#78879d;font-size:8px;text-align:center}
+.bar-x-axis>span{display:-webkit-box;min-width:0;overflow:hidden;line-height:1.3;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#bigBars .metric-chart{height:290px}
+#overviewBars .metric-chart{height:174px;min-width:480px}
+#overviewBars .bar-y-axis{font-size:8px;padding-bottom:32px}
+#overviewBars .bar-chart-main{grid-template-rows:minmax(100px,1fr) 32px}
+body.dark .bar-y-axis,body.dark .bar-x-axis{color:#9aabc3}
+body.dark .bar-gridlines i{border-color:rgba(163,187,224,.16)}
+body.dark .metric-chart-tooltip{border-color:rgba(158,187,230,.2);background:rgba(20,34,56,.97);box-shadow:0 10px 28px rgba(0,0,0,.36);color:#aab9d0}
+body.dark .metric-chart-tooltip>b,body.dark .metric-chart-tooltip strong{color:#edf4ff}
+body.dark .metric-chart-tooltip>small{color:#a1b1c9}
+@media(max-width:680px){.big-bars.metric-chart-host{padding-left:3px;padding-right:3px}.metric-chart{min-width:650px;height:260px}.metric-chart-host .bar-group{min-width:36px}.metric-chart-host .bar{width:14px}.bar-y-axis{font-size:8px}#overviewBars .metric-chart{min-width:540px;height:170px}}
+.metric-chart{grid-template-columns:128px minmax(0,1fr);gap:10px}
+.bar-y-axis>span>small{flex:1 1 0;text-align:right}
+.metric-chart-host .bar{width:min(24px,38%)}
+.metric-chart-host .bar-group:first-child .metric-chart-tooltip{left:0;transform:translate(0,-3px)}
+.metric-chart-host .bar-group:last-child .metric-chart-tooltip{left:auto;right:0;transform:translate(0,-3px)}
+.metric-chart-host .bar-group:first-child:hover .metric-chart-tooltip,.metric-chart-host .bar-group:first-child:focus .metric-chart-tooltip{transform:translate(0,0)}
+.metric-chart-host .bar-group:last-child:hover .metric-chart-tooltip,.metric-chart-host .bar-group:last-child:focus .metric-chart-tooltip{transform:translate(0,0)}
+@media(max-width:680px){.metric-chart{min-width:690px;grid-template-columns:128px minmax(0,1fr)}.metric-chart-host .bar{width:14px}}
