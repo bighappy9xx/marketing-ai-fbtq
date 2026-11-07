@@ -865,11 +865,12 @@ body.dark .wf-summary article,body.dark .wf-calendar td:first-child,body.dark .w
 .content-review-panel-heading h2,.content-review-list-heading h2{margin:0;font:700 15px Manrope,sans-serif;letter-spacing:-.25px}
 .content-review-panel-heading p,.content-review-list-heading p{margin:5px 0 0;font-size:11px;color:var(--muted)}
 .content-review-required{align-self:center;padding:7px 10px;border-radius:7px;background:#f1f5fc;color:#71819a;font-size:9px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
-.content-review-form-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 16px}
+.content-review-form-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 16px;align-items:start}
 .content-review-form label,.content-review-manager-editor label,.content-review-owner-editor label{display:grid;gap:6px;color:#63728a;font-size:10px;font-weight:700}
+.content-review-form-fields>label{align-content:start}
 .content-review-form input,.content-review-form textarea,.content-review-manager-editor textarea,.content-review-owner-editor textarea,.content-review-owner-editor input{width:100%;border:1px solid #e0e7f1;border-radius:8px;padding:11px 12px;background:var(--surface);color:var(--ink);outline:none;font:inherit;font-size:11px;line-height:1.6;transition:border-color .18s,box-shadow .18s}
 .content-review-form input:focus,.content-review-form textarea:focus,.content-review-manager-editor textarea:focus,.content-review-owner-editor textarea:focus,.content-review-owner-editor input:focus{border-color:#83aaff;box-shadow:0 0 0 3px #3978f619}
-.content-review-form input{min-height:42px}.content-review-form textarea,.content-review-manager-editor textarea,.content-review-owner-editor textarea{resize:vertical;min-height:135px;white-space:pre-wrap}
+.content-review-form input{height:42px;min-height:42px;box-sizing:border-box;align-self:start}.content-review-form textarea,.content-review-manager-editor textarea,.content-review-owner-editor textarea{resize:vertical;min-height:135px;white-space:pre-wrap}
 .content-review-form label small{font-size:9px;line-height:1.5;font-weight:400;color:#8996aa}
 .content-review-copy-field{grid-column:1/-1}
 .content-review-copy-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;color:#96a1b1;font-size:9px;font-weight:500}
