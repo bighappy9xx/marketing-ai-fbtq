@@ -189,8 +189,10 @@ exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeou
   const response=await fetch(`${graphUrl(encodeURIComponent(pageId))}?fields=id,name&access_token=${encodeURIComponent(pageToken)}`,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
   const meta=response&&await response.json().catch(()=>({}));
   if(!response?.ok||meta.id!==pageId)throw new HttpsError('failed-precondition','Meta không xác nhận Page ID và Page Access Token.');
+  const existing=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(existing.exists&&existing.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Trang đã được kết nối bởi tài khoản khác.');
+  const subscription=await fetch(graphUrl(`${pageId}/subscribed_apps`),{method:'POST',headers:{Authorization:`Bearer ${pageToken}`,'Content-Type':'application/json'},body:JSON.stringify({subscribed_fields:['messages','messaging_postbacks']}),signal:AbortSignal.timeout(15000)});if(!subscription.ok)throw new HttpsError('failed-precondition','Không đăng ký được webhook. Kiểm tra pages_manage_metadata.');
   const encrypted=encryptToken(pageToken,META_TOKEN_ENCRYPTION_KEY.value());
-  await db.doc(`workspaces/fbtq/pages/${pageId}`).set({pageId,pageName:meta.name||pageName,ownerUid:auth.uid,model,active:true,...encrypted,connectedAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()},{merge:true});
+  await db.runTransaction(async tx=>{const ref=db.doc(`workspaces/fbtq/pages/${pageId}`),snap=await tx.get(ref);if(snap.exists&&snap.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Trang đã thuộc tài khoản khác.');tx.set(ref,{pageId,pageName:meta.name||pageName,ownerUid:auth.uid,model,active:true,webhookSubscribed:true,...encrypted,connectedAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()},{merge:true});});
   return {ok:true,pageName:meta.name||pageName,message:'Đã mã hoá và lưu Page Access Token.'};
 });
 
@@ -199,6 +201,7 @@ exports.sendPageReply = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSecon
   if(typeof message!=='string'||!message.trim()||message.length>2000||typeof recipientId!=='string'||!/^\d+$/.test(recipientId))throw new HttpsError('invalid-argument','Tin nhắn hoặc khách nhận không hợp lệ.');
   const ref=db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`);const snap=await ref.get();
   if(!snap.exists||snap.data().ownerUid!==auth.uid||snap.data().active!==true)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản của bạn.');
+  const thread=await db.doc(`workspaces/fbtq/inbox/${require('./chatbot-core').key(pageId,recipientId)}`).get();if(!require('./chatbot-core').eligible({...thread.data(),humanPaused:false}))throw new HttpsError('failed-precondition','Ngoài cửa sổ 24 giờ hoặc khách đã dừng nhận tin.');
   const token=decryptToken(snap.data(),META_TOKEN_ENCRYPTION_KEY.value());const body=new URLSearchParams({recipient:JSON.stringify({id:recipientId}),message:JSON.stringify({text:message.trim()}),messaging_type:'RESPONSE',access_token:token});
   const response=await fetch(graphUrl(`${encodeURIComponent(pageId)}/messages`),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(20000)}).catch(()=>null);
   if(!response?.ok){logger.warn('Meta send message failed',{pageId,status:response?.status});throw new HttpsError('unavailable','Facebook không gửi được tin nhắn. Kiểm tra quyền pages_messaging và token.');}
@@ -226,12 +229,17 @@ exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],tim
       const pageId=String(entry.id||'');const pageSnap=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(!pageSnap.exists)continue;const page=pageSnap.data();
       for(const event of entry.messaging||[]){if(!event.message||event.message.is_echo)continue;const sender=String(event.sender?.id||'');if(!sender)continue;const key=crypto.createHash('sha256').update(`${pageId}:${sender}`).digest('hex');
         const message=event.message.text||'[Đã nhận tệp đính kèm]';
-        await db.doc(`workspaces/fbtq/inbox/${key}`).set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),unread:true},{merge:true});
+        const messageId=crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex');
+        const threadRef=db.doc(`workspaces/fbtq/inbox/${key}`);const oldThread=await threadRef.get();if((oldThread.data()?.lastIncomingAtMs||0)>Number(event.timestamp||0))continue;
+        const optedOut=require('./chatbot-core').isOptOut(message)?true:oldThread.data()?.optedOut===true;
+        await db.doc(`workspaces/fbtq/inbox/${key}`).set({lastIncomingAtMs:Math.min(Date.now(),Number(event.timestamp)||Date.now()),lastIncomingMessageId:messageId,optedOut,pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),unread:true},{merge:true});
         await db.collection('workspaces/fbtq/messages').doc(crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex')).set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),createdAt:FieldValue.serverTimestamp()},{merge:true});
       }
     }
     return res.sendStatus(200);
   }catch(error){logger.error('Meta webhook event processing failed',{error:String(error)});return res.sendStatus(500)}
 });
+
+Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}));
 
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));

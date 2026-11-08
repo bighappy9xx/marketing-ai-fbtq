@@ -486,7 +486,7 @@ service cloud.firestore {
           && request.resource.data.status in ['approved','rejected']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
       );
-      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages']) && manager();
+      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
     }
 
     match /workspaces/{workspaceId}/leaveSlots/{slotId} {
