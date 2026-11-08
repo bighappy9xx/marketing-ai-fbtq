@@ -29,8 +29,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
     await page.locator('#activeModalForm button[type="submit"]').click();await page.waitForFunction(()=>window.__saved.length===6);
     const saved=await page.evaluate(()=>window.__saved.find(r=>r.ref.includes('/dailyReports/')&&r.data.campaign==='Bonbon').data);assert.equal(saved.messages,409);assert.equal(saved.avgMessageCost,113);assert.equal(saved.spend,46062);assert.equal(saved.metaSnapshot.name,'Bonbon');assert.equal(saved.reportDate,'2026-11-05');assert.ok(saved.metaSnapshot.rawColumns.length>0);
     await page.evaluate(()=>{document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');});
-    await page.locator('[data-page="assistant"]').click();
-    const chooserPromise=page.waitForEvent('filechooser');await page.locator('#page-assistant [data-assistant-import="metrics"]').click();
+    await page.locator('#fbtqAssistantLauncher').click();
+    const chooserPromise=page.waitForEvent('filechooser');await page.locator('#fbtqAssistantWindow [data-assistant-import="metrics"]').click();
     const chooser=await chooserPromise;await chooser.setFiles({name:'Meta-helper.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({campaigns:[{campaign:'JSON campaign',account:'123',delivery:'Đang tắt',budget:30000,spend:46062,results:409,costPerResult:113}]}))});
     await page.waitForFunction(()=>document.querySelector('#dailySheetCsvStatus').textContent.includes('Đã nhập 1'));
     assert.ok(await page.locator('#page-assistant.active').count());assert.equal(await page.locator('[data-field="campaign"]').inputValue(),'JSON campaign');assert.equal(await page.locator('[data-field="messageCost"]').inputValue(),'113');assert.equal(await page.evaluate(()=>window.__saved.length),6);await page.locator('.modal-close').click();
