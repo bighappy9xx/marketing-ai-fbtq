@@ -36,7 +36,7 @@ assert.equal(ctx.numberFrom('—'),null);
 // Fresh import must win over saved report values for the six mapped fields.
 ctx.metric={id:'m1',name:'Bonbon',account:'3092737904212442',delivery:'Đang tắt',status:'Đang tắt',budget:30000,spend:46062,results:409,dailyMessages:409,costPerResult:113};
 ctx.state.dailyReports=[{createdBy:'tester',metricId:'m1',campaign:'WRONG',status:'WRONG',messages:0,spend:1,budget:1,avgMessageCost:999}];
-vm.runInContext("function dailyReportMetricsForUser(){return [metric]} function reportDateKey(){return '2026-11-05'}"+app.slice(app.indexOf('function dailySheetPrefillRows('),app.indexOf('function openDailyReportForm(')),ctx);
+vm.runInContext("function dailyReportMetricsForUser(){return [metric]} function reportDateKey(){return '2026-11-05'}"+app.slice(app.indexOf('function savedDailySheetRows('),app.indexOf('function openDailyReportForm(')),ctx);
 const fresh=ctx.dailySheetPrefillRows('2026-11-05',true)[0];
 assert.equal(fresh.campaign,'Bonbon');assert.equal(fresh.status,'Đang tắt');assert.equal(fresh.dailyBudget,30000);assert.equal(fresh.actualSpend,46062);assert.equal(fresh.dailyMessages,409);assert.equal(fresh.dailyAvgMessageCost,113);
 assert.equal(ctx.dailySheetPrefillRows('2026-11-05')[0].campaign,'WRONG');

@@ -320,5 +320,5 @@ export function initWorkflows(api) {
     }
   }
   buildPages();render('advance');render('request');
-  return {start,stop,render,notifications,assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
+  return {start,stop,render,notifications,openAssistantFunding:id=>{const row=records.advance.find(r=>r.id===id);if(!row||row.status!=='approved'||state.role!=='accountant'||row.createdBy===state.user?.uid)throw new Error('Không có quyền cấp tiền cho hồ sơ này.');disburse(row);},assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
 }

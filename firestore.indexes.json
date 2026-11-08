@@ -4,8 +4,28 @@
       "collectionGroup": "staffRequests",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "branch", "order": "ASCENDING" },
-        { "fieldPath": "department", "order": "ASCENDING" }
+        {
+          "fieldPath": "branch",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "department",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "assistantChatMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],
