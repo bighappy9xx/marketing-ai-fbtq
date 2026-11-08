@@ -104,5 +104,15 @@ export async function readDailyCsv(file) {
   const bytes=new Uint8Array(await file.arrayBuffer());let encoding='utf-8';
   if(bytes[0]===0xff&&bytes[1]===0xfe)encoding='utf-16le';else if(bytes[0]===0xfe&&bytes[1]===0xff)encoding='utf-16be';
   let text;try{text=new TextDecoder(encoding,{fatal:true}).decode(bytes);}catch{throw new Error('Không đọc được tiếng Việt trong CSV. Hãy lưu file dưới dạng CSV UTF-8 rồi thử lại.');}
+  if(/\.json$/i.test(file.name||'')||file.type==='application/json')return parseDailyJson(text);
   return parseDailyCsv(text);
+}
+export function parseDailyJson(text) {
+  let payload;try{payload=JSON.parse(String(text).replace(/^\uFEFF/,''));}catch{throw new Error('JSON không hợp lệ. Hãy chọn file CSV hoặc JSON xuất từ Meta Helper.');}
+  const rows=Array.isArray(payload)?payload:payload?.campaigns||payload?.rows||payload?.data;
+  if(!Array.isArray(rows)||!rows.length||rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)))throw new Error('JSON cần chứa danh sách chiến dịch (campaigns, rows hoặc data).');
+  if(rows.length>2000)throw new Error('Mỗi lần nhập tối đa 2.000 chiến dịch.');
+  const headers=[...new Set(rows.flatMap(row=>Object.keys(row).filter(field=>row[field]===null||['string','number','boolean'].includes(typeof row[field]))))];
+  const quote=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+  return parseDailyCsv([headers.map(quote).join(','),...rows.map(row=>headers.map(h=>quote(row[h])).join(','))].join('\n'));
 }

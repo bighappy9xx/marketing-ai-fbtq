@@ -67,3 +67,7 @@ Extension hiển thị bảng xem trước cuộn ngang cho mọi dòng được
 Website lưu chỉ số vào campaigns, hiển thị dữ liệu gốc trong Chi tiết và mục Toàn bộ cột Meta ở form báo cáo. Khi lưu báo cáo, metaSnapshot giữ dữ liệu Meta tương ứng để đối chiếu. Sáu trường báo cáo vẫn theo ánh xạ đã yêu cầu.
 
 Cài cập nhật: thay app.js và styles.css của website, cập nhật thư mục extension, Reload extension ở chrome://extensions, tải lại Meta và website. Tích các dòng cần gửi, Quét mục đã chọn, đối chiếu toàn bộ bảng rồi bấm Gửi. Chỉ lấy cột/hàng Meta đã tải vào trang; không suy ra dữ liệu ngoài khoảng ngày đang chọn.
+
+## Phiên bản 2.8.0 – Nhập dữ liệu tại Trợ lý FBTQ
+
+Hai chức năng nhập chiến dịch và hóa đơn nay có nút trực tiếp trong menu/cửa sổ Trợ lý FBTQ của website. Website nhận CSV/JSON số liệu và PDF hóa đơn, tự điền biểu mẫu để xem lại trước khi lưu. Meta Helper vẫn có thể quét dòng đã chọn hoặc gửi PDF từ Meta; nơi tiếp nhận cả hai loại dữ liệu được chuyển sang Trợ lý FBTQ. Cập nhật cả website và extension, Reload extension ở chrome://extensions và tải lại các tab. Nút Mở Trợ lý FBTQ trong popup đi thẳng tới #assistant sau khi đăng nhập.

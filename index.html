@@ -8,7 +8,7 @@
   <title>Marketing Ai FBTQ</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261106-brand-refresh">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261106-brand-refresh">
-  <link rel="stylesheet" href="styles.css?v=20261108-daily-csv">
+  <link rel="stylesheet" href="styles.css?v=20261108-assistant-import">
 </head>
 <body>
   <div id="authScreen" class="auth-screen">
@@ -63,6 +63,11 @@
 
         <section class="page" id="page-assistant">
           <div class="page-heading"><div><div class="eyebrow">FBTQ COMMAND CENTER</div><h1>Trợ lý FBTQ</h1><p class="muted">Tra cứu, mở biểu mẫu và xử lý các quy trình trong phạm vi quyền. Mọi quyết định phê duyệt đều cần bạn xác nhận.</p></div><span class="assistant-engine-badge"><i>✦</i> Gemini · Firebase AI Logic</span></div>
+          <section class="assistant-import-tools" aria-label="Nhập dữ liệu quảng cáo và hóa đơn">
+            <article class="panel assistant-import-card"><span class="assistant-import-icon">▦</span><div><h2>Nhập số liệu chiến dịch</h2><p>Chọn CSV/JSON để tự điền Bài chạy, Trạng thái, Ngân sách, Chi tiêu, Số Mess và Giá Mess TB.</p></div><div class="assistant-import-actions"><button class="btn btn-primary" type="button" data-assistant-import="metrics">↑ Nhập CSV / JSON</button><button class="btn btn-secondary" type="button" data-assistant-import="report">Mở báo cáo</button></div></article>
+            <article class="panel assistant-import-card"><span class="assistant-import-icon">▤</span><div><h2>Nhập hóa đơn Meta</h2><p>Chọn PDF để tự đọc ngày hóa đơn, mã giao dịch, tiền trước VAT, VAT và tổng thanh toán.</p></div><div class="assistant-import-actions"><button class="btn btn-primary" type="button" data-assistant-import="invoice">↑ Nhập hóa đơn PDF</button></div></article>
+          </section>
+          <p class="assistant-import-note" id="assistantImportStatus" role="status" aria-live="polite">Chọn tệp tại đây hoặc gửi dữ liệu từ Meta Helper. Kiểm tra biểu mẫu trước khi lưu.</p>
           <div class="assistant-workspace">
             <section class="panel assistant-chat-panel" aria-label="Trò chuyện với Trợ lý FBTQ">
               <div class="assistant-chat-head"><span class="assistant-brand-mark">✦</span><div><b>Trợ lý FBTQ</b><small><i></i> Sẵn sàng nhận câu lệnh</small></div><span class="assistant-role-badge" id="assistantRoleBadge">Nhân viên</span></div>
@@ -177,6 +182,7 @@
           <article class="assistant-message assistant-message--bot"><span class="assistant-message-avatar assistant-message-avatar--bot"><img src="assets/fbtq-assistant-robot.png" alt=""></span><div class="assistant-message-body"><b>Trợ lý FBTQ</b><p>Hãy nhập lệnh như “Kiểm tra đơn nghỉ”, “Kiểm tra lệnh ứng tiền” hoặc “Mở công việc”. Mình sẽ hỏi xác nhận trước khi duyệt hay từ chối hồ sơ.</p></div></article>
         </div>
         <div class="fbtq-dock-suggestions" aria-label="Lệnh nhanh"><button type="button" data-fbtq-float-command="Tóm tắt hiệu suất marketing">Tóm tắt hiệu suất</button><button type="button" data-fbtq-float-command="Kiểm tra đơn nghỉ">Đơn nghỉ</button><button type="button" data-fbtq-float-command="Kiểm tra lệnh ứng tiền">Tạm ứng</button><button type="button" data-fbtq-float-command="Mở lịch sử báo cáo hàng ngày">Lịch sử báo cáo</button><button type="button" data-fbtq-float-command="Mở công việc">Công việc</button></div>
+        <div class="fbtq-dock-import-tools"><button class="btn btn-secondary" type="button" data-assistant-import="metrics">↑ Số liệu CSV / JSON</button><button class="btn btn-secondary" type="button" data-assistant-import="invoice">↑ Hóa đơn PDF</button></div>
         <form class="fbtq-dock-form" id="fbtqAssistantForm"><textarea id="fbtqAssistantInput" rows="2" maxlength="2000" placeholder="Nhập lệnh… Ví dụ: kiểm tra đơn nghỉ, phê duyệt hồ sơ mã …" aria-label="Nhập câu lệnh cho Trợ lý FBTQ" required></textarea><button id="fbtqAssistantSend" class="btn btn-primary" type="submit" aria-label="Gửi câu lệnh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button></form>
         <div class="fbtq-dock-foot">Dữ liệu được giới hạn theo quyền tài khoản của bạn.</div>
       </section>
@@ -189,6 +195,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261108-daily-csv"></script>
+  <script type="module" src="app.js?v=20261108-assistant-import"></script>
 </body>
 </html>

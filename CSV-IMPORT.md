@@ -33,3 +33,7 @@ node tests/daily-csv-browser.cjs
 ```
 
 Kiểm tra trình duyệt dùng Playwright + Chrome, dữ liệu giả lập và không kết nối Firebase thật.
+
+## Nhập ngay tại Trợ lý FBTQ
+
+Trong menu Trợ lý FBTQ hoặc cửa sổ trợ lý nổi, chọn Nhập CSV / JSON hoặc Nhập hóa đơn PDF. Chọn tệp rồi kiểm tra biểu mẫu. Có thể dùng lệnh Nhập số liệu chiến dịch hoặc Nhập hóa đơn để mở form. JSON từ Meta Helper được nhận theo danh sách campaigns/rows/data. Hai loại dữ liệu gửi từ extension cũng mở biểu mẫu tại Trợ lý, thay cho điều hướng sang Hiệu suất marketing hoặc Báo cáo hóa đơn. Để dùng trực tiếp tại Trợ lý, chỉ cần các tệp CSV/JSON hoặc PDF đã tải về máy; quét dữ liệu trực tiếp trên trang Meta vẫn cần Meta Helper.

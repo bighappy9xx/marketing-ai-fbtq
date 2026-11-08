@@ -22,3 +22,10 @@ test('UTF-16 LE CSV can be read and oversized file is rejected',async()=>{
   const {readDailyCsv}=await load();const bytes=Buffer.concat([Buffer.from([255,254]),Buffer.from('Chiến dịch,Kết quả\r\nBonbon,409','utf16le')]);const result=await readDailyCsv({size:bytes.length,arrayBuffer:async()=>bytes});assert.equal(result.rows[0].dailyMessages,409);
   await assert.rejects(readDailyCsv({size:11*1024*1024}),/10 MB/);
 });
+test('Meta Helper JSON shares the same campaign mapping as CSV',async()=>{
+  const {parseDailyJson,readDailyCsv}=await load();
+  const json=JSON.stringify({campaigns:[{campaign:'Bonbon',account:'3092737904212442',delivery:'Đang tắt',budget:30000,spend:46062,results:409,costPerResult:113,impressions:910}]});
+  const parsed=parseDailyJson(json);assert.equal(parsed.rows[0].campaign,'Bonbon');assert.equal(parsed.rows[0].dailyMessages,409);assert.equal(parsed.rows[0].dailyAvgMessageCost,113);assert.equal(parsed.rows[0].actualSpend,46062);
+  const bytes=Buffer.from(json);assert.equal((await readDailyCsv({name:'Meta.json',size:bytes.length,arrayBuffer:async()=>bytes})).rows[0].dailyBudget,30000);
+  assert.throws(()=>parseDailyJson('{bad'));assert.throws(()=>parseDailyJson('{"campaigns":{}}'));
+});
