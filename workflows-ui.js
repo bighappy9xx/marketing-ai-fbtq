@@ -85,6 +85,18 @@ export function initWorkflows(api) {
       return{id:`${row.kind}:${row.id}:${status}:${event?.at||row.updatedAt||row.createdAt||''}`,title:`${typeLabel} · ${statusLabel}`,detail,status:statusLabel,statusTone:status==='approved'||status==='disbursed'?'success':status==='rejected'?'danger':'pending',page:row.kind==='advance'?'advances':'requests',actorUid:event?.actorUid||row.createdBy,actorName:event?.actorName||row.createdByName||row.employee,photoData:event?.photoData||row.photoData,time:event?.at||row.updatedAt||row.createdAt};
     });
   }
+  function assistantRows(kind){
+    return records[kind].map(row=>{const stage=nextStage(row);return{id:row.id,kind:row.kind,status:row.status||'pending',title:row.title||row.type||'Hồ sơ',type:row.type||'',description:row.description||'',createdBy:row.createdBy||'',createdByName:row.createdByName||row.employee||'Nhân viên',branch:row.branch||'',department:row.department||'',date:row.date||'',amount:Number(row.amount)||0,approvals:row.approvals||{},nextStage:stage,nextStageName:stageNames[stage],canReview:!row.legacy&&row.status==='pending'&&canReview(row,stage),legacy:!!row.legacy,disbursement:row.disbursement||null}});
+  }
+  async function assistantReview(kind,id,decision,note=''){
+    if(!['advance','request'].includes(kind)||!['approve','reject'].includes(decision))throw new Error('Thao tác hoặc loại hồ sơ không hợp lệ.');
+    const row=records[kind].find(item=>item.id===id&&!item.legacy);if(!row)throw new Error('Không tìm thấy hồ sơ trong danh sách hiện đã tải. Tải lại mục rồi thử lại.');
+    const stage=nextStage(row);if(!canReview(row,stage))throw new Error(`Tài khoản của bạn không có quyền xử lý hồ sơ này ở bước ${stageNames[stage]||stage}.`);
+    if(decision==='reject'&&String(note||'').trim().length<3)throw new Error('Từ chối hồ sơ cần ghi lý do ít nhất 3 ký tự.');
+    await reviewWorkflowDirect(row,stage,decision,String(note||'').trim());
+    const finalStatus=decision==='reject'?'rejected':stage===stageKeys(kind)[1]?'approved':'pending';start();
+    return{kind,id,title:row.title||row.type||'Hồ sơ',stage,stageName:stageNames[stage],status:finalStatus,decision};
+  }
   function reportPeople() {
     const roster=[...state.users];if(state.user&&!roster.some(p=>p.uid===state.user.uid))roster.push(state.user);
     return roster.filter(p=>p.uid===state.user?.uid||state.role==='director'||!!branch(state.user)&&branch(p)===branch(state.user)&&(state.role==='branch_manager'||state.role==='department_manager'&&p.department===state.user.department)).map(p=>({...p,branch:branch(p)}));
@@ -308,5 +320,5 @@ export function initWorkflows(api) {
     }
   }
   buildPages();render('advance');render('request');
-  return {start,stop,render,notifications};
+  return {start,stop,render,notifications,assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
 }
