@@ -72,3 +72,17 @@ Tài liệu đối chiếu: https://developers.facebook.com/docs/messenger-platf
 
 ## Kiểm thử
 19 unit tests đạt, gồm kiểm tra cửa sổ gửi, dừng nhận tin, ưu tiên từ khoá, quyền sở hữu, chống gửi lặp, phiên OAuth hết hạn và trigger tự động theo kịch bản. Chrome với mock API đạt: onboarding, chọn Trang, cấu hình, từ chối/phê duyệt, gửi hàng loạt, tìm kiếm, giữ hội thoại và bố cục mobile. Các tests không gọi Meta/AI hay ghi Firebase thật; chưa xác minh OAuth, xét duyệt App và gửi tin production.
+
+## Cập nhật bố cục và Trợ lý AI
+Chatbot có thanh chức năng trên, danh sách hội thoại bên trái, khung nhắn ở giữa và thông tin khách bên phải. Màn hình nhỏ thu gọn cột thông tin; điện thoại xếp danh sách và hội thoại theo chiều dọc. Nút trả lời nhanh điền nội dung, không tự gửi.
+
+Trợ lý FBTQ có lựa chọn Gemini / OpenAI / Claude. Câu hỏi tự nhiên được gửi tới mô hình; tối đa 8 lượt gần nhất và ngữ cảnh tổng hợp trong phạm vi tài khoản được dùng để trả lời. Lệnh nghiệp vụ vẫn đi qua luồng xác nhận hiện có. Mô hình chỉ trả lời văn bản, không thực thi thay đổi dữ liệu.
+
+Triển khai riêng endpoint cho mô hình thực tế bạn dùng (mỗi endpoint chỉ ràng buộc secret của chính nó):
+
+```powershell
+firebase deploy --only functions:askAssistantGemini
+# Hoặc: functions:askAssistantOpenai / functions:askAssistantClaude
+```
+
+Đặt GEMINI_API_KEY, OPENAI_API_KEY hoặc ANTHROPIC_API_KEY tương ứng bằng Secret Manager. Có thể chỉ định model ID do nhà cung cấp hỗ trợ trong functions/.env.YOUR_PROJECT_ID bằng ASSISTANT_GEMINI_MODEL, ASSISTANT_OPENAI_MODEL, ASSISTANT_CLAUDE_MODEL. Chọn đúng mô hình đã triển khai trên giao diện. Nếu thiếu endpoint/key, Trợ lý thông báo lỗi, không tạo câu trả lời giả. Chưa có kiểm thử gọi mô hình thật trong môi trường này.

@@ -243,3 +243,5 @@ exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],tim
 Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}));
 
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
+
+Object.assign(exports,require('./assistant-ai').registerAssistantAI({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY}));

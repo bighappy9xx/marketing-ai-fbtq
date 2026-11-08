@@ -1,9 +1,23 @@
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages}){
   const $=s=>document.querySelector(s);let callbackBusy=false;
   const page=$('#page-inbox');
+  page?.classList.add('messenger-workspace');
   const toolbar=document.createElement('section');toolbar.className='chatbot-toolbar';
   toolbar.innerHTML='<div><b>Trung tâm Chatbot & Fanpage</b><small>Facebook → Fanpage → Webhook → Kịch bản / AI → Hội thoại</small></div><div><button class="btn btn-primary" data-bot-setup>Kết nối Facebook</button><button class="btn btn-secondary" data-bot-config>AI & Kịch bản</button><button class="btn btn-secondary" data-bot-bulk>Nhắn tin hàng loạt</button><button class="btn btn-secondary" data-bot-handoff>Chuyển / bật lại bot</button></div>';
   page?.querySelector('.page-heading')?.after(toolbar);
+  toolbar.classList.add('messenger-topbar');
+  toolbar.querySelector('div:first-child').innerHTML='<span class="messenger-brand-icon">◈</span><div><b>FBTQ INBOX</b><small>Không gian chăm sóc khách hàng</small></div>';
+  const navigation=document.createElement('nav');navigation.className='messenger-navigation';navigation.setAttribute('aria-label','Chức năng hộp thư');navigation.innerHTML='<button type="button" class="selected" data-inbox-tab="conversations">▤ Hội thoại</button><button type="button" data-inbox-tab="scripts">✦ AI & Kịch bản</button><button type="button" data-inbox-tab="connect">⚙ Kết nối</button>';toolbar.querySelector('div:first-child').after(navigation);
+  navigation.onclick=e=>{const tab=e.target.closest('[data-inbox-tab]')?.dataset.inboxTab;if(tab==='scripts')configure();else if(tab==='connect')openSetup();else search.focus();};
+  toolbar.querySelector('[data-bot-config]').textContent='✦ Cấu hình AI';toolbar.querySelector('[data-bot-bulk]').textContent='Gửi hàng loạt';toolbar.querySelector('[data-bot-handoff]').textContent='Chuyển nhân viên';toolbar.querySelector('[data-bot-setup]').textContent='+ Fanpage';
+  const customer=document.createElement('section');customer.className='messenger-customer';page?.querySelector('.chat-settings')?.prepend(customer);
+  const quick=document.createElement('div');quick.className='messenger-quick-replies';quick.setAttribute('aria-label','Câu trả lời nhanh');page?.querySelector('.chat-compose')?.before(quick);
+  function details(){const t=state.activeThread;
+    customer.innerHTML=t?`<div class="messenger-customer-heading">THÔNG TIN KHÁCH HÀNG</div><span class="messenger-customer-avatar">${esc((t.senderName||'KH').split(/\s+/).slice(-2).map(w=>w[0]).join(''))}</span><h3>${esc(t.senderName||'Khách '+String(t.senderId||'').slice(-4))}</h3><p>Messenger · ${esc(t.pageName||'Fanpage')}</p><dl><dt>ID khách hàng</dt><dd>${esc(t.senderId||'—')}</dd><dt>Fanpage</dt><dd>${esc(t.pageName||t.pageId||'—')}</dd><dt>Xử lý hội thoại</dt><dd>${t.humanPaused?'Nhân viên tiếp nhận':'Theo cấu hình Fanpage'}</dd><dt>Cửa sổ phản hồi</dt><dd>${t.optedOut?'Khách đã dừng nhận tin':t.lastIncomingAtMs&&Date.now()-t.lastIncomingAtMs<86400000?'Còn trong 24 giờ':'Chờ tin mới từ khách'}</dd></dl>`:'<div class="messenger-customer-empty"><span>♙</span><b>Thông tin khách hàng</b><p>Chọn một hội thoại để xem thông tin.</p></div>';
+    quick.innerHTML=(state.scripts||[]).slice(0,6).map((s,i)=>`<button type="button" data-quick-reply="${i}" title="${esc(s.text)}">${esc(s.title||'Trả lời nhanh')}</button>`).join('');
+  }
+  quick.onclick=e=>{const button=e.target.closest('[data-quick-reply]');if(!button)return;const input=$('#replyInput');input.value=state.scripts[Number(button.dataset.quickReply)]?.text||'';input.focus();};
+  state.chatbotDetails=details;details();
   toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();toolbar.querySelector('[data-bot-handoff]').onclick=()=>handoff();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
   function filter(){page?.querySelectorAll('.conversation').forEach(row=>{row.hidden=!row.textContent.toLocaleLowerCase().includes(search.value.toLocaleLowerCase());});}
