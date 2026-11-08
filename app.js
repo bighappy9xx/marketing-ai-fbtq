@@ -9,6 +9,7 @@ let workflows=null;
 let speechObjectUrl=null;
 let geminiFallbackUsed=false;
 let fbtqAssistantBusy=false;
+let fbtqPendingConfirmation=null;
 const storeKey=()=>`${STORE}_${state.user?.uid||'guest'}`;
 const saveLocal=()=>localStorage.setItem(storeKey(),JSON.stringify({tasks:state.tasks,drafts:state.drafts,scripts:state.scripts,banned:state.banned,invoices:state.invoices,dailyReports:state.dailyReports,photoData:state.user?.photoData||'',theme:document.body.classList.contains('dark')?'dark':'light'}));
 function loadLocalForUser(){try{const saved=JSON.parse(localStorage.getItem(storeKey())||'null');if(!saved)return;const demoTaskIds=new Set(['t1','t2','t3','t4','t5','t6','t7','t8']),demoDraftIds=new Set(['d1','d2']),demoScriptTitles=new Set(['Chào khách mới','Tư vấn tình trạng hàng','Chính sách giao hàng']),demoBanned=new Set(['lừa đảo','đảm bảo khỏi','cam kết 100%','chắc chắn có lãi','nhắn tin riêng','số điện thoại cá nhân','tài khoản ngân hàng','bôi nhọ','chửi tục','thông tin cá nhân','giảm cân cấp tốc','trị khỏi']);state.tasks=(saved.tasks||[]).filter(x=>!demoTaskIds.has(String(x.id)));state.drafts=(saved.drafts||[]).filter(x=>!demoDraftIds.has(String(x.id)));state.metrics=[];state.scripts=(saved.scripts||[]).filter(x=>!demoScriptTitles.has(x.title));state.banned=(saved.banned||[]).filter(x=>!demoBanned.has(x));state.invoices=saved.invoices||[];state.dailyReports=saved.dailyReports||[];if(state.user&&!state.user.photoData&&saved.photoData)state.user.photoData=saved.photoData;if(saved.theme)setTheme(saved.theme)}catch{}}
