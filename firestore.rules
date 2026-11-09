@@ -486,7 +486,7 @@ service cloud.firestore {
           && request.resource.data.status in ['approved','rejected']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
       );
-      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests']) && manager();
+      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
     }
 
     match /workspaces/{workspaceId}/leaveSlots/{slotId} {
@@ -544,6 +544,20 @@ service cloud.firestore {
     // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.
     match /workspaces/{workspaceId}/pages/{pageId} {
       allow read, write: if false;
+    }
+
+    // Chat history belongs to its author. Restored text grants no action privileges.
+    match /workspaces/fbtq/assistantChatMessages/{messageId} {
+      allow read: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['id','createdBy','role','text','createdAt'])
+        && request.resource.data.id == messageId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.role in ['user','assistant']
+        && request.resource.data.text is string && request.resource.data.text.size() <= 12000
+        && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 35;
+      allow update: if signedIn() && resource.data.createdBy == request.auth.uid && request.resource.data == resource.data;
+      allow delete: if false;
     }
 
     match /{document=**} { allow read, write: if false; }

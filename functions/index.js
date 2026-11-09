@@ -2,6 +2,7 @@ const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('firebase-functions');
 const crypto = require('node:crypto');
@@ -176,10 +177,24 @@ function decryptToken(data,secret) {
   return Buffer.concat([decipher.update(Buffer.from(data.encryptedToken,'base64')),decipher.final()]).toString('utf8');
 }
 function graphUrl(path) { return `https://graph.facebook.com/${GRAPH_VERSION()}/${path}`; }
+function normalizedModerationText(value) { return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').toLocaleLowerCase('vi-VN'); }
+function bannedMatches(value,banned) { const text=normalizedModerationText(value);return [...new Set((Array.isArray(banned)?banned:[]).map(word=>String(word||'').trim()).filter(Boolean).filter(word=>text.includes(normalizedModerationText(word))))]; }
+function timestampMillis(value) { if(value?.toMillis)return value.toMillis();if(Number.isFinite(value?.seconds))return value.seconds*1000;const parsed=Date.parse(value||'');return Number.isFinite(parsed)?parsed:0; }
+async function assertOpenMessengerWindow(pageId,recipientId,inboxData) {
+  if(!inboxData||inboxData.pageId!==String(pageId)||inboxData.senderId!==String(recipientId))throw new HttpsError('not-found','Không tìm thấy hội thoại của khách trên Fanpage này.');
+  let lastInbound=timestampMillis(inboxData.lastInboundAt);if(!lastInbound&&inboxData.direction==='incoming')lastInbound=timestampMillis(inboxData.receivedAt);
+  if(!lastInbound){const conversationId=crypto.createHash('sha256').update(`${pageId}:${recipientId}`).digest('hex'),history=await db.collection('workspaces/fbtq/messages').where('conversationId','==',conversationId).get();for(const doc of history.docs){const item=doc.data();if(item.direction==='incoming')lastInbound=Math.max(lastInbound,timestampMillis(item.createdAt));}}
+  if(!lastInbound||Date.now()-lastInbound>24*60*60*1000)throw new HttpsError('failed-precondition','Chỉ gửi được tin trả lời trong vòng 24 giờ kể từ tin nhắn gần nhất của khách.');return lastInbound;
+}
+async function sendMetaText(pageId,recipientId,message,token) {
+  const body=new URLSearchParams({recipient:JSON.stringify({id:String(recipientId)}),message:JSON.stringify({text:message}),messaging_type:'RESPONSE',access_token:token});
+  const response=await fetch(graphUrl(`${encodeURIComponent(pageId)}/messages`),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(20000)}).catch(()=>null),data=response&&await response.json().catch(()=>({}));
+  if(!response?.ok){logger.warn('Meta send message failed',{pageId,status:response?.status,code:data?.error?.code||null});throw new HttpsError('unavailable','Facebook không gửi được tin nhắn. Kiểm tra quyền pages_messaging, token và cửa sổ nhắn tin.');}return data||{};
+}
 exports.listMyPages = onCall({timeoutSeconds:20,memory:'256MiB'},async request=>{
   const auth=await requireSignedIn(request);
   const snapshot=await db.collection('workspaces/fbtq/pages').where('ownerUid','==',auth.uid).get();
-  return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',model:page.model||'gemini',active:page.active===true}})};
+  return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',model:page.model||'gemini',active:page.active===true,webhookSubscribed:page.webhookSubscribed===true}})};
 });
 
 exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
@@ -189,24 +204,91 @@ exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeou
   const response=await fetch(`${graphUrl(encodeURIComponent(pageId))}?fields=id,name&access_token=${encodeURIComponent(pageToken)}`,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
   const meta=response&&await response.json().catch(()=>({}));
   if(!response?.ok||meta.id!==pageId)throw new HttpsError('failed-precondition','Meta không xác nhận Page ID và Page Access Token.');
+<<<<<<< HEAD
+  const subscriptionResponse=await fetch(graphUrl(`${encodeURIComponent(pageId)}/subscribed_apps`),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({subscribed_fields:'messages,messaging_postbacks',access_token:pageToken}),signal:AbortSignal.timeout(15000)}).catch(()=>null);
+  const subscriptionData=subscriptionResponse&&await subscriptionResponse.json().catch(()=>({}));
   const encrypted=encryptToken(pageToken,META_TOKEN_ENCRYPTION_KEY.value());
-  await db.doc(`workspaces/fbtq/pages/${pageId}`).set({pageId,pageName:meta.name||pageName,ownerUid:auth.uid,model,active:true,...encrypted,connectedAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()},{merge:true});
+  await db.doc(`workspaces/fbtq/pages/${pageId}`).set({pageId,pageName:meta.name||pageName,ownerUid:auth.uid,model,active:true,webhookSubscribed:!!subscriptionResponse?.ok,webhookSubscriptionError:subscriptionResponse?.ok?'':String(subscriptionData?.error?.message||'Meta chưa xác nhận đăng ký webhook.'),...encrypted,connectedAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()},{merge:true});
+  return {ok:true,pageName:meta.name||pageName,webhookSubscribed:!!subscriptionResponse?.ok,message:subscriptionResponse?.ok?'Đã mã hoá token và đăng ký nhận tin nhắn từ Fanpage.':'Đã mã hoá token. Cần cấp pages_manage_metadata và đăng ký webhook cho Fanpage trong Meta.'};
+});
+
+exports.setFacebookPageActive = onCall({timeoutSeconds:20,memory:'256MiB'},async request=>{
+  const auth=await requireSignedIn(request);const {pageId,active}=request.data||{};
+  if(typeof pageId!=='string'||!/^[0-9]{5,30}$/.test(pageId)||typeof active!=='boolean')throw new HttpsError('invalid-argument','Fanpage hoặc trạng thái chưa hợp lệ.');
+  const ref=db.doc(`workspaces/fbtq/pages/${pageId}`),snap=await ref.get();if(!snap.exists||snap.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Bạn chỉ có thể thay đổi Fanpage của chính mình.');
+  await ref.update({active,updatedAt:FieldValue.serverTimestamp()});return {ok:true,active};
+=======
+  const existing=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(existing.exists&&existing.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Trang đã được kết nối bởi tài khoản khác.');
+  const subscription=await fetch(graphUrl(`${pageId}/subscribed_apps`),{method:'POST',headers:{Authorization:`Bearer ${pageToken}`,'Content-Type':'application/json'},body:JSON.stringify({subscribed_fields:['messages','messaging_postbacks']}),signal:AbortSignal.timeout(15000)});if(!subscription.ok)throw new HttpsError('failed-precondition','Không đăng ký được webhook. Kiểm tra pages_manage_metadata.');
+  const encrypted=encryptToken(pageToken,META_TOKEN_ENCRYPTION_KEY.value());
+  await db.runTransaction(async tx=>{const ref=db.doc(`workspaces/fbtq/pages/${pageId}`),snap=await tx.get(ref);if(snap.exists&&snap.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Trang đã thuộc tài khoản khác.');tx.set(ref,{pageId,pageName:meta.name||pageName,ownerUid:auth.uid,model,active:true,webhookSubscribed:true,...encrypted,connectedAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()},{merge:true});});
   return {ok:true,pageName:meta.name||pageName,message:'Đã mã hoá và lưu Page Access Token.'};
+>>>>>>> c1257f412d32f7629fd8081250c8ca53ddbb3173
 });
 
 exports.sendPageReply = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
   const auth=await requireSignedIn(request);const {pageId,recipientId,message}=request.data||{};
   if(typeof message!=='string'||!message.trim()||message.length>2000||typeof recipientId!=='string'||!/^\d+$/.test(recipientId))throw new HttpsError('invalid-argument','Tin nhắn hoặc khách nhận không hợp lệ.');
   const ref=db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`);const snap=await ref.get();
+<<<<<<< HEAD
+=======
   if(!snap.exists||snap.data().ownerUid!==auth.uid||snap.data().active!==true)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản của bạn.');
+  const thread=await db.doc(`workspaces/fbtq/inbox/${require('./chatbot-core').key(pageId,recipientId)}`).get();if(!require('./chatbot-core').eligible({...thread.data(),humanPaused:false}))throw new HttpsError('failed-precondition','Ngoài cửa sổ 24 giờ hoặc khách đã dừng nhận tin.');
   const token=decryptToken(snap.data(),META_TOKEN_ENCRYPTION_KEY.value());const body=new URLSearchParams({recipient:JSON.stringify({id:recipientId}),message:JSON.stringify({text:message.trim()}),messaging_type:'RESPONSE',access_token:token});
   const response=await fetch(graphUrl(`${encodeURIComponent(pageId)}/messages`),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(20000)}).catch(()=>null);
   if(!response?.ok){logger.warn('Meta send message failed',{pageId,status:response?.status});throw new HttpsError('unavailable','Facebook không gửi được tin nhắn. Kiểm tra quyền pages_messaging và token.');}
   const result=await response.json().catch(()=>({}));
+>>>>>>> c1257f412d32f7629fd8081250c8ca53ddbb3173
   const conversationId=crypto.createHash('sha256').update(`${pageId}:${recipientId}`).digest('hex');
-  await db.doc(`workspaces/fbtq/inbox/${conversationId}`).set({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),receivedAt:FieldValue.serverTimestamp(),createdBy:auth.uid},{merge:true});
+  if(!snap.exists||snap.data().ownerUid!==auth.uid||snap.data().active!==true)throw new HttpsError('permission-denied','Fanpage chưa được kết nối hoặc không thuộc tài khoản của bạn.');
+  const settings=await readBotSettings(),matches=bannedMatches(message,settings.banned);if(matches.length)throw new HttpsError('failed-precondition',`Tin nhắn bị chặn vì có từ khoá cấm: ${matches.join(', ')}.`);
+  const inboxRef=db.doc(`workspaces/fbtq/inbox/${conversationId}`),inboxSnap=await inboxRef.get();await assertOpenMessengerWindow(pageId,recipientId,inboxSnap.exists?inboxSnap.data():null);
+  const token=decryptToken(snap.data(),META_TOKEN_ENCRYPTION_KEY.value()),result=await sendMetaText(pageId,recipientId,message.trim(),token);
+  await inboxRef.set({pageId,pageName:snap.data().pageName,ownerUid:inboxSnap.data().ownerUid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),lastMessageAt:FieldValue.serverTimestamp(),createdBy:auth.uid},{merge:true});
   await db.collection('workspaces/fbtq/messages').add({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),createdAt:FieldValue.serverTimestamp(),createdBy:auth.uid});
   return {ok:true,messageId:result.message_id||null};
+});
+
+exports.sendPageBroadcast = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:300,memory:'512MiB'},async request=>{
+  const auth=await requireSignedIn(request);const {pageId,recipientIds,message}=request.data||{};
+  if(typeof pageId!=='string'||!/^[0-9]{5,30}$/.test(pageId)||typeof message!=='string'||!message.trim()||message.length>1000||!Array.isArray(recipientIds))throw new HttpsError('invalid-argument','Nội dung, Fanpage hoặc danh sách người nhận chưa hợp lệ.');
+  const recipients=[...new Set(recipientIds.map(value=>String(value)))];if(!recipients.length||recipients.length>50||recipients.some(value=>!/^[0-9]+$/.test(value)))throw new HttpsError('invalid-argument','Chọn từ 1 đến 50 người nhận hợp lệ.');
+  const pageRef=db.doc(`workspaces/fbtq/pages/${pageId}`),pageSnap=await pageRef.get();if(!pageSnap.exists||pageSnap.data().active!==true)throw new HttpsError('failed-precondition','Fanpage chưa kết nối hoặc đang tạm dừng.');
+  const page=pageSnap.data();if(page.ownerUid!==auth.uid&&!['director','branch_manager','department_manager'].includes(auth.profile.role||auth.token.role))throw new HttpsError('permission-denied','Bạn không có quyền gửi từ Fanpage này.');
+  const settings=await readBotSettings(),matches=bannedMatches(message,settings.banned);if(matches.length)throw new HttpsError('failed-precondition',`Nội dung bị chặn vì có từ khoá cấm: ${matches.join(', ')}.`);
+  const token=decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),results=Array(recipients.length),sendOne=async(index)=>{const recipientId=recipients[index];
+    const conversationId=crypto.createHash('sha256').update(`${pageId}:${recipientId}`).digest('hex'),inboxRef=db.doc(`workspaces/fbtq/inbox/${conversationId}`);
+    try{
+      const inboxSnap=await inboxRef.get();if(!inboxSnap.exists)throw new HttpsError('not-found','Không tìm thấy hội thoại.');
+      const thread=inboxSnap.data();if(thread.ownerUid!==page.ownerUid||thread.doNotContact===true)throw new HttpsError('permission-denied','Hội thoại không thuộc Fanpage hoặc đã từ chối nhận tin.');
+      await assertOpenMessengerWindow(pageId,recipientId,thread);const sent=await sendMetaText(pageId,recipientId,message.trim(),token);
+      await inboxRef.set({direction:'outgoing',message:message.trim(),lastMessageAt:FieldValue.serverTimestamp(),createdBy:auth.uid},{merge:true});
+      await db.collection('workspaces/fbtq/messages').add({pageId,pageName:page.pageName,ownerUid:thread.ownerUid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),createdAt:FieldValue.serverTimestamp(),createdBy:auth.uid,broadcast:true});
+      results[index]={recipientId,ok:true,messageId:sent.message_id||null};
+    }catch(error){results[index]={recipientId,ok:false,error:error.message||'Không gửi được.'};}
+  },workers=Array.from({length:Math.min(5,recipients.length)},async()=>{while(true){const index=recipients.findIndex((_,i)=>results[i]===undefined);if(index<0)return;results[index]={recipientId:recipients[index],ok:false,error:'Đang gửi'};await sendOne(index);await new Promise(resolve=>setTimeout(resolve,180));}});
+  await Promise.all(workers);
+  const jobRef=db.collection('workspaces/fbtq/broadcastJobs').doc();await jobRef.set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,createdBy:auth.uid,createdByName:auth.profile.name||auth.token.name||'',message:message.trim(),recipientCount:recipients.length,sentCount:results.filter(item=>item.ok).length,failedCount:results.filter(item=>!item.ok).length,createdAt:FieldValue.serverTimestamp(),results});
+  return {ok:results.every(item=>item.ok),sent:results.filter(item=>item.ok).length,failed:results.filter(item=>!item.ok).length,results};
+});
+
+exports.replyToMessengerMessage = onDocumentCreated({document:'workspaces/{workspaceId}/messages/{messageId}',secrets:[META_TOKEN_ENCRYPTION_KEY,GEMINI_API_KEY],timeoutSeconds:70,memory:'512MiB'},async event=>{
+  const {workspaceId,messageId}=event.params||{},message=event.data?.data();if(workspaceId!=='fbtq'||!message||message.direction!=='incoming')return;
+  const lockRef=db.doc(`workspaces/fbtq/autoReplyLocks/${messageId}`);let lockAcquired=false;
+  try{
+    const settings=await readBotSettings();if(settings.autoReplyEnabled!==true)return;
+    const pageSnap=await db.doc(`workspaces/fbtq/pages/${String(message.pageId||'')}`).get();if(!pageSnap.exists||pageSnap.data().active!==true)return;
+    const page=pageSnap.data(),threadRef=db.doc(`workspaces/fbtq/inbox/${message.conversationId}`),threadSnap=await threadRef.get();if(!threadSnap.exists)return;
+    await db.runTransaction(async transaction=>{lockAcquired=false;const existing=await transaction.get(lockRef);if(existing.exists)return;transaction.create(lockRef,{status:'processing',pageId:message.pageId,conversationId:message.conversationId,createdAt:FieldValue.serverTimestamp()});lockAcquired=true});if(!lockAcquired)return;
+    const lastInbound=timestampMillis(message.createdAt)||Date.now();if(Date.now()-lastInbound>24*60*60*1000)throw new Error('Tin nhắn đã ngoài cửa sổ phản hồi 24 giờ.');
+    const banned=Array.isArray(settings.banned)?settings.banned:[],scripts=Array.isArray(settings.scripts)?settings.scripts:[];
+    const system=`Bạn là nhân viên chăm sóc khách hàng của Fanpage ${page.pageName||''}. Trả lời ngắn gọn, lịch sự bằng tiếng Việt, tối đa 3 câu. Chỉ dùng thông tin có trong tin nhắn và các kịch bản đã duyệt; không bịa giá, chính sách, tồn kho, thời gian giao hàng hoặc cam kết. Nếu chưa đủ thông tin, xin khách để lại nội dung cần kiểm tra và báo rằng nhân viên sẽ hỗ trợ. Không dùng các từ/cụm cấm: ${banned.join(', ')}. Kịch bản tham khảo: ${scripts.map(script=>`${script.title}: ${script.text}`).join('\n')}`;
+    const answer=await generateWithProvider('gemini',String(message.message||'[Khách gửi tệp đính kèm]').slice(0,3000),system,{gemini:GEMINI_API_KEY.value()},{maxTokens:240});
+    const blocked=bannedMatches(answer,banned);if(blocked.length){await threadRef.set({autoReplyStatus:'blocked',autoReplyError:'AI tạo câu trả lời có từ khoá bị cấm; chưa gửi cho khách.',autoReplyBlockedKeywords:blocked,autoReplyAt:FieldValue.serverTimestamp()},{merge:true});await lockRef.set({status:'blocked',blockedKeywords:blocked,updatedAt:FieldValue.serverTimestamp()},{merge:true});return;}
+    const token=decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),sent=await sendMetaText(message.pageId,message.senderId,answer,token),autoMessageId=crypto.createHash('sha256').update(`auto:${messageId}`).digest('hex');
+    await db.collection('workspaces/fbtq/messages').doc(autoMessageId).set({pageId:message.pageId,pageName:page.pageName,ownerUid:message.ownerUid,senderId:message.senderId,conversationId:message.conversationId,direction:'outgoing',message:answer,createdAt:FieldValue.serverTimestamp(),autoReply:true,metaMessageId:sent.message_id||null});
+    await threadRef.set({direction:'outgoing',message:answer,lastMessageAt:FieldValue.serverTimestamp(),autoReplyStatus:'sent',autoReplyAt:FieldValue.serverTimestamp(),autoReplyError:''},{merge:true});await lockRef.set({status:'sent',updatedAt:FieldValue.serverTimestamp()},{merge:true});
+  }catch(error){logger.error('Automatic Messenger reply failed',{messageId,pageId:message.pageId,error:String(error)});if(lockAcquired)await lockRef.set({status:'failed',error:String(error.message||error).slice(0,300),updatedAt:FieldValue.serverTimestamp()},{merge:true}).catch(()=>{});await db.doc(`workspaces/fbtq/inbox/${message.conversationId}`).set({autoReplyStatus:'failed',autoReplyError:String(error.message||'AI chưa gửi được phản hồi.').slice(0,300),autoReplyAt:FieldValue.serverTimestamp()},{merge:true}).catch(()=>{});}
 });
 
 exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],timeoutSeconds:30,memory:'256MiB'},async(req,res)=>{
@@ -226,12 +308,24 @@ exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],tim
       const pageId=String(entry.id||'');const pageSnap=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(!pageSnap.exists)continue;const page=pageSnap.data();
       for(const event of entry.messaging||[]){if(!event.message||event.message.is_echo)continue;const sender=String(event.sender?.id||'');if(!sender)continue;const key=crypto.createHash('sha256').update(`${pageId}:${sender}`).digest('hex');
         const message=event.message.text||'[Đã nhận tệp đính kèm]';
-        await db.doc(`workspaces/fbtq/inbox/${key}`).set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),unread:true},{merge:true});
+<<<<<<< HEAD
+        const messageId=crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex'),messageRef=db.doc(`workspaces/fbtq/messages/${messageId}`);
+        const accepted=await db.runTransaction(async transaction=>{const old=await transaction.get(messageRef);if(old.exists)return false;transaction.create(messageRef,{pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),createdAt:FieldValue.serverTimestamp(),metaMid:event.message.mid||''});transaction.set(db.doc(`workspaces/fbtq/inbox/${key}`),{pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),lastInboundAt:FieldValue.serverTimestamp(),lastMessageAt:FieldValue.serverTimestamp(),unread:true,autoReplyStatus:''},{merge:true});return true});if(!accepted)continue;
+=======
+        const messageId=crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex');
+        const threadRef=db.doc(`workspaces/fbtq/inbox/${key}`);const oldThread=await threadRef.get();if((oldThread.data()?.lastIncomingAtMs||0)>Number(event.timestamp||0))continue;
+        const optedOut=require('./chatbot-core').isOptOut(message)?true:oldThread.data()?.optedOut===true;
+        await db.doc(`workspaces/fbtq/inbox/${key}`).set({lastIncomingAtMs:Math.min(Date.now(),Number(event.timestamp)||Date.now()),lastIncomingMessageId:messageId,optedOut,pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),unread:true},{merge:true});
         await db.collection('workspaces/fbtq/messages').doc(crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex')).set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),createdAt:FieldValue.serverTimestamp()},{merge:true});
+>>>>>>> c1257f412d32f7629fd8081250c8ca53ddbb3173
       }
     }
     return res.sendStatus(200);
   }catch(error){logger.error('Meta webhook event processing failed',{error:String(error)});return res.sendStatus(500)}
 });
 
+Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}));
+
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
+
+Object.assign(exports,require('./assistant-ai').registerAssistantAI({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY}));

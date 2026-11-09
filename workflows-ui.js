@@ -86,7 +86,7 @@ export function initWorkflows(api) {
     });
   }
   function assistantRows(kind){
-    return records[kind].map(row=>{const stage=nextStage(row);return{id:row.id,kind:row.kind,status:row.status||'pending',title:row.title||row.type||'Hồ sơ',type:row.type||'',description:row.description||'',createdBy:row.createdBy||'',createdByName:row.createdByName||row.employee||'Nhân viên',branch:row.branch||'',department:row.department||'',date:row.date||'',amount:Number(row.amount)||0,approvals:row.approvals||{},nextStage:stage,nextStageName:stageNames[stage],canReview:!row.legacy&&row.status==='pending'&&canReview(row,stage),legacy:!!row.legacy,disbursement:row.disbursement||null}});
+    return records[kind].map(row=>{const stage=nextStage(row);return{id:row.id,kind:row.kind,status:row.status||'pending',title:row.title||row.type||'Hồ sơ',type:row.type||'',description:row.description||'',createdBy:row.createdBy||'',createdByName:row.createdByName||row.employee||'Nhân viên',branch:row.branch||'',department:row.department||'',date:row.date||'',sessions:Array.isArray(row.sessions)?[...row.sessions]:[],photoData:row.photoData||'',createdAt:row.createdAt||row.submittedAt||'',amount:Number(row.amount)||0,approvals:row.approvals||{},nextStage:stage,nextStageName:stageNames[stage],canReview:!row.legacy&&row.status==='pending'&&canReview(row,stage),legacy:!!row.legacy,disbursement:row.disbursement||null}});
   }
   async function assistantReview(kind,id,decision,note=''){
     if(!['advance','request'].includes(kind)||!['approve','reject'].includes(decision))throw new Error('Thao tác hoặc loại hồ sơ không hợp lệ.');
@@ -320,5 +320,5 @@ export function initWorkflows(api) {
     }
   }
   buildPages();render('advance');render('request');
-  return {start,stop,render,notifications,assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
+  return {start,stop,render,notifications,openAssistantFunding:id=>{const row=records.advance.find(r=>r.id===id);if(!row||row.status!=='approved'||state.role!=='accountant'||row.createdBy===state.user?.uid)throw new Error('Không có quyền cấp tiền cho hồ sơ này.');disburse(row);},assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
 }

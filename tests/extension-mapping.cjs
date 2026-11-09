@@ -8,7 +8,7 @@ vm.createContext(ctx);
 vm.runInContext(source.slice(source.indexOf('  const normalize ='),source.indexOf('  const setStatus =')),ctx);
 vm.runInContext(source.slice(source.indexOf('  function numberFrom'),source.indexOf('  function parseMetaDateRange')),ctx);
 vm.runInContext(source.slice(source.indexOf('  function columnBounds'),source.indexOf('  function hasBlueSelectionFill')),ctx);
-vm.runInContext(source.slice(source.indexOf('  function headerIndex'),source.indexOf('  function rowIsSelected')),ctx);
+vm.runInContext(source.slice(source.indexOf('  function headerKey'),source.indexOf('  function rowIsSelected')),ctx);
 vm.runInContext('function rowIsSelected(){return true}',ctx);
 const rect = (left,right,top=260,height=40) => ({left,right,top,bottom:top+height,width:right-left,height});
 const headers = [ [0,48,''], [48,126,'Tắt/Bật'], [126,414,'Chiến dịch'], [414,548,'Phân phối'], [548,614,'Cài đặt ghi nhận'], [614,726,'Kết quả'], [726,860,'Chi phí trên mỗi kết quả'], [860,972,'Ngân sách'], [972,1084,'Số tiền đã chi tiêu'] ];
@@ -36,7 +36,7 @@ assert.equal(ctx.numberFrom('—'),null);
 // Fresh import must win over saved report values for the six mapped fields.
 ctx.metric={id:'m1',name:'Bonbon',account:'3092737904212442',delivery:'Đang tắt',status:'Đang tắt',budget:30000,spend:46062,results:409,dailyMessages:409,costPerResult:113};
 ctx.state.dailyReports=[{createdBy:'tester',metricId:'m1',campaign:'WRONG',status:'WRONG',messages:0,spend:1,budget:1,avgMessageCost:999}];
-vm.runInContext("function dailyReportMetricsForUser(){return [metric]} function reportDateKey(){return '2026-11-05'}"+app.slice(app.indexOf('function dailySheetPrefillRows('),app.indexOf('function openDailyReportForm(')),ctx);
+vm.runInContext("function dailyReportMetricsForUser(){return [metric]} function reportDateKey(){return '2026-11-05'}"+app.slice(app.indexOf('function savedDailySheetRows('),app.indexOf('function openDailyReportForm(')),ctx);
 const fresh=ctx.dailySheetPrefillRows('2026-11-05',true)[0];
 assert.equal(fresh.campaign,'Bonbon');assert.equal(fresh.status,'Đang tắt');assert.equal(fresh.dailyBudget,30000);assert.equal(fresh.actualSpend,46062);assert.equal(fresh.dailyMessages,409);assert.equal(fresh.dailyAvgMessageCost,113);
 assert.equal(ctx.dailySheetPrefillRows('2026-11-05')[0].campaign,'WRONG');
@@ -85,3 +85,37 @@ const snapshot=ctx.metaReportSnapshot(all[1]);assert.equal(snapshot.impressions,
 assert.ok(app.includes('metaSnapshot:metaReportSnapshot(metrics.find(metric=>metric.id===row.rowKey))'));
 assert.equal(all[0].rawColumns.find(c=>c.label==='Tắt/Bật').value,'Tắt');
 console.log('PASS: system full-column display and saved Meta snapshot.');
+// Missing columns must never match a longer metric name or an attribution label.
+assert.equal(ctx.headerIndex([{index:0,label:'Chi phí trên mỗi kết quả'}],['Kết quả']),-1);
+assert.equal(ctx.headerIndex([{index:0,label:'Lượt phân phối chiến dịch'}],['Chiến dịch']),-1);
+assert.equal(ctx.headerIndex([{index:0,label:'Chi phí trên mỗi người liên hệ nhắn tin mới'}],['Người liên hệ nhắn tin mới']),-1);
+assert.equal(ctx.headerIndex([{index:0,label:'Kết quả'},{index:1,label:'Kết quả'}],['Kết quả']),-1);
+assert.equal(ctx.headerIndex([{index:2,label:'Chi phí trên mỗi kết quả (VND) ↓'}],['Chi phí trên mỗi kết quả']),2);
+for(const value of ['—\n7 ngày sau khi nhấp','Lượt ThruPlay 7 ngày','Dùng ngân sách chiến dịch 2026'])assert.equal(ctx.numberFrom(value),null,value);
+for(const [value,expected] of [['113 ₫\nTrên mỗi 7 ngày',113],['30.000 ₫',30000],['37,979.50 ₫',37979.5],['0\nLượt',0]])assert.equal(ctx.numberFrom(value),expected,value);
+// Pinned/virtualized columns can recycle ARIA indices. Geometry must win.
+const wrongAriaHeaders=fullHeaders.map((h,i)=>({...h,getAttribute:n=>n==='aria-colindex'?String(i+1):null}));
+const wrongAriaRows=fullRows.slice(0,2).map(row=>{const old=row.querySelectorAll;row.querySelectorAll=q=>old(q).map((cell,i)=>{cell.getAttribute=n=>n==='aria-colindex'?String(i+3):null;return cell;});return row;});
+const virtualGrid={querySelectorAll:q=>q.includes('columnheader')?wrongAriaHeaders:wrongAriaRows};
+const parsedVirtual=ctx.readGrid(virtualGrid);
+assert.equal(ctx.cellValue(parsedVirtual.headers,parsedVirtual.rows[0].cells,['Chiến dịch']),values[0][2]);
+assert.equal(ctx.numberFrom(ctx.cellValue(parsedVirtual.headers,parsedVirtual.rows[0].cells,['Số tiền đã chi tiêu'])),8487);
+const clipped=node('Chi phí trên mỗi k...',rect(0,130));clipped.getAttribute=n=>n==='aria-label'?'Chi phí trên mỗi kết quả':null;assert.equal(ctx.headerLabel(clipped),'Chi phí trên mỗi kết quả');
+// Importing one new campaign must not re-add saved or previously imported campaigns.
+ctx.state.dailyReports.push({createdBy:'tester',reportDate:'2026-11-05',metricId:'old-other',campaign:'Không chọn',spend:123});
+const scoped=ctx.dailySheetPrefillRows('2026-11-05',true,[ctx.metric]);assert.equal(scoped.length,1);assert.equal(scoped[0].campaign,'Bonbon');
+const nullResult={...ctx.metric,results:null,dailyMessages:null,costPerResult:null,dailyAvgMessageCost:null,newMessagingContacts:99,costPerNewMessagingContact:888};
+ctx.testNullMetric=nullResult;for(const name of ['dailySheetInput','dailySheetRowHtml']){const start=app.indexOf('function '+name+'(');vm.runInContext(app.slice(start,app.indexOf('\n}',start)+2),ctx);}
+const nullMarkup=ctx.dailySheetRowHtml(nullResult);assert.ok(nullMarkup.includes('data-field="messages" type="number" value=""'));assert.ok(nullMarkup.includes('data-field="messageCost" type="number" value=""'));
+console.log('PASS: strict header matching, missing metrics, currency/sublines, recycled ARIA, full accessible headers, batch isolation and no contact-counter substitution.');
+(async()=>{
+  const persisted=[];ctx.state.firebase={};ctx.state.metrics=[{id:'previous',name:'Không chọn',createdBy:'tester',reportAt:'2026-11-05',results:999}];
+  ctx.saveRecord=async(_,data,id)=>persisted.push({data,id});ctx.saveLocal=()=>{};ctx.renderMetrics=()=>{};ctx.closeModal=()=>{};ctx.showToast=()=>{};ctx.navigate=()=>{};ctx.assistantImportNotice=()=>{};
+  ctx.openDailyReportForm=options=>{ctx.receivedFormOptions=options;};
+  let start=app.indexOf('function assignMetricIds(');vm.runInContext(app.slice(start,app.indexOf('\n',start)),ctx);
+  start=app.indexOf('async function importCampaignData(');vm.runInContext(app.slice(start,app.indexOf('\n',start)),ctx);
+  start=app.indexOf('async function receiveExtensionImport(');vm.runInContext(app.slice(start,app.indexOf("window.addEventListener('message'",start)),ctx);
+  await ctx.receiveExtensionImport({kind:'metrics',campaigns:[{name:'Bonbon',campaign:'Bonbon',delivery:'Đang tắt',account:'123',budget:30000,results:409,costPerResult:113,spend:46062,reportAt:'2026-11-05'}]});
+  assert.equal(persisted.length,1);assert.equal(ctx.state.metrics.length,2);assert.equal(ctx.receivedFormOptions.metrics.length,1);assert.equal(ctx.receivedFormOptions.metrics[0].name,'Bonbon');assert.equal(ctx.dailySheetPrefillRows('2026-11-05',true,ctx.receivedFormOptions.metrics).length,1);
+  console.log('PASS: extension handoff persists and opens exactly the incoming batch without removing existing campaigns.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

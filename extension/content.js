@@ -9,8 +9,8 @@
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
-          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
-          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi mục đã chọn vào Báo cáo <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
+          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Trợ lý FBTQ. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
+          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi vào Trợ lý FBTQ <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
         </div>
         <div id="fbtq-invoice-view" hidden>
           <div class="fbtq-section-title"><span class="fbtq-icon fbtq-icon-invoice">▤</span><div><b>Biên lai Meta PDF</b><small id="fbtq-pdf-count">Quét liên kết trên trang</small></div></div>
@@ -44,7 +44,8 @@
   let lastScanInfo = { headers: [], rows: 0, selected: 0 };
 
   function numberFrom(value) {
-    let text = normalize(value).match(/-?\d[\d.,]*(?:\s*[kmb](?=\s|$))?/i)?.[0]?.replace(/\s/g, '') || '';
+    const primary = String(value ?? '').trim().split(/\r?\n/)[0].trim();
+    let text = primary.match(/^[\s₫đ$€£]*(−?-?\d[\d.,]*(?:\s*[kmb](?=\s|$))?)(?=\s|[₫đ$€£%]|$)/i)?.[1]?.replace(/\s/g, '').replace('−','-') || '';
     if (!text || text === '-') return null;
     const multiplier = /k$/i.test(text) ? 1e3 : /m$/i.test(text) ? 1e6 : /b$/i.test(text) ? 1e9 : 1;
     text = text.replace(/[kmb]$/i, '');
@@ -84,12 +85,25 @@
     }
     return parseMetaDateRange(document.body?.innerText || '');
   }
+  function headerKey(value) {
+    return key(String(value || '').replace(/\((?:vnd|usd|eur|đ|₫)\)/gi, '').replace(/[¹²³⁴⁵⁶⁷⁸⁹]/g, ''));
+  }
+  function headerLabel(element) {
+    const visible = elementText(element);
+    const accessible = [element.getAttribute('aria-label'), element.getAttribute('title')]
+      .map(value => normalize(value).replace(/\s+(?:sorted|sort by|sắp xếp).*$/i, ''))
+      .filter(value => value && !/^(?:sort|sắp xếp)/i.test(value));
+    return accessible.find(value => value.length >= visible.length) || visible;
+  }
   function headerIndex(headers, alternatives) {
-    const aliases = alternatives.map(key).filter(Boolean);
-    const exact = headers.find(header => aliases.includes(key(header.label)));
-    if (exact) return exact.index;
-    const matches = headers.filter(header => aliases.some(alias => alias.length > 8 && key(header.label).includes(alias)));
-    return matches[0]?.index ?? -1;
+    const aliases = alternatives.map(headerKey).filter(Boolean);
+    for (const alias of aliases) {
+      const matches = headers.filter(header => headerKey(header.label) === alias);
+      if (matches.length === 1) return matches[0].index;
+      if (matches.length > 1) return -1;
+    }
+    // Never use substring matching: “Kết quả” is not “Chi phí trên mỗi kết quả”.
+    return -1;
   }
   function cellValue(headers, cells, alternatives) {
     const index = headerIndex(headers, alternatives);
@@ -172,15 +186,15 @@
     const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')];
     const headerMap = new Map();
     headerElements.forEach((element, position) => {
-      const label = elementText(element);
+      const label = headerLabel(element);
       const ariaIndex = Number(element.getAttribute('aria-colindex'));
-      const index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : position;
-      if (!headerMap.has(index) || label.length > headerMap.get(index).label.length) {
-        const rect = element.getBoundingClientRect();
-        headerMap.set(index, { index, label, left: rect.left, right: rect.right, centerX: rect.left + rect.width / 2, width: rect.width });
+      const rect = element.getBoundingClientRect();
+      const identity = rect.width > 0 ? `${rect.left}:${rect.right}` : `aria:${ariaIndex || position}`;
+      if (!headerMap.has(identity) || label.length > headerMap.get(identity).label.length) {
+        headerMap.set(identity, { index: position, ariaIndex: ariaIndex > 0 ? ariaIndex : null, label, left: rect.left, right: rect.right, centerX: rect.left + rect.width / 2, width: rect.width });
       }
     });
-    const allHeaders = [...headerMap.values()].sort((a, b) => a.index - b.index);
+    const allHeaders = [...headerMap.values()].sort((a, b) => a.left - b.left).map((header,index) => ({...header,index}));
     const headers = allHeaders.filter(header => header.label);
     const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => row.querySelector('[role="gridcell"],[role="cell"],td'));
     const rows = rowElements.map(row => {
@@ -190,13 +204,15 @@
         const ariaIndex = Number(element.getAttribute('aria-colindex'));
         const value = String(element.innerText || element.textContent || element.getAttribute('aria-label') || '').trim();
         if (!value) return;
-        let index = Number.isInteger(ariaIndex) && ariaIndex > 0 ? ariaIndex - 1 : null;
-        if (index === null) {
-          const rect = element.getBoundingClientRect();
-          const matches = allHeaders.filter(header => header.width > 0 && rect.left >= header.left - 2 && rect.right <= header.right + 2);
-          if (matches.length !== 1) return;
-          index = matches[0].index;
-        }
+        const rect = element.getBoundingClientRect();
+        const matches = allHeaders.filter(header => header.width > 0 && rect.width > 0 && rect.left >= header.left - 2 && rect.right <= header.right + 2);
+        let index;
+        if (matches.length === 1) index = matches[0].index;
+        else if (rect.width <= 0) {
+          const logical = allHeaders.filter(header => header.ariaIndex === ariaIndex && ariaIndex > 0);
+          if (logical.length !== 1) return;
+          index = logical[0].index;
+        } else return;
         if (!cells.has(index) || value.length > cells.get(index).length) cells.set(index, value);
       });
       return { row, cells, fullText: elementText(row), selected: rowIsSelected(row) };
@@ -263,12 +279,12 @@
       return text && text.length < 65;
     });
     function findHeader(rowRect, spec) {
-      const labels = spec.labels.map(key);
-      return allHeaderNodes.map(element => ({ element, text: elementText(element), rect: columnBounds(element) }))
-        .filter(item => labels.includes(key(item.text)) && item.rect.bottom <= rowRect.top + 6 && rowRect.top - item.rect.bottom < 260 && item.rect.left < rowRect.right && item.rect.right > rowRect.left)
-        .sort((a, b) => labels.indexOf(key(a.text)) - labels.indexOf(key(b.text)) || b.rect.bottom - a.rect.bottom || a.rect.width * a.rect.height - b.rect.width * b.rect.height)[0] || null;
+      const labels = spec.labels.map(headerKey);
+      return allHeaderNodes.map(element => ({ element, text: headerLabel(element), rect: columnBounds(element) }))
+        .filter(item => labels.includes(headerKey(item.text)) && item.rect.bottom <= rowRect.top + 6 && rowRect.top - item.rect.bottom < 260 && item.rect.left < rowRect.right && item.rect.right > rowRect.left)
+        .sort((a, b) => labels.indexOf(headerKey(a.text)) - labels.indexOf(headerKey(b.text)) || b.rect.bottom - a.rect.bottom || a.rect.width * a.rect.height - b.rect.width * b.rect.height)[0] || null;
     }
-    const account = normalize(document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || new URL(location.href).searchParams.get('act') || 'Meta Ads');
+    const account = normalize(new URL(location.href).searchParams.get('act') || document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || 'Meta Ads');
     const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const reportRange = activeReportRange();
     const output = [];
@@ -345,7 +361,7 @@
     const { headers, rows } = grid;
     const selectedRows = rows.filter(row => row.selected);
     lastScanInfo = { headers: headers.map(header => header.label), rows: rows.length, selected: selectedRows.length };
-    const account = normalize(document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || new URL(location.href).searchParams.get('act') || 'Meta Ads');
+    const account = normalize(new URL(location.href).searchParams.get('act') || document.querySelector('[data-testid*="account"]')?.innerText || document.querySelector('[aria-label*="account"]')?.getAttribute('aria-label') || 'Meta Ads');
     const now = new Date(), reportAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const reportRange = activeReportRange();
     const output = [];
@@ -401,6 +417,14 @@
     title.className = 'fbtq-preview-title';
     title.textContent = 'Dữ liệu sắp chuyển';
     preview.append(title);
+    const mapped = document.createElement('table');
+    mapped.className = 'fbtq-preview-table';
+    const mapping = [['Bài chạy','name'],['Trạng thái','delivery'],['Số Mess (Kết quả)','results'],['Giá mess TB','costPerResult'],['Ngân sách','budget'],['Chi tiêu thực tế/ngày','spend']];
+    const mappedHead = mapped.createTHead().insertRow();
+    mapping.forEach(([label]) => {const th=document.createElement('th');th.textContent=label;mappedHead.append(th);});
+    const mappedBody=mapped.createTBody();
+    rows.forEach(item=>{const tr=mappedBody.insertRow();mapping.forEach(([,field])=>{tr.insertCell().textContent=item[field]??'—';});});
+    preview.append(mapped);
     const table = document.createElement('table');
     table.className = 'fbtq-preview-table';
     const labels = [...new Set(rows.flatMap(item => (item.rawColumns || []).map(column => column.label)))];
@@ -421,7 +445,7 @@
     count.textContent = lastScanInfo.selected ? `${lastScanInfo.selected} hàng đã chọn · ${lastRows.length} hàng nhận diện` : lastScanInfo.metaSelectedCount ? `Meta đã chọn ${lastScanInfo.metaSelectedCount} mục · chưa đọc được hàng` : `${lastScanInfo.rows} hàng trong bảng · chưa chọn`;
     count.title = headerSummary ? `Các cột Meta được đọc: ${headerSummary}` : 'Chưa tìm thấy tiêu đề cột trên trang.';
     const message = lastRows.length
-      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi gửi sang Báo cáo hàng ngày.`
+      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi gửi sang Trợ lý FBTQ.`
       : !lastScanInfo.selected
         ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ tab Chiến dịch đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch nào được tích chọn. Tích ô vuông bên trái các dòng trong tab Chiến dịch trên Meta, sau đó quét lại.' : 'Meta chưa hiển thị bảng Chiến dịch. Chọn tab Chiến dịch, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
         : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa đọc được tên chiến dịch. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';
