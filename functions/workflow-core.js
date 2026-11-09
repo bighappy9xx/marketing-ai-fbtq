@@ -20,7 +20,7 @@ function stagesFor(kind) { return kind === 'advance' ? ['manager', 'accountant']
 function canReview(record, user, stage) {
   if (record.createdBy === user.uid) return false;
   const sameBranch = !!user.branch && user.branch === record.branch;
-  if (record.kind === 'advance') return stage === 'manager' ? user.role === 'branch_manager' && sameBranch : stage === 'accountant' && user.role === 'accountant';
+  if (record.kind === 'advance') return stage === 'manager' ? user.role === 'department_manager' && sameBranch && !!user.department && user.department === record.department : stage === 'accountant' && user.role === 'accountant';
   return stage === 'department' ? user.role === 'department_manager' && sameBranch && !!user.department && user.department === record.department : stage === 'branch' && user.role === 'branch_manager' && sameBranch;
 }
 function createRecord(kind, input, user, now) {

@@ -7,9 +7,10 @@ const advance=()=>core.createRecord('advance',{amount:1000000,date:'2026-11-06',
 const leave=()=>core.createRecord('request',{type:'leave',date:'2026-11-07',sessions:['morning'],description:'Xin nghỉ có việc gia đình'},user('employee'),now);
 test('advance needs manager then accountant; payment only after both; immutable audit',()=>{
   let record=advance();const initial=structuredClone(record);
+  for(const actor of [user('manager'),user('director'),{...user('head'),branch:'other'},{...user('head'),department:'other'},{...user('head'),uid:'employee'}])assert.throws(()=>core.reviewRecord(record,{stage:'manager',decision:'approve'},actor,now),{code:'permission-denied'});
   assert.throws(()=>core.reviewRecord(record,{stage:'accountant',decision:'approve'},user('accountant'),now),{code:'permission-denied'});
   assert.throws(()=>core.disburseRecord(record,{date:'2026-11-06',reference:'TX1'},user('accountant'),now),{code:'failed-precondition'});
-  record=core.reviewRecord(record,{stage:'manager',decision:'approve',note:'Đúng kế hoạch'},user('manager'),now);
+  record=core.reviewRecord(record,{stage:'manager',decision:'approve',note:'Đúng kế hoạch'},user('head'),now);
   assert.equal(record.status,'pending');assert.deepEqual(initial.approvals.manager,{status:'pending'});
   record=core.reviewRecord(record,{stage:'accountant',decision:'approve'},user('accountant'),now);assert.equal(record.status,'approved');
   const paid=core.disburseRecord(record,{date:'2026-11-06',reference:'TX-123'},user('accountant'),now);assert.equal(paid.status,'disbursed');assert.equal(paid.disbursement.amount,1000000);assert.equal(paid.history.length,4);
@@ -42,7 +43,7 @@ test('server callable ignores forged approvers and amounts; retries are idempote
   await assert.rejects(s.createWorkflow(req('employee',{...payload,amount:600000})),{code:'already-exists'});
   await assert.rejects(s.createWorkflow({data:payload}),{code:'unauthenticated'});
   const decision={kind:'advance',id:result.id,stage:'manager',decision:'approve'};
-  const attempts=await Promise.allSettled([s.reviewWorkflow(req('manager',decision)),s.reviewWorkflow(req('manager',decision))]);assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);assert.equal(s.data.get(key).history.length,2);
+  const attempts=await Promise.allSettled([s.reviewWorkflow(req('head',decision)),s.reviewWorkflow(req('head',decision))]);assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);assert.equal(s.data.get(key).history.length,2);
   s.data.set('users/accountant',{...profiles.accountant,role:'employee'});await assert.rejects(s.reviewWorkflow(req('accountant',{...decision,stage:'accountant'})),{code:'permission-denied'});
   s.data.set('users/accountant',profiles.accountant);await s.reviewWorkflow(req('accountant',{...decision,stage:'accountant'}));
   const payments=await Promise.allSettled([1,2].map(i=>s.disburseAdvance(req('accountant',{id:result.id,date:'2026-01-01',reference:'TX-'+i,amount:999}))));assert.equal(payments.filter(x=>x.status==='fulfilled').length,1);assert.equal(s.data.get(key).disbursement.amount,500000);
