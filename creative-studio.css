@@ -62,3 +62,16 @@
 #page-creative-studio.cs-expanded>.page-heading{display:none}
 #page-creative-studio.cs-expanded{padding:8px}
 @media(min-width:851px){#page-creative-studio.cs-expanded[data-mode=video] .cs-workspace{grid-template-rows:minmax(350px,53vh) auto}}
+.cs-timeline-resize{display:none}
+#csTimelineResize{display:flex;align-items:center;justify-content:center;height:12px;flex:0 0 12px;background:var(--cs-panel);border-bottom:1px solid var(--cs-border);cursor:ns-resize;touch-action:none;user-select:none}
+#csTimelineResize>span{width:42px;height:3px;border-radius:4px;background:#bbc6d2;pointer-events:none}
+#csTimelineResize:hover,#csTimelineResize:focus-visible{background:#e4f8fc;outline:0}
+#csTimelineResize:hover>span,#csTimelineResize:focus-visible>span{background:#0aafc6}
+#page-creative-studio.cs-resizing-layout,#page-creative-studio.cs-resizing-layout *{cursor:ns-resize!important;user-select:none!important}
+#page-creative-studio.cs-resized-layout[data-mode=video] .cs-workspace{grid-template-rows:var(--cs-preview-height) var(--cs-timeline-height)}
+#page-creative-studio.cs-resized-layout[data-mode=video] .cs-timeline-panel{display:flex;flex-direction:column;height:var(--cs-timeline-height);min-height:0;overflow:hidden;box-sizing:border-box}
+#page-creative-studio.cs-resized-layout[data-mode=video] #csTimelineScroll{flex:1 1 0;min-height:0;max-height:none}
+#page-creative-studio.cs-resized-layout[data-mode=video] .cs-timeline-toolbar,#page-creative-studio.cs-resized-layout[data-mode=video] .cs-horizontal-bar,#page-creative-studio.cs-resized-layout[data-mode=video] .cs-timeline-hint{flex-shrink:0}
+#page-creative-studio.cs-compact-timeline[data-mode=video] .cs-timeline-hint{display:none}
+@media(max-width:850px){#page-creative-studio.cs-resized-layout[data-mode=video] .cs-workspace{grid-template-rows:var(--cs-preview-height) auto var(--cs-timeline-height)}}
+@media(max-width:550px){#page-creative-studio.cs-resized-layout[data-mode=video] .cs-workspace{grid-template-rows:auto var(--cs-preview-height) auto var(--cs-timeline-height)}#page-creative-studio.cs-resized-layout[data-mode=video] .cs-stage-column{min-height:0}}

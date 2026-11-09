@@ -1,4 +1,4 @@
-import {editorIcon} from './studio-editor-chrome.js?v=20261109-expanded-header';
+import {editorIcon} from './studio-editor-chrome.js?v=20261109-timeline-resize';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initImageEditor(root,{getState,change,add,background,replaceImage}){
  const q=s=>root.querySelector(s),workspace=q('.cs-workspace'),library=q('.cs-library'),stage=q('#csStage');let section='uploads',zoom=100,lastSelection='',lastMode='',search='';
