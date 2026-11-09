@@ -324,7 +324,7 @@ function enterApp(){
   loadLocalForUser();
   assistantHistory?.start();
   workflows.start();
-  if(location.hash==='#assistant')navigate('assistant');
+  if(['#assistant','#analytics','#automation'].includes(location.hash))navigate(location.hash.slice(1));
   $('#authScreen').classList.add('hidden');$('#app').classList.remove('hidden');
   const name=state.user?.name||state.user?.email||'Tài khoản',initials=name.split(/\s+/).filter(Boolean).slice(-2).map(x=>x[0]).join('').toUpperCase()||'NV';
   $('#sideUserName').textContent=name;$('#greetingName').textContent=name.split(/\s+/)[0];$('#sideUserRole').textContent=roleName(state.role);if($('#assistantRoleBadge'))$('#assistantRoleBadge').textContent=roleName(state.role);renderProfileAvatars(initials);const dateLabel=$('#overviewDate');if(dateLabel)dateLabel.textContent=new Intl.DateTimeFormat('vi-VN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toLocaleUpperCase('vi-VN');
@@ -612,7 +612,7 @@ function assistantImportNotice(message){
   const status=$('#assistantImportStatus');if(status)status.textContent=message;
   appendFbtqAssistantMessage('assistant',message);
 }
-window.addEventListener('hashchange',()=>{if(state.user&&location.hash==='#assistant')navigate('assistant');});
+window.addEventListener('hashchange',()=>{if(state.user&&['#assistant','#analytics','#automation'].includes(location.hash))navigate(location.hash.slice(1));});
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
 
 async function receiveExtensionImport(payload){
@@ -628,14 +628,14 @@ async function receiveExtensionImport(payload){
       const itemEnd=validIsoDate(item.reportEnd)?item.reportEnd:reportEnd;
       return{...item,reportStart:itemStart,reportEnd:itemEnd,reportAt:itemEnd||(validIsoDate(item.reportAt)?item.reportAt:payloadReportAt)};
     });
-    navigate('assistant');const importedMetrics=await importCampaignData({source:'Marketing Ai FBTQ Meta Helper',campaigns});openDailyReportForm({freshMetrics:true,metrics:importedMetrics});assistantImportNotice('Đã nhận '+campaigns.length+' chiến dịch từ Meta Helper. Kiểm tra các trường trong báo cáo rồi bấm Lưu báo cáo.');return;
+    setFbtqAssistantWindow(false);navigate('analytics');const importedMetrics=await importCampaignData({source:'Marketing Ai FBTQ Meta Helper',campaigns});openDailyReportForm({freshMetrics:true,metrics:importedMetrics});showToast('Đã điền '+importedMetrics.length+' chiến dịch vào báo cáo hàng ngày. Kiểm tra rồi bấm Lưu báo cáo.');return;
   }
   if(payload?.kind==='invoice-pdf'){
     if(!payload.base64||payload.base64.length>7_200_000)throw new Error('PDF rỗng hoặc vượt giới hạn 5 MB.');
     const binary=atob(payload.base64),bytes=new Uint8Array(binary.length);for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index);
     if(bytes.length>5*1024*1024||String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw new Error('Tệp chuyển từ Meta không phải PDF hợp lệ hoặc quá 5 MB.');
-    navigate('assistant');openMetaInvoiceUpload();const input=$('#metaInvoiceFile');if(!input)throw new Error('Không mở được form Upload Hóa Đơn Meta.');
-    const file=new File([bytes],String(payload.filename||'meta-receipt.pdf').replace(/[\\/:*?"<>|]/g,'_'),{type:'application/pdf'}),transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));assistantImportNotice('Đã nhận PDF hóa đơn từ Meta Helper. Hệ thống đang đọc dữ liệu; kiểm tra các trường trước khi lưu và gửi duyệt.');return;
+    setFbtqAssistantWindow(false);navigate('automation');openMetaInvoiceUpload();const input=$('#metaInvoiceFile');if(!input)throw new Error('Không mở được form Upload Hóa Đơn Meta.');
+    const file=new File([bytes],String(payload.filename||'meta-receipt.pdf').replace(/[\\/:*?"<>|]/g,'_'),{type:'application/pdf'}),transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));showToast('Đã nhận PDF vào biểu mẫu hóa đơn. Hệ thống đang đọc để điền thông tin; kiểm tra trước khi lưu và gửi duyệt.');return;
   }
   throw new Error('Loại dữ liệu extension chưa được hỗ trợ.');
 }

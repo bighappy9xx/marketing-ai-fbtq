@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Marketing Ai FBTQ · Meta Helper",
-  "version": "2.8.1",
+  "version": "2.9.0",
   "description": "Quét chiến dịch Meta đã chọn và chuyển chỉ số/PDF biên lai vào Marketing Ai FBTQ.",
   "permissions": [
     "clipboardWrite",
@@ -66,5 +66,6 @@
   "action": {
     "default_title": "Marketing Ai FBTQ Meta Helper",
     "default_popup": "popup.html"
-  }
+  },
+  "short_name": "FBTQ Meta Helper"
 }

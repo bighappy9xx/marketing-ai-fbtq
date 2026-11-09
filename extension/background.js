@@ -23,21 +23,21 @@ function filenameFromResponse(response, url) {
   name = name.replace(/[\\/:*?"<>|]/g, '_');
   return name.toLowerCase().endsWith('.pdf') ? name : `${name || 'meta-receipt'}.pdf`;
 }
-async function ensureWebsiteOpen() {
+async function ensureWebsiteOpen(kind) {
   const tabs = await chrome.tabs.query({ url: `${SITE_URL}*` });
   if (tabs.length) {
     await chrome.tabs.update(tabs[0].id, { active: true });
     if (tabs[0].windowId !== undefined) await chrome.windows.update(tabs[0].windowId, { focused: true });
     return tabs[0].id;
   }
-  const tab = await chrome.tabs.create({ url: SITE_URL, active: true });
+  const tab = await chrome.tabs.create({ url: SITE_URL+(kind==='invoice-pdf'?'#automation':'#analytics'), active: true });
   return tab.id;
 }
 async function queueForWebsite(payload) {
   const { [PENDING_KEY]: pending } = await chrome.storage.local.get(PENDING_KEY);
   if (pending) return { ok: false, error: 'Một mục khác đang chờ gửi. Hãy hoàn tất mục đó trên website trước.' };
   await chrome.storage.local.set({ [PENDING_KEY]: payload });
-  const tabId = await ensureWebsiteOpen();
+  const tabId = await ensureWebsiteOpen(payload.kind);
   try { await deliverPending(tabId); } catch {}
   return { ok: true, queued: true };
 }

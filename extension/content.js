@@ -5,16 +5,16 @@
   const logo = chrome.runtime.getURL('favicon.svg');
   root.innerHTML = `
     <section id="fbtq-helper-panel" class="fbtq-panel" hidden aria-label="Marketing Ai FBTQ Meta Helper">
-      <header class="fbtq-head"><div class="fbtq-brand"><img src="${logo}" alt=""><span><b>Marketing Ai FBTQ</b><small>Meta Helper</small></span></div><button type="button" class="fbtq-close" aria-label="Đóng">×</button></header>
+      <header class="fbtq-head"><div class="fbtq-brand"><img src="${logo}" alt=""><span><b>Marketing Ai FBTQ</b><small>Meta Helper ${chrome.runtime.getManifest().version}</small></span></div><button type="button" class="fbtq-close" aria-label="Đóng">×</button></header>
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
-          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Trợ lý FBTQ. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
-          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi vào Trợ lý FBTQ <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
+          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Điền thẳng vào Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
+          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Điền Báo cáo hàng ngày <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button><button type="button" id="fbtq-diagnostic" class="fbtq-button fbtq-secondary">Tải tệp kiểm tra lỗi</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
         </div>
         <div id="fbtq-invoice-view" hidden>
           <div class="fbtq-section-title"><span class="fbtq-icon fbtq-icon-invoice">▤</span><div><b>Biên lai Meta PDF</b><small id="fbtq-pdf-count">Quét liên kết trên trang</small></div></div>
-          <p class="fbtq-help">Tìm liên kết PDF/biên lai đang hiển thị. Extension chuyển tệp vào website để tự đọc và điền form hóa đơn.</p>
+          <p class="fbtq-help">Tìm liên kết PDF/biên lai đang hiển thị. Chuyển thẳng PDF vào mục Báo cáo hóa đơn để tự đọc và điền biểu mẫu.</p>
           <button type="button" id="fbtq-scan-pdfs" class="fbtq-button fbtq-secondary fbtq-full">Quét lại liên kết biên lai</button>
           <div id="fbtq-pdf-list" class="fbtq-pdf-list"></div>
           <label class="fbtq-file-button">Chọn PDF đã tải xuống<input id="fbtq-local-pdf" type="file" accept="application/pdf,.pdf"></label>
@@ -42,6 +42,7 @@
   const setStatus = (message, tone = 'info') => { status.textContent = message; status.dataset.tone = tone; };
   const billingPage = () => /\/billing_hub\//i.test(location.pathname) || /\/billing\//i.test(location.pathname);
   let lastScanInfo = { headers: [], rows: 0, selected: 0 };
+  let lastVisualDiagnostic=[];
 
   function numberFrom(value) {
     const primary = String(value ?? '').trim().split(/\r?\n/)[0].trim();
@@ -85,11 +86,13 @@
     }
     return parseMetaDateRange(document.body?.innerText || '');
   }
+  function isMetaElement(element) { return element.closest?.('#fbtq-helper-root')?.id !== 'fbtq-helper-root'; }
   function headerKey(value) {
     return key(String(value || '').replace(/\((?:vnd|usd|eur|đ|₫)\)/gi, '').replace(/[¹²³⁴⁵⁶⁷⁸⁹]/g, ''));
   }
   function headerLabel(element) {
     const visible = elementText(element);
+    if(visible && !/(?:…|\.\.\.)/.test(visible))return visible;
     const accessible = [element.getAttribute('aria-label'), element.getAttribute('title')]
       .map(value => normalize(value).replace(/\s+(?:sorted|sort by|sắp xếp).*$/i, ''))
       .filter(value => value && !/^(?:sort|sắp xếp)/i.test(value));
@@ -182,8 +185,27 @@
     const enclosing = candidates.find(item => candidates.every(other => other.rect.left >= item.rect.left - 1 && other.rect.right <= item.rect.right + 1 && other.rect.top >= item.rect.top - 1 && other.rect.bottom <= item.rect.bottom + 1));
     return enclosing?.text || [...new Set(candidates.filter(item => !candidates.some(other => other !== item && item.element?.contains?.(other.element))).map(item => item.text))].join('\n');
   }
+  function campaignNameFromRow(row, fallback = '', column = null) {
+    const primary = value => String(value || '').split(/\r?\n/)[0].trim();
+    const statusOrAction = value => /^(?:đang tắt|đang bật|đang chạy|đang hoạt động|không hoạt động|đang xét duyệt|đang xử lý|bản nháp|đã kết thúc|đã lưu trữ|tạm dừng|hoạt động|chưa phân phối|active|inactive|off|on|paused|not delivering|in review|draft|chỉnh sửa|sửa|nhân bản|xóa|edit|duplicate|delete|view charts|xem biểu đồ|xem thêm|more)$/i.test(value);
+    const rowRect = row.getBoundingClientRect?.();
+    const links = [...(row.querySelectorAll?.('a,[role="link"]') || [])]
+      .filter(element => element.matches?.('a,[role="link"]'))
+      .map(element => ({name: primary(element.innerText || element.textContent || element.getAttribute('aria-label')),rect:element.getBoundingClientRect()}))
+      .filter(item => item.name && !statusOrAction(item.name) && !/^[\d\s.,₫đ$%—–-]+$/.test(item.name) && item.rect.width > 0 && item.rect.height > 0 && (!rowRect || item.rect.top >= rowRect.top - 2 && item.rect.bottom <= rowRect.bottom + 2));
+    const unique = items => [...new Set(items.map(item => item.name))];
+    const aligned = column ? unique(links.filter(item => item.rect.left >= column.left - 2 && item.rect.right <= column.right + 2)) : [];
+    if (aligned.length === 1) return aligned[0];
+    // In pinned/virtualized tables the semantic cell can expose Delivery text.
+    // A single actual campaign link in this row is stronger evidence than that cell.
+    const names = unique(links);
+    if (names.length === 1) return names[0];
+    const text = primary(fallback);
+    if (names.length > 1) return names.includes(text) ? text : '';
+    return text && !statusOrAction(text) ? text : '';
+  }
   function readGrid(rootElement) {
-    const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')];
+    const headerElements = [...rootElement.querySelectorAll('[role="columnheader"],thead th')].filter(isMetaElement);
     const headerMap = new Map();
     headerElements.forEach((element, position) => {
       const label = headerLabel(element);
@@ -196,8 +218,8 @@
     });
     const allHeaders = [...headerMap.values()].sort((a, b) => a.left - b.left).map((header,index) => ({...header,index}));
     const headers = allHeaders.filter(header => header.label);
-    const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => row.querySelector('[role="gridcell"],[role="cell"],td'));
-    const rows = rowElements.map(row => {
+    const rowElements = [...rootElement.querySelectorAll('[role="row"],tr')].filter(row => isMetaElement(row) && row.querySelector('[role="gridcell"],[role="cell"],td'));
+    const segments = rowElements.map(row => {
       const cellElements = [...row.querySelectorAll('[role="gridcell"],[role="cell"],td')].filter(cell => cell.closest('[role="row"],tr') === row);
       const cells = new Map();
       cellElements.forEach((element, position) => {
@@ -217,10 +239,28 @@
       });
       return { row, cells, fullText: elementText(row), selected: rowIsSelected(row) };
     });
+    const rows = mergeRowSegments(segments);
     const nameHeader = headerIndex(headers, ['campaign name','tên chiến dịch','campaign','chiến dịch']);
     const spendHeader = headerIndex(headers, ['amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','số tiền chi tiêu thực tế','chi tiêu']);
     const score = (nameHeader >= 0 ? 100 : 0) + (spendHeader >= 0 ? 15 : 0) + Math.min(rows.length, 20) + Math.min(headers.length, 20);
     return { headers, rows, score, nameHeader };
+  }
+  function mergeRowSegments(segments) {
+    const groups=[];
+    for(const segment of segments){
+      const rect=segment.row.getBoundingClientRect?.();
+      if(!rect || rect.height < 20 || rect.height > 110){groups.push({parts:[segment],rect:null});continue;}
+      const group=groups.find(g=>g.rect && Math.abs(g.rect.top-rect.top)<=3 && Math.abs(g.rect.bottom-rect.bottom)<=3 && g.parts.every(p=>p.row!==segment.row));
+      if(group){group.parts.push(segment);group.rect={...group.rect,left:Math.min(group.rect.left,rect.left),right:Math.max(group.rect.right,rect.right)};}
+      else groups.push({parts:[segment],rect});
+    }
+    return groups.map(({parts,rect})=>{
+      if(parts.length===1)return parts[0];
+      const cells=new Map();for(const part of parts)for(const [index,value] of part.cells){if(!cells.has(index)||value.length>cells.get(index).length)cells.set(index,value);}
+      const nodes=selector=>[...new Set(parts.flatMap(part=>[...part.row.querySelectorAll(selector)]))];
+      const row={getBoundingClientRect:()=>({...rect,width:rect.right-rect.left}),querySelectorAll:nodes,querySelector:selector=>parts.map(p=>p.row.querySelector(selector)).find(Boolean)||null};
+      return {row,cells,fullText:parts.map(p=>p.fullText).join(' '),selected:parts.some(p=>p.selected)};
+    });
   }
   function hasBlueSelectionFill(element) {
     const isBlue = node => {
@@ -235,6 +275,29 @@
       if (blueCells >= 2) return true;
     }
     return false;
+  }
+  function linkedCampaignRows() {
+    const headers=[...document.querySelectorAll('[role="columnheader"],thead th')].filter(isMetaElement);
+    const campaignHeaders=headers.filter(h=>['campaign','campaignname','tenchiendich','chiendich'].includes(headerKey(headerLabel(h))));
+    const controls=[...document.querySelectorAll('[role="checkbox"],input[type="checkbox"]')].filter(c=>isMetaElement(c)&&!c.closest?.('[role="switch"]')&&(c.getAttribute('aria-checked')==='true'||c.matches?.('input:checked')));
+    const links=[...document.querySelectorAll('a,[role="link"]')].filter(isMetaElement);
+    const rows=[];
+    for(const link of links){
+      const r=link.getBoundingClientRect(),name=String(link.innerText||link.textContent||'').trim();
+      const header=campaignHeaders.find(h=>{const b=h.getBoundingClientRect();return r.width>0&&r.height>0&&r.left>=b.left-2&&r.left<b.right&&r.top>=b.bottom-2;});
+      if(!header||!name||name.length>400||/^[\d\s.,₫đ$%—–-]+$/.test(name))continue;
+      let container=link.parentElement;
+      for(let depth=0;container&&depth<8;depth++,container=container.parentElement){const b=container.getBoundingClientRect();if(b.height>=26&&b.height<=100&&b.top<=r.top&&b.bottom>=r.bottom&&b.width>=r.width)break;}
+      const own=container?.getBoundingClientRect();
+      const top=own&&own.height<=100?own.top:r.top-10,bottom=own&&own.height<=100?own.bottom:r.bottom+10;
+      const checked=controls.some(c=>{const b=c.getBoundingClientRect();return b.width>0&&b.height>0&&b.top+b.height/2>=top&&b.top+b.height/2<bottom;});
+      if(!checked&&!(container&&hasBlueSelectionFill(container)))continue;
+      if(rows.some(row=>Math.abs(row.getBoundingClientRect().top-top)<4))continue;
+      const bounds={left:0,right:innerWidth,top,bottom,width:innerWidth,height:bottom-top};
+      const nodes=[...document.querySelectorAll('a,span,div,button,[role="gridcell"],[role="cell"],td')].filter(element=>{if(!isMetaElement(element))return false;const b=element.getBoundingClientRect();return b.width>0&&b.height>0&&b.height<=100&&b.top>=top-2&&b.bottom<=bottom+2;});
+      rows.push({getBoundingClientRect:()=>bounds,querySelectorAll:selector=>selector==='a,[role="link"]'?nodes.filter(n=>n.matches?.(selector)):nodes,querySelector:selector=>nodes.find(n=>n.matches?.(selector))||null,innerText:nodes.map(elementText).join(' ')});
+    }
+    return rows;
   }
   function fallbackSelectedRows() {
     const headerTerms = headerSpecs.flatMap(spec => spec.labels.map(key)).filter(term => term.length > 5);
@@ -259,12 +322,13 @@
     const metaSelectedCount = Number(normalize(document.body.innerText).match(/đã chọn\s+(\d+)\s+mục/i)?.[1]) || 0;
     if (candidates.length < metaSelectedCount || !candidates.length) {
       for (const element of document.querySelectorAll('div,tr,[role]')) {
+        if(!isMetaElement(element))continue;
         const rect = element.getBoundingClientRect();
         if (rect.width >= minWidth && rect.height >= 24 && rect.height <= 100 && rect.bottom > 0 && rect.top < innerHeight && hasBlueSelectionFill(element) && rowLike(element)) candidates.push(element);
       }
     }
     candidates.sort((a, b) => Math.abs(a.getBoundingClientRect().height - 46) - Math.abs(b.getBoundingClientRect().height - 46) || b.getBoundingClientRect().width - a.getBoundingClientRect().width);
-    const rows = [];
+    const rows = linkedCampaignRows();
     for (const element of candidates) {
       const rect = element.getBoundingClientRect();
       const rowKey = key(elementText(element));
@@ -273,6 +337,7 @@
       rows.push(element);
     }
     const allHeaderNodes = [...document.querySelectorAll('div,span,button,th')].filter(element => {
+      if(!isMetaElement(element))return false;
       const rect = element.getBoundingClientRect();
       if (rect.width <= 10 || rect.height <= 8 || rect.height >= 70 || rect.bottom <= 0 || rect.top >= innerHeight) return false;
       const text = key(elementText(element));
@@ -289,6 +354,7 @@
     const reportRange = activeReportRange();
     const output = [];
     const detectedHeaders = new Set();
+    lastVisualDiagnostic=[];
     for (const row of rows) {
       const bounds = row.getBoundingClientRect(), centerY = bounds.top + bounds.height / 2;
       const cells = [...row.querySelectorAll('a,span,div,button,[role="gridcell"],[role="cell"],td')]
@@ -299,7 +365,10 @@
         detectedHeaders.add(header.text);
         return textInColumn(cells, header.rect, bounds, true);
       };
-      const name = (value('campaign') || '').split(/\n/)[0].trim();
+      const campaignSpec=headerSpecs.find(spec=>spec.field==='campaign');
+      const campaignHeader=findHeader(bounds,campaignSpec);
+      const name = campaignNameFromRow(row,value('campaign'),campaignHeader?.rect);
+      lastVisualDiagnostic.push({row:{x:Math.round(bounds.left),y:Math.round(bounds.top),w:Math.round(bounds.width),h:Math.round(bounds.height)},name,fields:Object.fromEntries(['campaign','status','results','costPerResult','budget','spend'].map(field=>[field,value(field)])),cells:cells.filter(c=>c.text&&c.text.length<300).slice(0,100).map(c=>({text:c.text,x:Math.round(c.rect.left),y:Math.round(c.rect.top),w:Math.round(c.rect.width),h:Math.round(c.rect.height)}))});
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads)$/i.test(name)) continue;
       const resultCount = numberFrom(value('results'));
       const newMessagingContacts = numberFrom(value('newMessagingContacts'));
@@ -330,6 +399,7 @@
     return [...new Map(output.map(item => [`${key(item.account)}|${key(item.name)}|${item.spend}`, item])).values()];
   }
   function completeMetric(item, rawColumns, row) {
+    for(const column of rawColumns){if(headerSpecs.find(spec=>spec.field==='campaign').labels.some(label=>headerKey(label)===headerKey(column.label)))column.value=item.name;}
     item.rawColumns = rawColumns;
     const headers = rawColumns.map((column,index) => ({label: column.label,index}));
     const cells = new Map(rawColumns.map((column,index) => [index,column.value]));
@@ -350,13 +420,14 @@
     item.dailyAvgMessageCost = item.costPerResult;
   }
   function rowsFromTable() {
-    const candidateRoots = [...document.querySelectorAll('[role="grid"],[role="table"],table')];
+    const candidateRoots = [...document.querySelectorAll('[role="grid"],[role="table"],table')].filter(isMetaElement);
     let grids = candidateRoots.map(element => readGrid(element)).filter(grid => grid.rows.length);
+    // Meta can render checkbox, pinned name and metric cells in separate grids.
+    // Read their shared header geometry and join segments at the same vertical row.
+    const pageGrid=readGrid(document);
+    if(pageGrid.rows.length)grids.push(pageGrid);
     if (grids.some(candidate => candidate.nameHeader >= 0)) grids = grids.filter(candidate => candidate.nameHeader >= 0);
-    else {
-      const pageGrid = readGrid(document);
-      if (pageGrid.rows.length && (pageGrid.nameHeader >= 0 || !grids.length)) grids = [pageGrid];
-    }
+    grids.forEach(candidate=>{candidate.score+=candidate.rows.filter(row=>row.selected&&row.cells.has(candidate.nameHeader)).length*30;});
     const grid = grids.sort((a, b) => b.score - a.score)[0] || { headers: [], rows: [] };
     const { headers, rows } = grid;
     const selectedRows = rows.filter(row => row.selected);
@@ -369,7 +440,8 @@
       if (cells.size < 1) continue;
       if (!fullText) continue;
       const campaign = preferredCellValue(headers,cells,['campaign name','tên chiến dịch','campaign','chiến dịch']);
-      const name = campaign.split(/\n/)[0].trim();
+      const campaignHeader=headers.find(header=>header.index===headerIndex(headers,['campaign name','tên chiến dịch','campaign','chiến dịch']));
+      const name = campaignNameFromRow(row,campaign,campaignHeader);
       if (!name || /^(total|total results|kết quả tổng cộng|tổng cộng|draft|campaigns|ad sets|ads|chiến dịch|nhóm quảng cáo)$/i.test(name)) continue;
       const statusText = preferredCellValue(headers,cells,['lượt phân phối chiến dịch','phân phối','delivery','delivery status','trạng thái phân phối','status','trạng thái']);
       if (!statusText || /^(?:lượt click trong|lượt nhấp trong|cài đặt ghi nhận|attribution)/i.test(name) || /click|nhấp|attribution|ghi nhận|7 ngày|1 ngày/i.test(statusText)) continue;
@@ -381,7 +453,7 @@
       const item = {
         id: cellValue(headers,cells,['campaign id','id chiến dịch','id']),
         name, campaign: name, adSetName: name, account, platform: 'Facebook',
-        status: (statusText || 'Đang chạy').split('\n')[0], delivery: (statusText || 'Đang chạy').split('\n')[0],
+        status: statusText.split('\n')[0], delivery: statusText.split('\n')[0],
         budget: numberFrom(cellValue(headers,cells,['ngân sách nhóm quảng cáo','ngân sách','budget'])),
         budgetType: cellValue(headers,cells,['loại ngân sách nhóm quảng cáo','budget type']) || (() => { const raw = cellValue(headers,cells,['ngân sách nhóm quảng cáo','ngân sách','budget']); return numberFrom(raw) === null ? raw : ''; })(),
         spend: numberFrom(cellValue(headers,cells,['số tiền đã chi tiêu (vnd)','amount spent','spend','số tiền đã chi tiêu','số tiền đã chi','chi tiêu'])),
@@ -415,7 +487,7 @@
     if (!rows.length) return;
     const title = document.createElement('b');
     title.className = 'fbtq-preview-title';
-    title.textContent = 'Dữ liệu sắp chuyển';
+    title.textContent = 'Dữ liệu sắp chuyển · Meta Helper '+chrome.runtime.getManifest().version;
     preview.append(title);
     const mapped = document.createElement('table');
     mapped.className = 'fbtq-preview-table';
@@ -445,10 +517,10 @@
     count.textContent = lastScanInfo.selected ? `${lastScanInfo.selected} hàng đã chọn · ${lastRows.length} hàng nhận diện` : lastScanInfo.metaSelectedCount ? `Meta đã chọn ${lastScanInfo.metaSelectedCount} mục · chưa đọc được hàng` : `${lastScanInfo.rows} hàng trong bảng · chưa chọn`;
     count.title = headerSummary ? `Các cột Meta được đọc: ${headerSummary}` : 'Chưa tìm thấy tiêu đề cột trên trang.';
     const message = lastRows.length
-      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi gửi sang Trợ lý FBTQ.`
+      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi điền vào Báo cáo hàng ngày.`
       : !lastScanInfo.selected
         ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ tab Chiến dịch đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch nào được tích chọn. Tích ô vuông bên trái các dòng trong tab Chiến dịch trên Meta, sau đó quét lại.' : 'Meta chưa hiển thị bảng Chiến dịch. Chọn tab Chiến dịch, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
-        : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa đọc được tên chiến dịch. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';
+        : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa ghép đủ tên chiến dịch và Phân phối. Bấm Tải tệp kiểm tra lỗi nếu quét lại vẫn không được. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';
     setStatus(message, lastRows.length ? 'success' : 'warning');
     return lastRows;
   }
@@ -498,7 +570,7 @@
   async function queuePayload(payload) {
     const result = await chrome.runtime.sendMessage({ type: 'FBTQ_QUEUE_TO_WEBSITE', payload });
     if (!result?.ok) throw new Error(result?.error || 'Không chuyển được dữ liệu vào website.');
-    setStatus('Đã đưa vào hàng đợi của Chrome. Website sẽ mở form sau khi sẵn sàng; nếu cần hãy đăng nhập trước.', 'success');
+    setStatus('Đã đưa vào hàng đợi. Website sẽ điền thẳng vào báo cáo hoặc biểu mẫu hóa đơn sau khi đăng nhập, không qua Trợ lý.', 'success');
   }
   async function sendMetrics() {
     const rows = collectMetrics();
@@ -544,6 +616,14 @@
       setStatus(copied ? 'Đã sao chép JSON. Có thể dán vào Hiệu suất marketing → Nhập chỉ số.' : 'Chrome chặn sao chép clipboard. Hãy bấm Tải JSON đã chọn để lưu tệp.', copied ? 'success' : 'warning');
     }
   }
+  function downloadDiagnostic() {
+    const rect = element => {const r=element.getBoundingClientRect();return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height)};};
+    const describe=element=>({tag:element.tagName,role:element.getAttribute('role'),column:element.getAttribute('aria-colindex'),text:String(element.innerText||element.textContent||'').trim().slice(0,220),rect:rect(element)});
+    const tables=[...document.querySelectorAll('[role="grid"],[role="table"],table')].filter(isMetaElement).slice(0,10).map(table=>({headers:[...table.querySelectorAll('[role="columnheader"],thead th')].filter(isMetaElement).slice(0,60).map(describe),rows:[...table.querySelectorAll('[role="row"],tr')].filter(isMetaElement).filter(row=>{const r=row.getBoundingClientRect();return r.height>10&&r.height<120&&r.bottom>0&&r.top<innerHeight;}).slice(0,8).map(row=>({selected:rowIsSelected(row),rect:rect(row),cells:[...row.querySelectorAll('[role="gridcell"],[role="cell"],td,a,[role="link"]')].slice(0,80).map(describe)}))}));
+    const blob=new Blob([JSON.stringify({version:chrome.runtime.getManifest().version,scan:lastScanInfo,tables,visualRows:lastVisualDiagnostic},null,2)],{type:'application/json'});
+    const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='fbtq-kiem-tra-cot.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(anchor.href),1000);
+    setStatus('Đã tải tệp kiểm tra cấu trúc bảng. Tệp có thể chứa tên chiến dịch và chỉ số hiển thị; xem lại trước khi chia sẻ.','info');
+  }
   function downloadJson() {
     const rows = collectMetrics();
     if (!rows.length) return;
@@ -557,6 +637,7 @@
   });
   root.querySelector('.fbtq-close').addEventListener('click', () => { panel.hidden = true; root.querySelector('#fbtq-helper-toggle').setAttribute('aria-expanded', 'false'); });
   root.querySelector('#fbtq-send-metrics').addEventListener('click', sendMetrics);
+  root.querySelector('#fbtq-diagnostic').addEventListener('click',downloadDiagnostic);
   root.querySelector('#fbtq-rescan').addEventListener('click', collectMetrics);
   root.querySelector('#fbtq-copy').addEventListener('click', copyJson);
   root.querySelector('#fbtq-download').addEventListener('click', downloadJson);
