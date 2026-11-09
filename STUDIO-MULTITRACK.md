@@ -11,7 +11,7 @@
 ## Làm việc với các lớp
 
 1. Thêm video vào lớp Video chính. Các video mới trên lớp này được đặt nối tiếp khi bấm chọn tư liệu.
-2. Chọn lớp Ảnh / video chồng, đặt đầu phát rồi thêm một ảnh/video khác. Đoạn mới bắt đầu ở đầu phát. Chỉnh X/Y/Rộng/Cao theo phần trăm để làm logo hoặc hình/video trong hình.
+2. Chọn lớp Ảnh / video chồng, đặt đầu phát rồi thêm một ảnh/video khác. Đoạn mới bắt đầu ở đầu phát. Chỉnh X/Y/Rộng/Cao theo px (bản cập nhật Timeline Px) để làm logo hoặc hình/video trong hình.
 3. Chọn Thêm chữ. Nhập nội dung, cỡ chữ, màu, màu nền và bật/tắt nền chữ. Thời điểm bắt đầu cùng thời lượng quyết định khi nào chữ xuất hiện.
 4. Chọn Hiệu ứng để tạo một đoạn hiệu ứng: tông ấm, đen trắng, hoài cổ, làm mờ hoặc tăng sáng. Đổi cường độ và thời gian áp dụng.
 5. Thêm âm thanh riêng vào lớp Âm thanh. Các clip âm thanh/video cùng hoạt động sẽ được trộn; dùng âm lượng riêng hoặc nút tắt tiếng của lớp để điều chỉnh.

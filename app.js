@@ -1,4 +1,4 @@
-import { initCreativeStudio } from './creative-studio.js?v=20261109-smart-input';
+import { initCreativeStudio } from './creative-studio.js?v=20261109-timeline-px';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261108-chatbot';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261108-session';

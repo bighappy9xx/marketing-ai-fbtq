@@ -56,6 +56,7 @@ Dùng file mẫu `studio-warm.fbtq-effect.json` đi kèm, hoặc tạo file có 
 | + / − | Phóng to / thu nhỏ timeline |
 | A | Công cụ chọn / kéo |
 | B | Công cụ tách bằng chuột; bấm lên đoạn tại vị trí muốn tách |
+| H | Công cụ kéo trượt timeline ngang (bản Timeline Px) |
 | Q / W | Cắt bỏ phần trái / phải của đoạn tại đầu phát, giữ nguyên vị trí các đoạn khác |
 | Escape | Bỏ chọn, về công cụ chọn và thoát không gian mở rộng; nếu đang mở bảng phím tắt thì đóng bảng trước |
 
