@@ -1174,3 +1174,11 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 #page-analytics .analytics-filters>.select-small{height:42px;min-height:42px;align-self:center}
 @media(max-width:1100px){#page-analytics .analytics-filters{grid-template-columns:repeat(2,minmax(0,1fr))}#page-analytics .analytics-filters .filter-tabs{grid-column:1/-1}}
 @media(max-width:560px){#page-analytics .analytics-filters{gap:8px}#page-analytics .analytics-filters>.select-small{font-size:10px;padding-left:9px;padding-right:20px}}
+#page-analytics .page-heading .heading-actions{display:flex;justify-content:flex-end;align-items:center;width:auto;max-width:none;flex:0 0 auto;margin-left:auto}
+#page-analytics .page-heading .heading-actions #dailyCampaignReportBtn{width:200px;white-space:nowrap}
+@media(max-width:560px){#page-analytics .page-heading .heading-actions{width:100%;flex:0 0 100%;justify-content:flex-end}#page-analytics .page-heading .heading-actions #dailyCampaignReportBtn{width:180px}}
+/* Align workflow history titles with their filter fields. */
+#page-advances .wf-panel,#page-requests .wf-panel:not(.wf-leave-panel){--wf-history-inset:22px}
+#page-advances .wf-panel>.panel-heading,#page-requests .wf-panel:not(.wf-leave-panel)>.panel-heading{padding-left:var(--wf-history-inset);padding-right:var(--wf-history-inset)}
+#page-advances .wf-panel>.wf-filters,#page-requests .wf-panel:not(.wf-leave-panel)>.wf-filters{padding-left:var(--wf-history-inset);padding-right:var(--wf-history-inset)}
+@media(max-width:650px){#page-advances .wf-panel,#page-requests .wf-panel:not(.wf-leave-panel){--wf-history-inset:14px}}
