@@ -1182,3 +1182,7 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 #page-advances .wf-panel>.panel-heading,#page-requests .wf-panel:not(.wf-leave-panel)>.panel-heading{padding-left:var(--wf-history-inset);padding-right:var(--wf-history-inset)}
 #page-advances .wf-panel>.wf-filters,#page-requests .wf-panel:not(.wf-leave-panel)>.wf-filters{padding-left:var(--wf-history-inset);padding-right:var(--wf-history-inset)}
 @media(max-width:650px){#page-advances .wf-panel,#page-requests .wf-panel:not(.wf-leave-panel){--wf-history-inset:14px}}
+/* Toasts sit above the assistant launcher, clear of the robot illustration. */
+.toast-region{bottom:var(--toast-bottom,134px);z-index:1200;max-height:calc(100dvh - var(--toast-bottom,134px) - 16px);overflow-y:auto;max-width:calc(100vw - 32px);padding:4px;box-sizing:border-box;pointer-events:none}
+.toast-region .toast{box-sizing:border-box;min-width:min(260px,calc(100vw - 48px));max-width:min(380px,calc(100vw - 48px));padding:14px 17px;font-size:13px;line-height:1.6;overflow-wrap:anywhere;border-radius:12px;background:#182d4b;color:#fff;box-shadow:0 8px 28px #13243d30;pointer-events:auto}
+@media(max-width:680px){.toast-region{bottom:var(--toast-bottom,114px);left:auto;right:10px;max-width:calc(100vw - 20px)}.toast-region .toast{font-size:12px}}

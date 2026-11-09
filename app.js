@@ -28,7 +28,9 @@ const money = n => new Intl.NumberFormat('vi-VN').format(Number(n)||0) + ' ₫';
 const roleName = role => ROLE_NAMES[role] || ROLE_NAMES.employee;
 const isManager = () => ['director','branch_manager','department_manager'].includes(state.role);
 const isDirector = () => state.role === 'director';
-const showToast = (message,type='success') => {const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=message;$('#toastRegion').append(el);setTimeout(()=>el.remove(),3600);if(state.user)renderSystemNotifications()};
+function positionToastRegion(){const region=$('#toastRegion'),launcher=$('#fbtqAssistantLauncher');if(!region)return;const rect=launcher?.getBoundingClientRect(),visible=rect?.width>0&&rect?.height>0&&getComputedStyle(launcher).visibility!=='hidden';region.style.setProperty('--toast-bottom',(visible?Math.max(20,window.innerHeight-rect.top+22):20)+'px');}
+window.addEventListener('resize',positionToastRegion,{passive:true});if($('#fbtqAssistantLauncher'))new ResizeObserver(positionToastRegion).observe($('#fbtqAssistantLauncher'));
+const showToast = (message,type='success') => {positionToastRegion();const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=message;$('#toastRegion').append(el);setTimeout(()=>el.remove(),3600);if(state.user)renderSystemNotifications()};
 function notificationTimestamp(value){if(value?.toMillis)return value.toMillis();if(value?.toDate)return value.toDate().getTime();const time=Date.parse(value||'');return Number.isFinite(time)?time:0}
 function notificationTimeLabel(value){const time=notificationTimestamp(value);if(!time)return'Gần đây';const minutes=Math.max(0,Math.floor((Date.now()-time)/60000));if(minutes<1)return'Vừa xong';if(minutes<60)return minutes+' phút trước';const hours=Math.floor(minutes/60);if(hours<24)return hours+' giờ trước';return new Date(time).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
 function notificationReadKey(){return'fbtq_system_notifications_read_v1_'+(state.user?.uid||'guest')}
