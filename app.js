@@ -1,4 +1,4 @@
-import { initCreativeStudio } from './creative-studio.js?v=20261109-studio';
+import { initCreativeStudio } from './creative-studio.js?v=20261109-layer-timeline';
 import { initAssistantAgent } from './assistant-agent-ui.js?v=20261109-ai-agent';
 import { initReportEditor } from './report-editor.js?v=20261109-edit';
 import { assistantOperationalIntent, assistantActionCatalog, assistantRequestPrefill, assistantErrorMessage } from './assistant-actions.js?v=20261109-actions';
