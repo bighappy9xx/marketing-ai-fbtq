@@ -245,3 +245,4 @@ Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
 
 Object.assign(exports,require('./assistant-ai').registerAssistantAI({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY}));
+Object.assign(exports,require('./studio-ai').registerStudioAI({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY}));

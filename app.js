@@ -1,5 +1,5 @@
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261109-adaptive-final';
-import { initCreativeStudio } from './creative-studio.js?v=20261109-timeline-resize';
+import { initCreativeStudio } from './creative-studio.js?v=20261109-studio-ai';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261108-chatbot';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261108-session';
@@ -118,9 +118,9 @@ async function saveRecord(collection,data,id=crypto.randomUUID()) {
   await storeMod.setDoc(storeMod.doc(db,'workspaces','fbtq',collection,id),{...data,updatedAt:storeMod.serverTimestamp(),updatedBy:state.user?.uid||null,createdBy:data.createdBy||state.user?.uid||null},{merge:true});
   return id;
 }
-async function callFunction(name,data) {
+async function callFunction(name,data,options) {
   if(!state.firebase?.funcMod)throw new Error('Dịch vụ Functions chưa kết nối. Đăng nhập vẫn dùng được; quản trị viên cần kiểm tra Firebase Functions.');
-  const callable=state.firebase.funcMod.httpsCallable(state.firebase.functions,name);
+  const callable=state.firebase.funcMod.httpsCallable(state.firebase.functions,name,options);
   try{const result=await callable(data);return result.data}catch(error){if(error.code==='functions/not-found'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name))throw new Error('Chức năng chưa được triển khai. Cần triển khai createWorkflow, reviewWorkflow, disburseAdvance và Firestore Rules.');if(error.code==='functions/not-found')throw new Error(name==='synthesizeSpeech'?'Chức năng giọng đọc chưa được triển khai. Quản lý cần lưu GEMINI_API_KEY và triển khai hàm synthesizeSpeech.':'Mô hình AI này chưa được khởi tạo. Quản lý cần lưu API Key và triển khai hàm tương ứng.');if(error.code==='functions/internal'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name)){const action=name==='createWorkflow'?'gửi hồ sơ':name==='reviewWorkflow'?'duyệt hồ sơ':'ghi nhận cấp tiền';throw new Error(`Máy chủ gặp lỗi khi ${action}. Form vẫn được giữ nguyên; hãy thử lại một lần. Nếu lỗi tiếp tục, quản trị viên cần kiểm tra nhật ký Cloud Functions (${name}).`)}throw error}
 }
 function requireFirebaseAI(){
@@ -1037,7 +1037,7 @@ function refreshDailyBoundary(){const day=vnToday();if(day===lastDailyBoundary)r
 setInterval(refreshDailyBoundary,60000);window.addEventListener('focus',refreshDailyBoundary);
 
 reviewBridge=createFinalReviewBridge({state,navigate,toast:showToast,onPreviewChanged:()=>updateContentReviewInput()});
-const creativeStudio=initCreativeStudio({state,showToast,onFinal:artifact=>reviewBridge.stage(artifact)});
+const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>callFunction(name,data,{timeout:200000}),onFinal:artifact=>reviewBridge.stage(artifact)});
 const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages});
 
 for(const container of [$('#fbtqAssistantWindow .fbtq-dock-head'),$('#page-assistant .page-heading')].filter(Boolean)){
