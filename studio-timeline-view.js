@@ -1,4 +1,4 @@
-export const HEADER_WIDTH=140;
+export const HEADER_WIDTH=56;
 export const framePresets={'16:9':[1280,720],'9:16':[720,1280],'1:1':[1080,1080],'4:5':[864,1080],'1920x1080':[1920,1080],'1080x1920':[1080,1920]};
 export function frameSize(width,height){const valid=n=>Number.isFinite(Number(n))?Math.max(64,Math.min(3840,Math.round(Number(n)))):1280;return[valid(width),valid(height)];}
 export function spatialPixels(key,value,size){return Math.round(Number(value)*(key==='x'||key==='w'?size[0]:size[1])*100)/100;}

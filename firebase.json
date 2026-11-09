@@ -13,7 +13,9 @@
       "**/node_modules/**",
       "tests/**",
       "*.zip",
-      "WORKFLOWS.md"
+      "WORKFLOWS.md",
+      "storage.rules",
+      "storage-cors.json"
     ],
     "cleanUrls": true,
     "headers": [
@@ -55,5 +57,8 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
