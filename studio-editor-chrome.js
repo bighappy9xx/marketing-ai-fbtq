@@ -17,6 +17,7 @@ const paths={
 };
 export function editorIcon(name){return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${name==='play'?'<path d="'+paths.play+'" fill="currentColor" stroke="none"/>':'<path d="'+(paths[name]||paths.select)+'"/>'}</svg>`;}
 export function initEditorChrome(root,{zoomBy,onVisualAction}){
+ root.querySelector('.cs-topbar').append(root.querySelector('#csExpand'));
  const q=s=>root.querySelector(s),button=(id,icon,label)=>`<button type="button" id="${id}" title="${label}" aria-label="${label}">${editorIcon(icon)}</button>`;
  const stage=q('#csStage'),toggle=document.createElement('button');toggle.type='button';toggle.id='csToggleLibrary';toggle.className='cs-material-toggle';toggle.title=toggle.ariaLabel='Hiện / ẩn khung dự án';toggle.setAttribute('aria-expanded','true');toggle.innerHTML=editorIcon('panel');stage.append(toggle);toggle.onclick=()=>{const hidden=root.classList.toggle('cs-library-collapsed');toggle.setAttribute('aria-expanded',String(!hidden));};
  const bar=q('.cs-timeline-toolbar');

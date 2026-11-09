@@ -59,3 +59,6 @@
 .dark .cs-stage{background:#1a2530}
 @media(max-width:1100px){.cs-timeline-toolbar{grid-template-columns:1fr auto}.cs-tools-playback{grid-column:1/-1;grid-row:1;justify-content:center}.cs-tools-left{grid-column:1}.cs-tools-right{grid-column:2}}
 @media(max-width:650px){#page-creative-studio.cs-library-collapsed .cs-workspace{grid-template-columns:minmax(0,1fr)}.cs-timeline-toolbar{gap:6px;padding:8px 6px}.cs-tools-left{flex-wrap:wrap;gap:1px}.cs-tools-right{gap:1px}.cs-tools-right #csZoom{width:55px}.cs-timeline-toolbar button{width:26px;height:28px;padding:4px}.cs-stage{padding:52px 24px 18px}}
+#page-creative-studio.cs-expanded>.page-heading{display:none}
+#page-creative-studio.cs-expanded{padding:8px}
+@media(min-width:851px){#page-creative-studio.cs-expanded[data-mode=video] .cs-workspace{grid-template-rows:minmax(350px,53vh) auto}}
