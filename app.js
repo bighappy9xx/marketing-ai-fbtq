@@ -1,11 +1,11 @@
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261109-adaptive-final';
-import { initCreativeStudio } from './creative-studio.js?v=20261109-adaptive-final';
+import { initCreativeStudio } from './creative-studio.js?v=20261109-editor-chrome';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261108-chatbot';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261108-session';
 import { initOverviewHub } from './overview-hub.js?v=20261108-overview-hub';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
-import { initWorkflows } from './workflows-ui.js?v=20261108-overview-hub';
+import { initWorkflows } from './workflows-ui.js?v=20261109-department-advance';
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

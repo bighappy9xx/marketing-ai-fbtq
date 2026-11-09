@@ -216,7 +216,9 @@ service cloud.firestore {
           && (get(parentPath).data.createdBy == request.auth.uid
             || director()
             || role() == 'accountant'
-            || role() == 'branch_manager' && branch() != '' && branch() == get(parentPath).data.branch);
+            || role() == 'branch_manager' && branch() != '' && branch() == get(parentPath).data.branch
+            || role() == 'department_manager' && branch() != '' && department() != ''
+              && branch() == get(parentPath).data.branch && department() == get(parentPath).data.department);
       }
       function workflowUser() { return signedIn() && profile().get('approved', true) != false; }
       function workflowName() { return profile().get('name', profile().get('email', 'Nhân viên')); }
@@ -394,7 +396,8 @@ service cloud.firestore {
           && after.updatedAt == request.time
           && historyOnlyAppended(before.history, after.history)
           && ((before.approvals.manager.status == 'pending'
-                && role() == 'branch_manager' && branch() == before.branch
+                && role() == 'department_manager' && department() != ''
+                && branch() == before.branch && department() == before.department
                 && managerApproval.actorUid == request.auth.uid
                 && after.approvals.accountant == before.approvals.accountant
                 && validReviewEvent('manager', decision)
@@ -435,7 +438,7 @@ service cloud.firestore {
           && event.at == payout.at && event.note == payout.reference;
       }
       allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
-        collection == 'advanceInvoices' && (director() || role() == 'accountant' || owns() || role() == 'branch_manager' && branch() != '' && resource.data.branch == branch())
+        collection == 'advanceInvoices' && (director() || role() == 'accountant' || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
         || collection == 'staffRequests' && (director() || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
         || collection == 'campaigns' && (manager() || owns())
         || collection == 'settings'

@@ -1,9 +1,0 @@
-{
-  "type": "fbtq-effect",
-  "version": 1,
-  "name": "Ánh ấm FBTQ",
-  "effect": "warm",
-  "duration": 3,
-  "strength": 0.65,
-  "opacity": 1
-}
