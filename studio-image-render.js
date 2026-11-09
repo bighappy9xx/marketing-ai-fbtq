@@ -1,7 +1,9 @@
+import {STUDIO_FONT_FAMILIES} from './studio-fonts.js?v=20261109-free-resources';
+import {botanicalPath} from './studio-botanical-render.js?v=20261109-free-resources';
 // Image styling is shared by the preview and the exported PNG/video.
 export function drawStyledText(ctx,c,w,h,frameWidth){
  const size=(c.fontSize||56)*frameWidth/1280,lineHeight=size*(c.lineHeight||1.2),padding=8;
- const family=['Arial','Georgia','Times New Roman','Courier New','Trebuchet MS','Verdana'].includes(c.fontFamily)?c.fontFamily:'Arial';
+ const family=STUDIO_FONT_FAMILIES.includes(c.fontFamily)?c.fontFamily:'Arial';
  ctx.font=`${c.italic?'italic ':''}${c.bold===false?'400':'700'} ${size}px "${family}"`;
  ctx.fillStyle=c.color||'#ffffff';ctx.textBaseline='top';ctx.textAlign=c.textAlign||'left';
  const left=-w/2+padding,right=w/2-padding,available=Math.max(1,w-padding*2),lines=[];
@@ -14,6 +16,7 @@ export function drawStyledText(ctx,c,w,h,frameWidth){
  });
 }
 export function drawStyledShape(ctx,c,w,h){
+ if(['leaf','lotus','bowl','yinyang','bamboo','sprig'].includes(c.shape)){botanicalPath(ctx,c.shape,w,h,c.color||'#547c51');return;}
  ctx.fillStyle=c.color||'#347cff';ctx.beginPath();
  if(c.shape==='ellipse')ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2);
  else if(c.shape==='triangle'){ctx.moveTo(0,-h/2);ctx.lineTo(w/2,h/2);ctx.lineTo(-w/2,h/2);ctx.closePath();}
