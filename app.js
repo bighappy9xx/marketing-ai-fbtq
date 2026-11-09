@@ -13,7 +13,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
-const state = {user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
+const state = {analyticsPlatform:'all',user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
 let workflows=null;
 let speechObjectUrl=null;
 let geminiFallbackUsed=false;
@@ -439,7 +439,7 @@ $('#themeToggle').addEventListener('click',()=>setTheme(document.body.classList.
 $$('[data-theme-choice]').forEach(b=>b.addEventListener('click',()=>setTheme(b.dataset.themeChoice)));
 $('#searchTrigger').addEventListener('click',()=>{$('#searchBox').classList.toggle('hidden');if(!$('#searchBox').classList.contains('hidden'))$('input',$('#searchBox')).focus()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#searchBox').classList.add('hidden');closeModal()}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#searchBox').classList.remove('hidden');$('input',$('#searchBox')).focus()}});
 $$('[data-setting]').forEach(b=>b.addEventListener('click',()=>selectSetting(b.dataset.setting)));function selectSetting(name){$$('[data-setting]').forEach(b=>b.classList.toggle('selected',b.dataset.setting===name));$$('.setting-section').forEach(s=>s.classList.toggle('selected',s.id===`setting-${name}`))}
-$$('.filter-tabs button').forEach(b=>{if(!b.dataset.taskFilter)b.addEventListener('click',()=>{const group=b.parentElement;$$('button',group).forEach(x=>x.classList.remove('selected'));b.classList.add('selected')})});
+$$('.filter-tabs button').forEach(b=>{if(!b.dataset.taskFilter)b.addEventListener('click',()=>{const group=b.parentElement;$$('button',group).forEach(x=>x.classList.remove('selected'));b.classList.add('selected');if(b.dataset.analyticsPlatform){state.analyticsPlatform=b.dataset.analyticsPlatform;$$('button',group).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderMetrics()}})});
 
 // Reusable modal
 function openModal(title,body,submitText='Lưu',onSubmit=null){const root=$('#modalRoot');root.innerHTML=`<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h3>${esc(title)}</h3><button class="modal-close" type="button" aria-label="Đóng">×</button></div><form id="activeModalForm"><div class="modal-body">${body}</div><div class="modal-foot"><button type="button" class="btn btn-secondary modal-cancel">Huỷ</button>${submitText?`<button type="submit" class="btn btn-primary">${esc(submitText)}</button>`:''}</div></form></section></div>`;$('.modal-close',root).addEventListener('click',closeModal);$('.modal-cancel',root).addEventListener('click',closeModal);$('.modal-backdrop',root).addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()});if(onSubmit)$('#activeModalForm',root).addEventListener('submit',async e=>{e.preventDefault();const btn=$('button[type=submit]',e.currentTarget),agentToken=e.currentTarget.dataset.assistantAgentToken;btn.disabled=true;try{await onSubmit(new FormData(e.currentTarget),e.currentTarget);if(agentToken)window.dispatchEvent(new CustomEvent('fbtq:assistant-action-result',{detail:{token:agentToken,ok:true}}));}catch(err){if(agentToken)window.dispatchEvent(new CustomEvent('fbtq:assistant-action-result',{detail:{token:agentToken,ok:false,error:err.message}}));showToast(err.message||'Có lỗi xảy ra.','error');btn.disabled=false}});setTimeout(()=>$('.modal-fields input, .modal-fields textarea, .modal-fields select',root)?.focus(),50)}
@@ -548,13 +548,14 @@ function renderOverviewDashboard(){
   renderOverviewMetrics(visibleMetrics,periodLabel,revenue,!isManager());renderOverviewRecentCampaigns(visibleMetrics);
   overviewHubContext={range,periodLabel,selectedBranch:branchSelect.value,selectedUser:userSelect.value};renderOverviewOperations();
 }
+function analyticsPlatformKey(value){const key=String(value||'Facebook').toLowerCase();return /instagram/.test(key)?'instagram':/tiktok|tik tok/.test(key)?'tiktok':/google|adwords|youtube/.test(key)?'google':/facebook|meta|fb/.test(key)?'facebook':key}
 function renderMetrics(preferredPeriod=''){
   const userFilter=isManager()?($('#analyticsUserFilter')?.value||'all'):'all',all=userFilter==='all'?state.metrics:state.metrics.filter(item=>item.createdBy===userFilter),showOwner=isManager(),groups=new Map();
   all.forEach(item=>{const key=reportPeriodKey(item);if(!groups.has(key))groups.set(key,{key,label:reportPeriodLabel(item),sort:item.reportEnd||item.reportAt||item.reportStart||''})});
   const periods=[...groups.values()].sort((a,b)=>b.sort.localeCompare(a.sort)),selector=$('#reportPeriodFilter');
   const selected=preferredPeriod&&groups.has(preferredPeriod)?preferredPeriod:selector.value&&groups.has(selector.value)?selector.value:periods[0]?.key||'';
   selector.innerHTML=periods.map(p=>'<option value="'+esc(p.key)+'">'+esc(p.label)+'</option>').join('')||'<option value="">Chưa có dữ liệu</option>';selector.value=selected;
-  const list=selected?all.filter(item=>reportPeriodKey(item)===selected):[],periodLabel=groups.get(selected)?.label||'Chưa có dữ liệu';
+  const list=selected?all.filter(item=>reportPeriodKey(item)===selected&&(state.analyticsPlatform==='all'||analyticsPlatformKey(item.platform)===state.analyticsPlatform)):[],periodLabel=groups.get(selected)?.label||'Chưa có dữ liệu';
   setCampaignOwnerColumn('#analyticsTable',showOwner);
   $('#analyticsTable').innerHTML=campaignRows(list,showOwner);$('#emptyImport').classList.toggle('hidden',list.length>0);
 
