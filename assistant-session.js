@@ -26,8 +26,12 @@ export function createAssistantHistory({getUser,getFirebase,onRestore,onStatus,s
   }
   function record(role,text){
     if(!uid||uid!==getUser()?.uid)return;
+<<<<<<< HEAD
     const previousAt=Date.parse(messages.at(-1)?.createdAt||'')||0,createdAt=new Date(Math.max(Date.now(),previousAt+1)).toISOString();
     messages.push({id:crypto.randomUUID(),role,text:String(text).slice(0,12000),createdAt,pending:true});cache();void flush();
+=======
+    messages.push({id:crypto.randomUUID(),role,text:String(text).slice(0,12000),createdAt:new Date().toISOString(),pending:true});cache();void flush();
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
   }
   async function load(older=false){
     const f=getFirebase(),run=epoch;if(!uid||!f?.storeMod?.getDocs){onStatus?.('Lịch sử lưu riêng trên máy');return;}
@@ -53,7 +57,11 @@ export function initActionApproval({getUser,esc,onLog,onError}){
     const root=document.createElement('div');root.className='assistant-approval-overlay';root.id='assistantActionApproval';
     const title=form.closest('.modal')?.querySelector('h3')?.textContent||form.closest('.page')?.querySelector('h1')?.textContent||'Thao tác hệ thống';
     const rows=[...form.querySelectorAll('input,select,textarea')].filter(input=>!input.disabled&&input.type!=='password'&&input.type!=='hidden'&&(input.value||input.files?.length)).slice(0,24).map(input=>{
+<<<<<<< HEAD
       const holder=input.closest('label'),label=holder?.querySelector('span')?.textContent||[...(holder?.childNodes||[])].filter(node=>node.nodeType===3).map(node=>node.textContent.trim()).filter(Boolean).join(' ')||input.name||input.dataset.field||'Thông tin';
+=======
+      const label=input.closest('label')?.querySelector('span')?.textContent||input.name||input.dataset.field||'Thông tin';
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
       const value=input.type==='file'?[...input.files].map(f=>f.name).join(', '):input.tagName==='SELECT'?input.selectedOptions[0]?.textContent:input.value;
       return `<div><dt>${esc(label)}</dt><dd>${esc(String(value||'').slice(0,500))}</dd></div>`;
     }).join('');

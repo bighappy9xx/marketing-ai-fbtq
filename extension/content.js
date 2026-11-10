@@ -9,8 +9,13 @@
       <div class="fbtq-panel-body">
         <div id="fbtq-metrics-view">
           <div class="fbtq-section-title"><span class="fbtq-icon">▦</span><div><b>Chỉ số quảng cáo</b><small id="fbtq-metric-count">Đang quét bảng Ads Manager…</small></div></div>
+<<<<<<< HEAD
           <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Điền thẳng vào Báo cáo hàng ngày. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
           <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Điền Báo cáo hàng ngày <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button><button type="button" id="fbtq-diagnostic" class="fbtq-button fbtq-secondary">Tải tệp kiểm tra lỗi</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
+=======
+          <p class="fbtq-help"><b>1.</b> Mở tab <b>Chiến dịch</b> trên Meta và tích ô vuông cạnh từng dòng cần báo cáo. <b>2.</b> Quét để kiểm tra dữ liệu. <b>3.</b> Gửi sang Trợ lý FBTQ. <br><b>Ánh xạ:</b> Chiến dịch → Bài chạy · Phân phối → Trạng thái · Kết quả → Số Mess · Chi phí mỗi kết quả → Giá mess TB · Ngân sách → Ngân sách · Số tiền đã chi tiêu → Chi tiêu thực tế/ngày.</p>
+          <div class="fbtq-actions"><button type="button" id="fbtq-rescan" class="fbtq-button fbtq-secondary">Quét mục đã chọn</button><button type="button" id="fbtq-send-metrics" class="fbtq-button fbtq-primary">Gửi vào Trợ lý FBTQ <span>→</span></button><button type="button" id="fbtq-copy" class="fbtq-button fbtq-secondary">Sao chép JSON đã chọn</button><button type="button" id="fbtq-download" class="fbtq-button fbtq-secondary">Tải JSON đã chọn</button></div><div id="fbtq-metric-preview" class="fbtq-metric-preview" hidden aria-live="polite"></div>
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
         </div>
         <div id="fbtq-invoice-view" hidden>
           <div class="fbtq-section-title"><span class="fbtq-icon fbtq-icon-invoice">▤</span><div><b>Biên lai Meta PDF</b><small id="fbtq-pdf-count">Quét liên kết trên trang</small></div></div>
@@ -517,7 +522,11 @@
     count.textContent = lastScanInfo.selected ? `${lastScanInfo.selected} hàng đã chọn · ${lastRows.length} hàng nhận diện` : lastScanInfo.metaSelectedCount ? `Meta đã chọn ${lastScanInfo.metaSelectedCount} mục · chưa đọc được hàng` : `${lastScanInfo.rows} hàng trong bảng · chưa chọn`;
     count.title = headerSummary ? `Các cột Meta được đọc: ${headerSummary}` : 'Chưa tìm thấy tiêu đề cột trên trang.';
     const message = lastRows.length
+<<<<<<< HEAD
       ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi điền vào Báo cáo hàng ngày.`
+=======
+      ? `Đã quét ${lastRows.length} dòng. Bài chạy lấy từ Chiến dịch; Số Mess lấy từ Kết quả. Hãy đối chiếu phần xem trước rồi gửi sang Trợ lý FBTQ.`
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
       : !lastScanInfo.selected
         ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ tab Chiến dịch đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch nào được tích chọn. Tích ô vuông bên trái các dòng trong tab Chiến dịch trên Meta, sau đó quét lại.' : 'Meta chưa hiển thị bảng Chiến dịch. Chọn tab Chiến dịch, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
         : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa ghép đủ tên chiến dịch và Phân phối. Bấm Tải tệp kiểm tra lỗi nếu quét lại vẫn không được. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';

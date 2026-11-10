@@ -1,0 +1,42 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=path.resolve(__dirname,'..');
+(async()=>{
+  const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{channel:'chrome'})});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.route('https://**/*',route=>route.abort());await page.route('https://fbtq.test/**',route=>{
+      const pathname=new URL(route.request().url()).pathname;if(pathname==='/firebase-config.js')return route.fulfill({contentType:'text/javascript',body:'window.FBTQ_FIREBASE_CONFIG={};'});
+      const target=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!target.startsWith(root+path.sep)||!fs.existsSync(target)||!fs.statSync(target).isFile())return route.fulfill({status:404,body:''});
+      const body=pathname==='/app.js'?fs.readFileSync(target,'utf8')+'\nwindow.__sessionTest={state,navigate,openDailyReportForm,assistantHistory,renderDailyReportComparison,fbtqAssistantTaskStatusIntent,appendFbtqAssistantMessage,processFbtqAssistantCommand};':fs.readFileSync(target);
+      return route.fulfill({contentType:({'.js':'text/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'})[path.extname(target)]||'application/octet-stream',body});
+    });
+    await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__sessionTest);
+    const dates=await page.evaluate(()=>{
+      const {state,openDailyReportForm}=window.__sessionTest;const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),d=new Date(today+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-1);const yesterday=d.toISOString().slice(0,10);
+      state.user={uid:'u',name:'Nguyễn An',department:'Marketing',branch:'A'};state.role='employee';window.__writes=[];window.__chatCloud=[];
+      const s={doc:(_, ...parts)=>parts.join('/'),collection:(_, ...parts)=>parts.at(-1),where:(field,op,value)=>({field,value}),orderBy:()=>({}),limit:()=>({}),startAfter:()=>({}),query:(ref,...filters)=>({ref,filters}),getDocs:async q=>({docs:q.ref==='assistantChatMessages'?window.__chatCloud.filter(r=>r.createdBy==='u').map(r=>({id:r.id,data:()=>r})):[]}),serverTimestamp:()=>({seconds:1}),setDoc:async(ref,data)=>{if(ref.includes('/assistantChatMessages/')){if(!window.__chatCloud.some(r=>r.id===data.id))window.__chatCloud.push(data);}else window.__writes.push({ref,data});},writeBatch:()=>{const rows=[];return {set:(ref,data)=>rows.push({ref,data}),commit:async()=>window.__writes.push(...rows)};}};
+      state.firebase={db:{},storeMod:s};state.dailyReports=[{id:'old',createdBy:'u',createdByName:'Nguyễn An',reportDate:yesterday,monthKey:yesterday.slice(0,7),campaign:'Hôm qua',adAccount:'123',metricId:'old-metric',budget:30000,spend:100,messages:7,revenue:200,phoneRevenue:200,avgMessageCost:14}];
+      state.metrics=[{id:'old-metric',createdBy:'u',name:'Hôm qua',budget:30000,spend:100,reportAt:yesterday,dailyMessages:7}];document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');openDailyReportForm();return {today,yesterday};
+    });
+    assert.equal(await page.locator('#importMetrics,#copyGuide').count(),0);assert.equal(await page.locator('[name="reportDate"]').inputValue(),dates.today);assert.equal(await page.locator('[data-field="spend"]').inputValue(),'');assert.equal(await page.locator('[data-field="campaign"]').inputValue(),'');
+    await page.locator('[name="reportDate"]').fill(dates.yesterday);await page.locator('[name="reportDate"]').dispatchEvent('change');assert.equal(await page.locator('[data-field="campaign"]').inputValue(),'Hôm qua');assert.equal(await page.locator('[data-field="spend"]').inputValue(),'100');
+    await page.locator('[name="reportDate"]').fill(dates.today);await page.locator('[name="reportDate"]').dispatchEvent('change');assert.equal(await page.locator('[data-field="spend"]').inputValue(),'');
+    await page.locator('[data-field="campaign"]').fill('Hôm nay');await page.locator('[data-field="account"]').fill('123');await page.locator('[data-field="spend"]').fill('10');await page.locator('#activeModalForm button[type="submit"]').click();await page.waitForSelector('#assistantActionApproval');assert.equal(await page.evaluate(()=>window.__writes.length),0);
+    await page.locator('[data-action-reject]').click();assert.equal(await page.evaluate(()=>window.__writes.length),0);assert.ok(await page.locator('#activeModalForm').count());
+    await page.locator('#activeModalForm button[type="submit"]').click();await page.waitForSelector('#assistantActionApproval');await page.evaluate(()=>document.querySelector('[data-field="spend"]').value='11');await page.locator('[data-action-approve]').click();assert.equal(await page.evaluate(()=>window.__writes.length),0);
+    await page.locator('#activeModalForm button[type="submit"]').click();await page.locator('[data-action-approve]').click();await page.waitForFunction(()=>window.__writes.length===2);assert.equal(await page.evaluate(()=>window.__sessionTest.state.dailyReports.find(r=>r.id==='old').spend),100);
+    await page.evaluate(()=>window.__sessionTest.navigate('analytics'));await page.locator('#dailyCompareA').fill(dates.yesterday);await page.locator('#dailyCompareB').fill(dates.today);await page.evaluate(()=>window.__sessionTest.renderDailyReportComparison());assert.ok((await page.locator('#dailyCompareGrid').textContent()).includes('100'));assert.ok((await page.locator('#dailyCompareGrid').textContent()).includes('11'));
+    await page.evaluate(()=>{
+      const t=window.__sessionTest;t.state.tasks=[{id:'task-a',title:'Kiểm tra Alpha',assignee:'Nguyễn An',assigneeUid:'u',status:'doing',due:'2099-01-01'},{id:'task-b',title:'Beta',assigneeUid:'other',status:'todo'}];
+      const intent=t.fbtqAssistantTaskStatusIntent('Đánh dấu Kiểm tra Alpha hoàn thành');t.navigate('assistant');t.appendFbtqAssistantMessage('assistant',intent.message,intent.actions);
+      const button=document.querySelector('#assistantMessages [data-assistant-workflow-confirm]'),payload=JSON.parse(button.dataset.assistantWorkflowConfirm);payload.id='task-b';button.dataset.assistantWorkflowConfirm=JSON.stringify(payload);
+    });
+    await page.locator('#assistantMessages [data-assistant-workflow-confirm]').click();await page.waitForFunction(()=>window.__sessionTest.state.tasks[0].status==='done');assert.equal(await page.evaluate(()=>window.__sessionTest.state.tasks[1].status),'todo');
+    await page.evaluate(()=>window.__sessionTest.assistantHistory.start());await page.waitForFunction(()=>document.querySelector('[data-assistant-history-status]').textContent.includes('Lịch sử'));
+    await page.evaluate(()=>window.__sessionTest.processFbtqAssistantCommand('Mở tổng quan'));await page.waitForFunction(()=>window.__chatCloud.length>=2);assert.ok((await page.locator('#fbtqAssistantMessages').textContent()).includes('Mở tổng quan'));
+    await page.evaluate(()=>{window.__sessionTest.assistantHistory.stop();window.__sessionTest.assistantHistory.start();});await page.waitForFunction(()=>document.querySelector('#assistantMessages').textContent.includes('Mở tổng quan'));assert.equal(await page.locator('[data-assistant-workflow-confirm]').count(),0);
+    await page.locator('#fbtqAssistantLauncher').click();await page.locator('#fbtqAssistantExpand').click();assert.ok(await page.locator('#fbtqAssistantWindow').evaluate(el=>el.getBoundingClientRect().width>900));
+    await page.evaluate(()=>{window.__sessionTest.assistantHistory.stop();window.__sessionTest.state.user={uid:'b',name:'Khác'};window.__sessionTest.state.firebase=null;window.__sessionTest.assistantHistory.start();});assert.ok(!(await page.locator('#assistantMessages').textContent()).includes('Mở tổng quan'));
+    assert.deepEqual(errors,[]);console.log('PASS: removed buttons, daily reset/history/compare, mandatory approve/reject, changed-data rejection, trusted task confirmation, chat sync/restore/isolation and expanded workspace.');
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

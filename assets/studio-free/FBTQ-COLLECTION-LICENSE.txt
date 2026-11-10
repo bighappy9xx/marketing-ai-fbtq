@@ -1,0 +1,17 @@
+FBTQ Free Collection
+
+Original editable herbal/social layout definitions, botanical decorative
+geometry and procedural audio created for this project are dedicated under
+CC0 1.0 Universal:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+This dedication applies only to those original resource definitions and
+recordings, not to the application source code as a whole, third-party fonts,
+Kenney sound recordings, linked external libraries, trademarks or user uploads.
+
+Kenney recordings: CC0; see audio/kenney/Kenney-LICENSE.txt.
+Fonts: SIL Open Font License 1.1; see fonts/<family>/OFL.txt for the original
+copyright and complete license of each unmodified font file.
+
+The provided social layouts are generic editable designs. They do not include
+third-party photographs, medical claims or product endorsements.

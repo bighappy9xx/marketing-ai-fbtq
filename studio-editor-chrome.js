@@ -1,4 +1,10 @@
 const paths={
+<<<<<<< HEAD
+=======
+ lock:'M6 10h12v11H6z M8 10V6a4 4 0 018 0v4',unlock:'M6 10h12v11H6z M8 10V6a4 4 0 018 0',
+ text:'M5 5h14 M12 5v15 M8 20h8',upload:'M12 16V3 M7 8l5-5 5 5 M4 15v6h16v-6',
+ folder:'M3 7V4h7l2 3h9v13H3z',grid:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
  eyeOff:'M3 3l18 18 M9 5a11 11 0 013-0c6 0 10 7 10 7a19 19 0 01-4 4 M6 6a20 20 0 00-4 6s4 7 10 7a12 12 0 005-1',speakerOff:'M4 9h4l5-4v14l-5-4H4z M17 9l5 6 M22 9l-5 6',
  panel:'M4 4h16v16H4z M9 4v16 M14 9l-3 3 3 3',
  split:'M8 4v16 M16 4v16 M4 7h4 M16 7h4 M4 17h4 M16 17h4',
@@ -14,6 +20,10 @@ const paths={
 };
 export function editorIcon(name){return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${name==='play'?'<path d="'+paths.play+'" fill="currentColor" stroke="none"/>':'<path d="'+(paths[name]||paths.select)+'"/>'}</svg>`;}
 export function initEditorChrome(root,{zoomBy,onVisualAction}){
+<<<<<<< HEAD
+=======
+ root.querySelector('.cs-topbar').append(root.querySelector('#csExpand'));
+>>>>>>> 92a65212e075b8af161c2b276f7ced1bb07d734a
  const q=s=>root.querySelector(s),button=(id,icon,label)=>`<button type="button" id="${id}" title="${label}" aria-label="${label}">${editorIcon(icon)}</button>`;
  const stage=q('#csStage'),toggle=document.createElement('button');toggle.type='button';toggle.id='csToggleLibrary';toggle.className='cs-material-toggle';toggle.title=toggle.ariaLabel='Hiện / ẩn khung dự án';toggle.setAttribute('aria-expanded','true');toggle.innerHTML=editorIcon('panel');stage.append(toggle);toggle.onclick=()=>{const hidden=root.classList.toggle('cs-library-collapsed');toggle.setAttribute('aria-expanded',String(!hidden));};
  const bar=q('.cs-timeline-toolbar');
