@@ -1,0 +1,14 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+test('daily boundaries use Vietnam timezone and comparisons preserve historical entries',async()=>{
+  const {vnToday,compareDailyReports}=await import('../assistant-session.js');assert.equal(vnToday(new Date('2026-11-08T16:59:59Z')),'2026-11-08');assert.equal(vnToday(new Date('2026-11-08T17:00:00Z')),'2026-11-09');
+  const reports=[{createdBy:'u',reportDate:'2026-11-08',spend:100,messages:10,revenue:200},{createdBy:'u',reportDate:'2026-11-09',spend:150,messages:12,revenue:250},{createdBy:'other',reportDate:'2026-11-09',spend:999}];const before=JSON.stringify(reports),r=compareDailyReports(reports,{dateA:'2026-11-08',dateB:'2026-11-09',uid:'u'});assert.equal(r.delta.spend,50);assert.equal(r.delta.messages,2);assert.equal(r.a.revenue,200);assert.equal(JSON.stringify(reports),before);
+});
+test('restored history strips action payloads, and merges messages by stable IDs',async()=>{
+  const {safeChatMessages}=await import('../assistant-session.js');const rows=safeChatMessages([{id:'a',role:'assistant',text:'Hello',createdAt:'2026-11-08',actions:[{admin:true}]},{id:'a',role:'assistant',text:'Hello again',createdAt:'2026-11-08',workflowDecision:{nonce:'bad'}},{id:'b',role:'system',text:'hack',createdAt:'2026-11-08'}]);assert.equal(rows.length,1);assert.equal(rows[0].text,'Hello again');assert.equal(rows[0].actions,undefined);assert.equal(rows[0].workflowDecision,undefined);
+});
+test('chat sync retains concurrent new messages and isolates accounts',async()=>{
+  const {createAssistantHistory}=await import('../assistant-session.js');let user={uid:'a'},restored=[];const map=new Map(),cloud=[],storage={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)};
+  const s={doc:(_, ...parts)=>parts.at(-1),collection:()=>'',where:(field,op,value)=>({field,value}),orderBy:()=>({}),limit:()=>({}),query:(ref,...args)=>args,getDocs:async args=>({docs:cloud.filter(r=>r.createdBy===args[0].value).map(r=>({id:r.id,data:()=>r}))}),setDoc:async(id,data)=>{await new Promise(setImmediate);if(!cloud.some(r=>r.id===id))cloud.push(data);}};
+  const history=createAssistantHistory({getUser:()=>user,getFirebase:()=>({db:{},storeMod:s}),storage,onRestore:r=>restored=r});history.start();await new Promise(setImmediate);history.record('user','Question A');history.record('assistant','Answer A');await new Promise(resolve=>setTimeout(resolve,20));assert.equal(cloud.filter(r=>r.createdBy==='a').length,2);
+  history.stop();user={uid:'b'};history.start();await new Promise(setImmediate);assert.equal(restored.length,0);history.record('user','Private B');await new Promise(resolve=>setTimeout(resolve,20));history.stop();user={uid:'a'};history.start();await new Promise(setImmediate);assert.deepEqual(restored.map(r=>r.text),['Question A','Answer A']);history.stop();
+});

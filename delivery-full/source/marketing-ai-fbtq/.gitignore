@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.zip
+.env
+.env.*
+!.env.example
+!env.example
+*.bak
+tests/artifacts/
+__pycache__/
