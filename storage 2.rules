@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function profile() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    function active() {
+      return request.auth != null && (!('approved' in profile()) || profile().approved == true);
+    }
+    function manager() {
+      return profile().role in ['director', 'branch_manager', 'department_manager'];
+    }
+    match /studioFinals/{ownerUid}/{reviewId}/{fileName} {
+      allow read: if active() && (request.auth.uid == ownerUid || manager()
+        && firestore.get(/databases/(default)/documents/workspaces/fbtq/contentReviews/$(reviewId)).data.createdBy == ownerUid);
+      allow create: if active() && request.auth.uid == ownerUid
+        && reviewId.matches('^[a-fA-F0-9-]{36}$')
+        && !firestore.exists(/databases/(default)/documents/workspaces/fbtq/contentReviews/$(reviewId))
+        && request.resource.size > 0 && request.resource.size <= 262144000
+        && ((fileName == 'final.mp4' && request.resource.contentType == 'video/mp4')
+          || (fileName == 'final.webm' && request.resource.contentType == 'video/webm'))
+        && request.resource.metadata.ownerUid == ownerUid
+        && request.resource.metadata.exportId == reviewId;
+      allow update: if false;
+      allow delete: if active() && request.auth.uid == ownerUid
+        && !firestore.exists(/databases/(default)/documents/workspaces/fbtq/contentReviews/$(reviewId));
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

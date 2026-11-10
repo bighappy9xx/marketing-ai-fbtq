@@ -1,0 +1,23 @@
+export function normalizeSpeech(text){return String(text||'').normalize('NFKC').toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu,' ').trim();}
+export function parseWatchWords(text){return [...new Set(String(text||'').split(/[,;\n]/).map(normalizeSpeech).filter(Boolean))].slice(0,50).map(s=>s.slice(0,80));}
+export function transcriptCovers(clip){const t=clip.aiTranscript;return !!t&&Number.isFinite(t.duration)&&(t.sourceIn||0)<=(clip.in||0)+.01&&(t.sourceIn||0)+t.duration>=(clip.in||0)+clip.duration-.01;}
+export function speechMarkers(clip,terms){
+ const transcript=clip.aiTranscript;if(!transcript)return[];const sourceIn=transcript.sourceIn||0,offset=sourceIn-(clip.in||0),rows=transcript.words?.length?transcript.words:transcript.segments||[],tokens=[];
+ for(const row of rows){const text=normalizeSpeech(row.word??row.text);for(const token of text.split(' ').filter(Boolean))tokens.push({token,start:clip.start+offset+row.start,end:clip.start+offset+row.end});}
+ const marks=[];for(const term of terms){const needle=term.split(' ');for(let i=0;i<=tokens.length-needle.length;i++)if(needle.every((word,j)=>tokens[i+j].token===word)){const start=Math.max(clip.start,tokens[i].start),end=Math.min(clip.start+clip.duration,tokens[i+needle.length-1].end);if(end>start)marks.push({clipId:clip.id,term,start,end,estimated:!transcript.words?.length});}}
+ return marks.sort((a,b)=>a.start-b.start);
+}
+export function speechWindows(clip,padding=.12){
+ const t=clip.aiTranscript;if(!transcriptCovers(clip))return[];const low=clip.in||0,high=low+clip.duration,offset=t.sourceIn||0,rows=[];
+ for(const s of t.segments||[]){if(!String(s.text||'').trim()||s.noSpeechProbability>.75)continue;const start=Math.max(low,offset+s.start-padding),end=Math.min(high,offset+s.end+padding);if(end-start>.04)rows.push({start:clip.start+start-low,end:clip.start+end-low});}
+ rows.sort((a,b)=>a.start-b.start);return rows.reduce((out,row)=>{const last=out.at(-1);if(last&&row.start-last.end<.15)last.end=Math.max(last.end,row.end);else out.push({...row});return out;},[]);
+}
+export function silenceRanges(clip,padding=.12){const keep=speechWindows(clip,padding);if(!keep.length)return[];let cursor=clip.start;const remove=[];for(const row of keep){if(row.start-cursor>=.18)remove.push({start:cursor,end:row.start});cursor=row.end;}if(clip.start+clip.duration-cursor>=.18)remove.push({start:cursor,end:clip.start+clip.duration});return remove;}
+export function rippleRemove(clips,ranges,newId){
+ const sorted=[...ranges].filter(r=>Number.isFinite(r.start)&&Number.isFinite(r.end)&&r.end>r.start).sort((a,b)=>a.start-b.start),merged=[];
+ for(const r of sorted){const last=merged.at(-1);if(last&&r.start<=last.end)last.end=Math.max(last.end,r.end);else merged.push({...r});}
+ const removedBefore=t=>merged.reduce((sum,r)=>sum+Math.max(0,Math.min(t,r.end)-r.start),0);
+ return clips.flatMap(c=>{let pieces=[{start:c.start,end:c.start+c.duration}];for(const r of merged)pieces=pieces.flatMap(p=>r.end<=p.start||r.start>=p.end?[p]:[{start:p.start,end:Math.min(p.end,r.start)},{start:Math.max(p.start,r.end),end:p.end}].filter(p=>p.end-p.start>.01));return pieces.map((p,i)=>({...structuredClone(c),id:i?newId():c.id,start:p.start-removedBefore(p.start),in:(c.in||0)+p.start-c.start,duration:p.end-p.start,fadeIn:Math.min(c.fadeIn||0,(p.end-p.start)/2),fadeOut:Math.min(c.fadeOut||0,(p.end-p.start)/2)}));});
+}
+export function splitDialogue(clips,clipId,newId){const c=clips.find(x=>x.id===clipId);if(!c)return clips;const t=c.aiTranscript;if(!t)return clips;const offset=c.start+(t.sourceIn||0)-(c.in||0),interior=t.segments.flatMap(s=>[offset+s.start,offset+s.end]).filter(x=>x>c.start+.04&&x<c.start+c.duration-.04).sort((a,b)=>a-b).filter((x,i,a)=>!i||x-a[i-1]>.04),points=[c.start,...interior,c.start+c.duration];const parts=[];for(let i=1;i<points.length;i++){const start=points[i-1],end=points[i];if(end-start<.04)continue;parts.push({...structuredClone(c),id:parts.length?newId():c.id,start,in:(c.in||0)+start-c.start,duration:end-start,fadeIn:0,fadeOut:0});}return clips.flatMap(x=>x.id===clipId?parts:x);}
+export function encodeMonoWav(samples,sampleRate=16000){const buffer=new ArrayBuffer(44+samples.length*2),v=new DataView(buffer),str=(at,s)=>{for(let i=0;i<s.length;i++)v.setUint8(at+i,s.charCodeAt(i));};str(0,'RIFF');v.setUint32(4,36+samples.length*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sampleRate,true);v.setUint32(28,sampleRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,samples.length*2,true);samples.forEach((x,i)=>v.setInt16(44+i*2,Math.round(Math.max(-1,Math.min(1,x))*(x<0?32768:32767)),true));return buffer;}
