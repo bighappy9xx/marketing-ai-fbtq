@@ -1,3 +1,0 @@
-FBTQ Studio original synthesized audio
-Dedicated under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
-These recordings were procedurally synthesized for this application; no third-party samples are embedded.
