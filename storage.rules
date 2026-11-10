@@ -16,7 +16,7 @@ service firebase.storage {
       allow create: if active() && request.auth.uid == ownerUid
         && reviewId.matches('^[a-fA-F0-9-]{36}$')
         && !firestore.exists(/databases/(default)/documents/workspaces/fbtq/contentReviews/$(reviewId))
-        && request.resource.size > 0 && request.resource.size <= 262144000
+        && request.resource.size > 0 && request.resource.size <= 2147483648
         && ((fileName == 'final.mp4' && request.resource.contentType == 'video/mp4')
           || (fileName == 'final.webm' && request.resource.contentType == 'video/webm'))
         && request.resource.metadata.ownerUid == ownerUid

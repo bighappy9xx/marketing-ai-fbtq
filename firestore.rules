@@ -48,7 +48,7 @@ service cloud.firestore {
             && data.videoAttachment.exportId.matches('^[a-fA-F0-9-]{36}$')
             && data.videoAttachment.mime in ['video/mp4','video/webm']
             && data.videoAttachment.size is int && data.videoAttachment.size > 0
-            && data.videoAttachment.size <= 262144000
+            && data.videoAttachment.size <= 2147483648
             && data.videoAttachment.path == 'studioFinals/' + data.createdBy + '/' + documentId
               + (data.videoAttachment.mime == 'video/mp4' ? '/final.mp4' : '/final.webm')
         );

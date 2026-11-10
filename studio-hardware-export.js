@@ -8,10 +8,12 @@ export function* clipFrameTimes(clip,origin=0,fps=EXPORT_FPS){
  }
 }
 export function exportBitrate(width,height){return Math.min(24000000,Math.max(4000000,Math.round(width*height*30*.1)));}
-export async function probeHardware(api,width,height,withAudio){
+export async function probeHardware(api,width,height,withAudio,mode='hardware'){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width%2||height%2)throw Error('Xuất H.264 cần chiều rộng và cao là số chẵn (px).');
- const options={width,height,frameRate:EXPORT_FPS,bitrate:exportBitrate(width,height),hardwareAcceleration:'prefer-hardware',latencyMode:'quality'};
- if(!await api.canEncodeVideo('avc',options))throw Error('Máy/trình duyệt chưa hỗ trợ cấu hình H.264 ưu tiên phần cứng này. Bật tăng tốc đồ hoạ trong Chrome/Edge rồi mở lại trình duyệt, hoặc chọn Xuất tương thích.');
+ const options={width,height,frameRate:EXPORT_FPS,bitrate:exportBitrate(width,height),hardwareAcceleration:mode==='software'?'prefer-software':'prefer-hardware',latencyMode:'quality'};
+ let supported=await api.canEncodeVideo('avc',options);
+ if(!supported&&mode==='auto'){options.hardwareAcceleration='prefer-software';supported=await api.canEncodeVideo('avc',options);}
+ if(!supported)throw Error('Máy/trình duyệt chưa hỗ trợ cấu hình mã hoá H.264 này. Bật tăng tốc đồ hoạ trong Chrome/Edge rồi mở lại trình duyệt, hoặc chọn Xuất tương thích.');
  if(withAudio&&!await api.canEncodeAudio('aac',{sampleRate:AUDIO_RATE,numberOfChannels:2,bitrate:192000}))throw Error('Trình duyệt chưa hỗ trợ mã hoá âm thanh AAC. Dùng Chrome/Edge trên Windows/macOS hoặc chọn Xuất tương thích.');
  return options;
 }
@@ -28,7 +30,7 @@ export function mixAudioBuffer(output,blockStart,wrapped,clip,origin=0,rate=AUDI
   for(let ch=0;ch<output.length;ch++)output[ch][i]+=(channels[ch][a]+(channels[ch][b]-channels[ch][a])*fraction)*gain;
  }
 }
-export async function exportHardware({clips,tracks,resources,canvas,paintFrame,fileHandle,check,onProgress=()=>{},api:injected}){
+export async function exportHardware({clips,tracks,resources,canvas,paintFrame,fileHandle,check,onProgress=()=>{},onEncoderSelected=()=>{},mode='auto',maxBytes=Infinity,api:injected}){
  const api=injected||await import('./vendor/mediabunny/mediabunny-1.65.2.mjs');
  const duration=Math.max(0,...clips.map(endOf));
  if(!duration||!Number.isFinite(duration))throw Error('Dự án chưa có nội dung hợp lệ.');
@@ -37,7 +39,7 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
  const inputs=new Map(),videos=new Map(),audios=[];let output,writable,finished=false;
  const assert=()=>check?.();
  try{
-  assert();const options=await probeHardware(api,canvas.width,canvas.height,false);assert();
+  assert();const options=await probeHardware(api,canvas.width,canvas.height,false,mode);assert();onEncoderSelected(options.hardwareAcceleration);
   // Each resource is read on demand from its Blob, rather than copied into an ArrayBuffer.
   for(const c of visible.filter(c=>['video','audio'].includes(c.type))){
    assert();let source=inputs.get(c.mediaId);
@@ -58,11 +60,11 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
     audios.push({clip:c,origin:source.origin,iterator,pending:null,done:false});
    }else if(c.type==='audio'&&!source.audio)throw Error('File âm thanh không có track đọc được: '+c.name);
   }
-  if(audios.length)await probeHardware(api,canvas.width,canvas.height,true);
+  if(audios.length&&!await api.canEncodeAudio('aac',{sampleRate:AUDIO_RATE,numberOfChannels:2,bitrate:192000}))throw Error('Trình duyệt chưa hỗ trợ mã hoá AAC. Dùng Chrome/Edge trên Windows/macOS.');
   assert();writable=await fileHandle.createWritable();
   // Keep the real file transaction open until finalize and session checks succeed.
   // A muxer's cancel may close its stream; closing a partially written real file would commit it.
-  const transaction=new WritableStream({write:chunk=>writable.write(chunk),close(){},abort:reason=>writable.abort(reason)});
+  const transaction=new WritableStream({write:chunk=>{assert();if(chunk.position+chunk.data.byteLength>maxBytes)throw Error('Bản Final vượt 2 GB. Chia thành các phần trước khi chuyển sang Kiểm duyệt.');return writable.write(chunk);},close(){},abort:reason=>writable.abort(reason)});
   output=new api.Output({format:new api.Mp4OutputFormat({fastStart:'fragmented',minimumFragmentDuration:1}),target:new api.StreamTarget(transaction,{chunked:true,chunkSize:2**20})});
   const video=new api.CanvasSource(canvas,{codec:'avc',...options,keyFrameInterval:2});
   output.addVideoTrack(video,{frameRate:EXPORT_FPS});

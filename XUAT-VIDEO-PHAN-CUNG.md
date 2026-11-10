@@ -1,34 +1,38 @@
-# Xuất MP4 ưu tiên bộ mã hoá phần cứng
+# Xuất video và chuyển Final sang Kiểm duyệt
 
-## Cài đặt
+## Hai nút riêng biệt
 
-Giải nén ZIP và chép nội dung thư mục `FBTQ-Fix` vào thư mục gốc dự án, giữ cả thư mục `vendor`. Cập nhật các file lên GitHub/hosting như bản sửa trước. Sau khi website cập nhật, tải lại bằng Ctrl+Shift+R (Mac: Cmd+Shift+R). Không tải nguyên ZIP lên để thay cho mã nguồn.
+- **Xuất video**: hỏi vị trí lưu, dựng MP4 và ghi thẳng vào thư mục người dùng chọn. Không chuyển trang Kiểm duyệt.
+- **Xuất Final → Kiểm duyệt**: dựng vào vùng tạm riêng của website, không hỏi thư mục tải. Sau khi hoàn tất, mở mục Kiểm duyệt và đính kèm video cùng tiêu đề/nội dung vào biểu mẫu. Nếu bản đã xuất trên máy vẫn khớp timeline thì dùng lại, không dựng thêm. Bấm **Gửi quản lý** trong mục Kiểm duyệt để tải video lên và tạo yêu cầu duyệt.
 
-## Sử dụng
+Final tạm được giữ tới khi gửi thành công hoặc bỏ video; sau đó giải phóng vùng tạm. Đóng trang trước khi gửi sẽ mất biểu mẫu đang chờ; file tạm có thể còn chiếm quota trình duyệt.
 
-1. Mở Studio Sáng Tạo → Chỉnh sửa Video trên Chrome/Edge máy tính, qua HTTPS hoặc localhost.
-2. Chọn **MP4 · Ưu tiên phần cứng** bên cạnh nút Xuất video.
-3. Chọn Xuất video và vị trí lưu MP4. H.264 xuất 30 fps ở đúng kích thước khung hình; âm thanh AAC stereo 48 kHz. Chiều rộng/cao cần là số chẵn.
-4. Giữ tab hiển thị, xem phần trăm và tốc độ thực tế trong Thuộc tính. Nút Huỷ xuất dừng công việc; file được ghi thành công sau khi hoàn tất. Nút Xuất Final → Kiểm duyệt sử dụng cùng luồng xuất và giữ video đã xuất để chuyển sang biểu mẫu.
+## CPU / GPU
 
-## Thay đổi
+Mặc định **MP4 · Tự động GPU / CPU**: kiểm tra H.264 ưu tiên phần cứng trước; nếu không hỗ trợ cấu hình, kiểm tra bộ mã hoá phần mềm. Có tuỳ chọn Ưu tiên GPU / Ưu tiên CPU. Không âm thầm đổi chế độ khi đang xuất dở. Tốc độ và phần trăm hiển thị trong Thuộc tính.
 
-- Xuất từng frame theo timestamp qua WebCodecs, ưu tiên `hardwareAcceleration: prefer-hardware`, không phải phát timeline và ghi màn hình theo thời gian thực.
-- Đọc file nguồn theo nhu cầu, giải mã tuần tự từng đoạn, trộn âm thanh từng khối một giây, ghi MP4 phân mảnh trực tiếp ra ổ đĩa. Không giữ toàn bộ video xuất trong RAM.
-- Giữ vị trí cắt, lớp chồng, chữ, ảnh, hiệu ứng, âm lượng, ẩn/tắt tiếng lớp và fade giống phép dựng của Studio.
-- Bỏ giới hạn xuất 10 phút cho chế độ này. Nhận video/âm thanh đến 8 GB/file và tổng tư liệu đến 16 GB; dung lượng lưu dự án vẫn phụ thuộc quota trình duyệt và ổ đĩa.
-- Chế độ Xuất tương thích vẫn dùng MediaRecorder theo thời gian thực và giới hạn 10 phút. Không tự chuyển sang chế độ này khi bộ mã hoá mới lỗi.
+Xuất qua WebCodecs theo timestamp, không phải phát lại timeline để ghi hình. Đọc Blob nguồn từng phần, giải mã theo đoạn, trộn âm thanh từng khối một giây và ghi MP4 phân mảnh ra ổ đĩa. H.264 30 fps theo kích thước khung hình (rộng/cao chẵn); AAC stereo 48 kHz. Giữ phép dựng lớp, chữ, ảnh, hiệu ứng và âm thanh của Studio.
 
-## Giới hạn thực tế
+WebCodecs `prefer-hardware` / `prefer-software` là gợi ý; trình duyệt có thể bỏ qua. Không xác nhận GPU nào đang chạy, không cam kết sử dụng hết lõi CPU hay tốc độ tối đa cho mọi máy. Đây là bản xuất bằng trình duyệt, không phải FFmpeg native. Chưa đo xuất thật bằng GPU trong môi trường thực hiện bản sửa.
 
-WebCodecs cung cấp lựa chọn ưu tiên phần cứng, không cung cấp bằng chứng chắc chắn máy đang dùng GPU nào; trình duyệt có thể bỏ qua gợi ý này. Kiểm tra hỗ trợ cấu hình trước khi mã hoá. Không hứa tốc độ cố định: giải mã, độ phân giải, số lớp và hiệu ứng có thể là nút thắt. Đây không phải bản FFmpeg native hay máy chủ GPU.
+Cần Chrome/Edge máy tính, HTTPS hoặc localhost, WebCodecs H.264/AAC. Lưu về máy cần File System Access, chuyển Final cần OPFS. Bật tăng tốc đồ hoạ và khởi động lại trình duyệt nếu cấu hình phần cứng chưa được hỗ trợ. Giữ tab hiển thị khi xuất.
 
-Cần trình duyệt có WebCodecs H.264/AAC và File System Access để lưu trực tiếp. Khi thiếu hỗ trợ, thông báo lỗi hướng dẫn chọn trình duyệt/cấu hình khác. Bật tăng tốc đồ hoạ trong cài đặt trình duyệt và khởi động lại nếu cần. Video dùng codec nguồn không giải mã được phải chuyển định dạng trước. Âm thanh nguồn trên 2 kênh cần chuyển về stereo. Không tự bỏ âm thanh khi giải mã lỗi.
+## Video dài
 
-Với video dài, lưu dự án có thể cần dung lượng IndexedDB lớn; quota có thể thấp hơn giới hạn nhập. Luồng Kiểm duyệt hiện nhận tối đa 250 MB/video; video dài có thể vượt mức này dù đã xuất thành công ra ổ đĩa.
+Bỏ giới hạn xuất 10 phút cho các chế độ MP4 mới. Nhận nguồn tối đa 8 GB/file, tổng 16 GB; lưu dự án còn phụ thuộc quota. Final tối đa **2 GB**, được kiểm tra đồng bộ ở frontend, Firestore Rules và Storage Rules. Phải cập nhật Rules để giới hạn mới hoạt động. Nút Xuất video ra thư mục không bị giới hạn Final này.
 
-Đã kiểm tra cú pháp và các ca kiểm thử tự động về timestamp, trộn âm thanh, kiểm tra codec, huỷ xuất, đóng file và giải phóng nguồn. Chưa chạy xuất video thật bằng GPU trên máy Windows/Mac trong môi trường này; cần thử một đoạn 30–60 giây trước khi xuất cả dự án dài. Chưa triển khai lên website.
+Xem bản đã gửi qua URL do Firebase Storage SDK cấp cho phiên có quyền, để trình phát tải theo nhu cầu thay vì nạp cả file dài vào RAM. Quyền sở hữu/duyệt, đường dẫn và quy tắc không ghi đè vẫn được giữ.
 
-## Thư viện kèm theo
+Chế độ Xuất tương thích vẫn dùng MediaRecorder, tối đa 10 phút và có thể dùng nhiều RAM hơn. Nguồn âm thanh trên 2 kênh cần chuyển về stereo; không bỏ qua lỗi âm thanh khi xuất.
 
-Mediabunny 1.65.2, MIT, nguồn: https://github.com/Vanilagy/mediabunny, bản phát hành https://www.npmjs.com/package/mediabunny/v/1.65.2. Mã đóng gói và LICENSE được lưu trong `vendor/mediabunny`, không cần tải mã thư viện từ CDN khi xuất.
+## Cập nhật website
+
+1. Giải nén và chép nội dung thư mục `FBTQ-Fix` vào gốc dự án, giữ `vendor/mediabunny`.
+2. Chạy `node scripts/check-source.cjs` và `node --test tests/*.test.cjs`.
+3. Cập nhật mã nguồn GitHub/Hosting theo quy trình dự án. Không tải nguyên ZIP lên để thay mã nguồn.
+4. Với Firebase project `mediafbtq-6e1bb`, cập nhật Rules bằng `firebase deploy --only firestore:rules,storage --project mediafbtq-6e1bb` sau khi kiểm tra cấu hình đăng nhập/dự án.
+5. Tải lại website bằng Ctrl+Shift+R (Mac: Cmd+Shift+R), thử đoạn 30–60 giây có chữ và nhạc trước khi xuất dài.
+
+Đã kiểm thử tự động luồng đích lưu, chuyển biểu mẫu Kiểm duyệt, trì hoãn tải lên tới lúc gửi, bộ mã hoá tự động, timestamp, trộn âm thanh, huỷ xuất và giới hạn 2 GB. Chưa chạy thử GPU thật, chưa chạy Rules emulator, chưa triển khai lên website.
+
+Mediabunny 1.65.2, MIT: https://github.com/Vanilagy/mediabunny. Mã và LICENSE đi kèm trong `vendor/mediabunny`, không tải thư viện qua CDN khi xuất.

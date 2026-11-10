@@ -25,6 +25,13 @@ test('audio mixing retains source trim, stereo/mono, gaps, volume and fades acro
  const next=[new Float32Array(4),new Float32Array(4)];mixAudioBuffer(next,1,{buffer:mono,timestamp:3},clip,0,4);
  assert.deepEqual([...next[0]],[0,.25,.5,.5]);
 });
+test('automatic encoder tries hardware then CPU, while explicit hardware never silently switches',async()=>{
+ const {probeHardware}=await api(),calls=[];
+ const mock={canEncodeVideo:async(c,o)=>{calls.push(o.hardwareAcceleration);return o.hardwareAcceleration==='prefer-software';}};
+ const options=await probeHardware(mock,1280,720,false,'auto');assert.equal(options.hardwareAcceleration,'prefer-software');assert.deepEqual(calls,['prefer-hardware','prefer-software']);
+ calls.length=0;await assert.rejects(probeHardware(mock,1280,720,false,'hardware'));assert.deepEqual(calls,['prefer-hardware']);
+ calls.length=0;await probeHardware(mock,1280,720,false,'software');assert.deepEqual(calls,['prefer-software']);
+});
 function mockPipeline({cancelAt=Infinity,missingFrame=false}={}){
  const calls={timestamps:[],writes:0,disposed:0,cancelled:0,aborted:0,painted:[],audio:[]};let checked=0;
  const file=new Blob(['mp4'],{type:'video/mp4'});
