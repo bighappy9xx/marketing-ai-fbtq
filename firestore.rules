@@ -1,0 +1,580 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function role() { return signedIn() ? profile().role : ''; }
+    function director() { return role() == 'director'; }
+    function branch() {
+      return profile().get('branch', '') != '' ? profile().branch
+        : profile().get('branchName', '') != '' ? profile().branchName
+        : profile().get('branchId', '');
+    }
+    function department() { return profile().get('department', ''); }
+    function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
+    function self(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow create: if self(uid)
+        && request.resource.data.keys().hasOnly(['name','email','role','approved','createdAt'])
+        && request.resource.data.role == 'employee'
+        && request.resource.data.approved == true
+        && request.resource.data.email == request.auth.token.email;
+      allow get: if self(uid) || manager();
+      allow list: if manager();
+      allow update: if director() || (
+        self(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData'])
+        && request.resource.data.photoData is string
+        && request.resource.data.photoData.size() <= 180000
+        && (request.resource.data.photoData == ''
+          || request.resource.data.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$'))
+      );
+      allow delete: if director();
+    }
+
+    match /workspaces/{workspaceId}/{collection}/{documentId} {
+      function inWorkspace() { return workspaceId == 'fbtq'; }
+      function owns() { return resource.data.createdBy == request.auth.uid; }
+      function taskAssignee() { return resource.data.assigneeUid == request.auth.uid; }
+      function validContentReviewVideo(data) {
+        return data.videoUrl is string && data.videoUrl.size() <= 2048 && (
+          data.videoUrl.matches('^https://(drive|docs)[.]google[.]com/.*$')
+          || data.videoUrl == '' && data.get('source', '') == 'studio'
+            && data.videoAttachment is map
+            && data.videoAttachment.provider == 'firebase-storage'
+            && data.videoAttachment.ownerUid == data.createdBy
+            && data.videoAttachment.exportId == documentId
+            && data.videoAttachment.exportId.matches('^[a-fA-F0-9-]{36}$')
+            && data.videoAttachment.mime in ['video/mp4','video/webm']
+            && data.videoAttachment.size is int && data.videoAttachment.size > 0
+            && data.videoAttachment.size <= 262144000
+            && data.videoAttachment.path == 'studioFinals/' + data.createdBy + '/' + documentId
+              + (data.videoAttachment.mime == 'video/mp4' ? '/final.mp4' : '/final.webm')
+        );
+      }
+      function validContentReviewCreate() {
+        return request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 640
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 32000
+          && validContentReviewVideo(request.resource.data)
+          && request.resource.data.status == 'pending'
+          && request.resource.data.editHistory is list
+          && request.resource.data.editHistory.size() <= 12;
+      }
+      function validContentReviewResubmit() {
+        return owns()
+          && resource.data.status in ['revision_requested','rejected']
+          && (!request.resource.data.keys().hasAny(['id']) || request.resource.data.id == documentId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.status == 'pending'
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 640
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 32000
+          && validContentReviewVideo(request.resource.data)
+          && request.resource.data.editHistory is list
+          && request.resource.data.editHistory.size() <= 12
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['id','title','text','videoUrl','status','submittedAt','editHistory','reviewNote','updatedAt','updatedBy','videoAttachment','source']);
+      }
+      function validDailyReport() {
+        return request.resource.data.reportDate is string
+          && request.resource.data.reportDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.monthKey is string
+          && request.resource.data.monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.reportDate.matches('^' + request.resource.data.monthKey + '-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.revenue is number
+          && request.resource.data.revenue >= 0
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdByName == profile().name
+          && request.resource.data.department == (profile().keys().hasAny(['department']) ? profile().department : '');
+      }
+      function validRevenueEntry() {
+        return request.resource.data.keys().hasAll(['reportDate','monthKey','revenue','dailyReportId','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.keys().hasOnly(['reportDate','monthKey','revenue','dailyReportId','createdBy','createdByName','department','submittedAt','updatedAt','updatedBy'])
+          && request.resource.data.dailyReportId == documentId
+          && request.resource.data.reportDate is string
+          && request.resource.data.reportDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.monthKey is string
+          && request.resource.data.monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.reportDate.matches('^' + request.resource.data.monthKey + '-(0[1-9]|[12][0-9]|3[01])$')
+          && request.resource.data.revenue is number
+          && request.resource.data.revenue >= 0
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdByName == profile().name
+          && request.resource.data.department == (profile().keys().hasAny(['department']) ? profile().department : '')
+          && request.resource.data.submittedAt is string
+          && request.resource.data.updatedBy == request.auth.uid;
+      }
+      function dailyReportMatchesRevenueEntryAfter() {
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.dailyReportId == documentId
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.reportDate == request.resource.data.reportDate
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.monthKey == request.resource.data.monthKey
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.revenue == request.resource.data.revenue
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/revenueEntries/$(documentId)).data.createdBy == request.auth.uid;
+      }
+      function revenueEntryMatchesDailyReportAfter() {
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.reportDate == request.resource.data.reportDate
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.monthKey == request.resource.data.monthKey
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.revenue == request.resource.data.revenue
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/dailyReports/$(documentId)).data.createdBy == request.auth.uid;
+      }
+      function validInvoice() {
+        return request.resource.data.keys().hasAll(['invoiceNumber','customer','item','quantity','unitPrice','total','createdBy','createdAt'])
+          && request.resource.data.keys().hasOnly(['id','invoiceNumber','customer','taxId','item','quantity','unitPrice','total','note','issueDate','status','createdBy','createdByName','employee','createdAt','updatedAt','updatedBy','documentType','provider','supplier','supplierTaxId','employeeName','accountHolderName','department','metaInvoiceNumber','adAccountId','transactionIds','invoiceDate','billingPeriod','taxPeriod','amountBeforeVat','vatAmount','vatRate','pdfFileName','attachmentChunkCount','attachmentSize','attachmentMimeType'])
+          && request.resource.data.customer is string
+          && request.resource.data.item is string
+          && request.resource.data.quantity is int
+          && request.resource.data.unitPrice is number
+          && request.resource.data.total is number
+          && request.resource.data.total >= 0
+          && (!request.resource.data.keys().hasAny(['documentType']) || (
+            request.resource.data.documentType == 'meta_ads'
+            && request.resource.data.provider is string
+            && request.resource.data.supplier is string
+            && request.resource.data.employeeName is string
+            && request.resource.data.accountHolderName is string
+            && request.resource.data.department is string
+            && request.resource.data.adAccountId is string
+            && request.resource.data.transactionIds is string
+            && request.resource.data.invoiceDate is string
+            && request.resource.data.invoiceDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+            && request.resource.data.billingPeriod is string
+            && request.resource.data.taxPeriod is string
+            && request.resource.data.taxPeriod.matches('^[0-9]{4}-Q[1-4]$')
+            && request.resource.data.amountBeforeVat is number
+            && request.resource.data.vatAmount is number
+            && request.resource.data.vatRate is number
+            && request.resource.data.pdfFileName is string
+            && request.resource.data.attachmentChunkCount is int
+            && request.resource.data.attachmentChunkCount > 0
+            && request.resource.data.attachmentChunkCount <= 13
+            && request.resource.data.attachmentSize is int
+            && request.resource.data.attachmentSize > 0
+            && request.resource.data.attachmentSize <= 5242880
+            && request.resource.data.attachmentMimeType == 'application/pdf'
+          ));
+      }
+      function validInvoiceFileChunk() {
+        return request.resource.data.keys().hasAll(['invoiceId','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && request.resource.data.keys().hasOnly(['invoiceId','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && request.resource.data.invoiceId is string
+          && request.resource.data.chunkIndex is int
+          && request.resource.data.chunkCount is int
+          && request.resource.data.chunkCount > 0
+          && request.resource.data.chunkCount <= 13
+          && request.resource.data.chunkIndex >= 0
+          && request.resource.data.chunkIndex < request.resource.data.chunkCount
+          && request.resource.data.base64 is string
+          && request.resource.data.base64.size() <= 600000
+          && request.resource.data.base64.matches('^[A-Za-z0-9+/]+={0,2}$')
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.createdAt is string
+          && existsAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.createdBy == request.auth.uid
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.documentType == 'meta_ads'
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/invoices/$(request.resource.data.invoiceId)).data.attachmentChunkCount == request.resource.data.chunkCount;
+      }
+      function validAdvanceAttachmentDescriptor(file) {
+        return file == null || (file is map
+          && file.keys().hasAll(['fileName','size','mimeType','chunkCount'])
+          && file.keys().hasOnly(['fileName','size','mimeType','chunkCount'])
+          && file.fileName is string && file.fileName.size() > 0 && file.fileName.size() <= 200
+          && file.size is int && file.size > 0 && file.size <= 5242880
+          && file.mimeType in ['application/pdf','image/jpeg','image/png']
+          && file.chunkCount is int && file.chunkCount > 0 && file.chunkCount <= 13);
+      }
+      function validAdvanceFileChunk() {
+        let d = request.resource.data;
+        let parentPath = /databases/$(database)/documents/workspaces/fbtq/advanceInvoices/$(d.workflowId);
+        return d.keys().hasAll(['fileScope','workflowId','fileKey','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && d.keys().hasOnly(['fileScope','workflowId','fileKey','chunkIndex','chunkCount','base64','ownerUid','createdBy','createdAt'])
+          && d.fileScope == 'advance'
+          && d.workflowId is string
+          && d.fileKey in ['invoice','contract','transfer']
+          && d.chunkIndex is int && d.chunkIndex >= 0
+          && d.chunkCount is int && d.chunkCount > 0 && d.chunkCount <= 13 && d.chunkIndex < d.chunkCount
+          && d.base64 is string && d.base64.size() <= 600000 && d.base64.matches('^[A-Za-z0-9+/]+={0,2}$')
+          && d.ownerUid == request.auth.uid && d.createdBy == request.auth.uid && d.createdAt is string
+          && existsAfter(parentPath)
+          && getAfter(parentPath).data.createdBy == request.auth.uid
+          && getAfter(parentPath).data.attachments.keys().hasAny([d.fileKey])
+          && getAfter(parentPath).data.attachments[d.fileKey].chunkCount == d.chunkCount;
+      }
+      function canReadAdvanceFile() {
+        let parentPath = /databases/$(database)/documents/workspaces/fbtq/advanceInvoices/$(resource.data.workflowId);
+        return resource.data.get('fileScope', '') == 'advance'
+          && exists(parentPath)
+          && (get(parentPath).data.createdBy == request.auth.uid
+            || director()
+            || role() == 'accountant'
+            || role() == 'branch_manager' && branch() != '' && branch() == get(parentPath).data.branch
+            || role() == 'department_manager' && branch() != '' && department() != ''
+              && branch() == get(parentPath).data.branch && department() == get(parentPath).data.department);
+      }
+      function workflowUser() { return signedIn() && profile().get('approved', true) != false; }
+      function workflowName() { return profile().get('name', profile().get('email', 'Nhân viên')); }
+      function validWorkflowBase(d) {
+        return workflowUser()
+          && d.schemaVersion == 1
+          && d.createdBy == request.auth.uid
+          && d.createdByName == workflowName()
+          && d.photoData == profile().get('photoData', '')
+          && d.branch == branch() && branch() != ''
+          && d.department == department()
+          && d.description is string && d.description.size() >= 5 && d.description.size() <= 2000
+          && d.status == 'pending'
+          && d.createdAt == request.time && d.updatedAt == request.time
+          && d.createdDate is string && d.createdDate.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && d.history is list && d.history.size() == 1
+          && d.history[0].keys().hasAll(['action','actorUid','actorName','actorRole','at','note'])
+          && d.history[0].keys().hasOnly(['action','actorUid','actorName','actorRole','at','note'])
+          && d.history[0].action == 'submitted'
+          && d.history[0].actorUid == request.auth.uid
+          && d.history[0].actorName == workflowName()
+          && d.history[0].actorRole == role()
+          && d.history[0].at is string
+          && d.history[0].note == '';
+      }
+      function validInitialApprovals(d, first, second) {
+        return d.approvals is map
+          && d.approvals.keys().hasAll([first, second])
+          && d.approvals.keys().hasOnly([first, second])
+          && d.approvals[first].keys().hasOnly(['status'])
+          && d.approvals[first].status == 'pending'
+          && d.approvals[second].keys().hasOnly(['status'])
+          && d.approvals[second].status == 'pending';
+      }
+      function validWorkflowDate(value) {
+        return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+      }
+      function matchingLeaveSlotAfter(session) {
+        let slotId = request.auth.uid + '_' + request.resource.data.date + '_' + session;
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId)).data.requestId == documentId
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId)).data.createdBy == request.auth.uid
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId)).data.date == request.resource.data.date
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId)).data.session == session;
+      }
+      function validStaffRequestCreate() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','type','title','date','sessions'])
+          && d.keys().hasOnly(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','type','title','date','sessions'])
+          && validWorkflowBase(d)
+          && d.kind == 'request'
+          && d.department is string && d.department != ''
+          && validInitialApprovals(d, 'department', 'branch')
+          && validWorkflowDate(d.date)
+          && ((d.type == 'leave'
+              && d.title == 'Đơn xin nghỉ'
+              && (d.sessions == ['morning'] || d.sessions == ['afternoon'] || d.sessions == ['afternoon','morning'])
+              && (!d.sessions.hasAny(['morning']) || matchingLeaveSlotAfter('morning'))
+              && (!d.sessions.hasAny(['afternoon']) || matchingLeaveSlotAfter('afternoon')))
+            || (d.type == 'proposal'
+              && d.title is string && d.title.size() >= 3 && d.title.size() <= 160
+              && d.sessions == []));
+      }
+      function validAdvanceCreate() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement','direction','costGroup','subgroup','costType','accountingMode','employeeName','vatAmount','accountingPeriod','attachments'])
+          && d.keys().hasOnly(['schemaVersion','kind','createdBy','createdByName','photoData','branch','department','description','status','createdAt','createdDate','updatedAt','approvals','history','amount','date','title','paymentInfo','disbursement','direction','costGroup','subgroup','costType','accountingMode','employeeName','vatAmount','accountingPeriod','attachments'])
+          && validWorkflowBase(d)
+          && d.kind == 'advance'
+          && validInitialApprovals(d, 'manager', 'accountant')
+          && d.amount is int && d.amount > 0 && d.amount <= 1000000000000
+          && validWorkflowDate(d.date)
+          && d.title is string && d.title.size() >= 3 && d.title.size() <= 160
+          && d.paymentInfo is string && d.paymentInfo.size() <= 500
+          && d.direction in ['expense','income']
+          && d.costGroup in ['Doanh thu bán hàng','Facebook Ads','GG Ads','TikTok Ads','Nhập hàng','Lương','Vận chuyển','Phí sàn','Thuê mặt bằng','Chi phí khác']
+          && d.subgroup in ['Không áp dụng','FB Ads','GG Ads','GG Ads 1','GG Ads 2','GG Ads 3','TikTok / Zalo Ads']
+          && d.costType in ['business','operating']
+          && d.accountingMode in ['reconciled','advance_pending']
+          && d.employeeName == workflowName()
+          && d.vatAmount is int && d.vatAmount >= 0 && d.vatAmount <= 1000000000000
+          && (d.accountingMode != 'advance_pending' || d.vatAmount == 0)
+          && d.accountingPeriod is string && d.accountingPeriod.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && d.attachments is map
+          && d.attachments.keys().hasAll(['invoice','contract','transfer'])
+          && d.attachments.keys().hasOnly(['invoice','contract','transfer'])
+          && validAdvanceAttachmentDescriptor(d.attachments.invoice)
+          && validAdvanceAttachmentDescriptor(d.attachments.contract)
+          && validAdvanceAttachmentDescriptor(d.attachments.transfer)
+          && (!(d.direction == 'expense' && d.accountingMode == 'reconciled' && d.amount > 20000000 && d.vatAmount > 0)
+            || d.attachments.contract != null && d.attachments.transfer != null)
+          && d.disbursement == null;
+      }
+      function historyOnlyAppended(before, after) {
+        return before is list && after is list
+          && before.size() >= 1 && before.size() <= 3
+          && after.size() == before.size() + 1
+          && after[0] == before[0]
+          && (before.size() < 2 || after[1] == before[1])
+          && (before.size() < 3 || after[2] == before[2]);
+      }
+      function validReviewEvent(stage, decision) {
+        let d = request.resource.data;
+        let approval = d.approvals[stage];
+        let event = d.history[d.history.size() - 1];
+        let expectedStatus = decision == 'approve' ? 'approved' : 'rejected';
+        return approval.keys().hasAll(['status','actorUid','actorName','actorRole','at','note'])
+          && approval.keys().hasOnly(['status','actorUid','actorName','actorRole','at','note'])
+          && approval.status == expectedStatus
+          && approval.actorUid == request.auth.uid
+          && approval.actorName == workflowName()
+          && approval.actorRole == role()
+          && approval.at is string
+          && approval.note is string && approval.note.size() <= 2000
+          && (decision != 'reject' || approval.note.size() >= 3)
+          && event.keys().hasAll(['status','actorUid','actorName','actorRole','at','note','action','stage'])
+          && event.keys().hasOnly(['status','actorUid','actorName','actorRole','at','note','action','stage'])
+          && event.status == expectedStatus
+          && event.actorUid == approval.actorUid
+          && event.actorName == approval.actorName
+          && event.actorRole == approval.actorRole
+          && event.at == approval.at
+          && event.note == approval.note
+          && event.action == decision
+          && event.stage == stage;
+      }
+      function leaveSlotsReleasedAfter(session) {
+        let slotId = resource.data.createdBy + '_' + resource.data.date + '_' + session;
+        return !existsAfter(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId));
+      }
+      function validRequestReview() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let departmentApproval = after.approvals.department;
+        let branchApproval = after.approvals.branch;
+        let decision = departmentApproval.status == 'approved' ? 'approve' : 'reject';
+        let branchDecision = branchApproval.status == 'approved' ? 'approve' : 'reject';
+        return workflowUser() && before.kind == 'request' && before.status == 'pending'
+          && before.createdBy != request.auth.uid
+          && after.diff(before).affectedKeys().hasOnly(['approvals','status','updatedAt','history'])
+          && after.updatedAt == request.time
+          && historyOnlyAppended(before.history, after.history)
+          && ((before.approvals.department.status == 'pending'
+                && role() == 'department_manager'
+                && branch() == before.branch && department() == before.department
+                && departmentApproval.actorUid == request.auth.uid
+                && after.approvals.branch == before.approvals.branch
+                && validReviewEvent('department', decision)
+                && (decision != 'reject' || before.type != 'leave'
+                  || (!before.sessions.hasAny(['morning']) || leaveSlotsReleasedAfter('morning'))
+                    && (!before.sessions.hasAny(['afternoon']) || leaveSlotsReleasedAfter('afternoon')))
+                && after.status == (decision == 'approve' ? 'pending' : 'rejected'))
+              || (before.approvals.department.status == 'approved'
+                && before.approvals.branch.status == 'pending'
+                && role() == 'branch_manager' && branch() == before.branch
+                && before.approvals.department.actorUid != request.auth.uid
+                && branchApproval.actorUid == request.auth.uid
+                && after.approvals.department == before.approvals.department
+                && validReviewEvent('branch', branchDecision)
+                && (branchDecision != 'reject' || before.type != 'leave'
+                  || (!before.sessions.hasAny(['morning']) || leaveSlotsReleasedAfter('morning'))
+                    && (!before.sessions.hasAny(['afternoon']) || leaveSlotsReleasedAfter('afternoon')))
+                && after.status == (branchDecision == 'approve' ? 'approved' : 'rejected')));
+      }
+      function validAdvanceReview() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let managerApproval = after.approvals.manager;
+        let accountantApproval = after.approvals.accountant;
+        let decision = managerApproval.status == 'approved' ? 'approve' : 'reject';
+        let accountantDecision = accountantApproval.status == 'approved' ? 'approve' : 'reject';
+        return workflowUser() && before.kind == 'advance' && before.status == 'pending'
+          && before.createdBy != request.auth.uid
+          && after.diff(before).affectedKeys().hasOnly(['approvals','status','updatedAt','history'])
+          && after.updatedAt == request.time
+          && historyOnlyAppended(before.history, after.history)
+          && ((before.approvals.manager.status == 'pending'
+                && role() == 'department_manager' && department() != ''
+                && branch() == before.branch && department() == before.department
+                && managerApproval.actorUid == request.auth.uid
+                && after.approvals.accountant == before.approvals.accountant
+                && validReviewEvent('manager', decision)
+                && after.status == (decision == 'approve' ? 'pending' : 'rejected'))
+              || (before.approvals.manager.status == 'approved'
+                && before.approvals.accountant.status == 'pending'
+                && role() == 'accountant'
+                && before.approvals.manager.actorUid != request.auth.uid
+                && accountantApproval.actorUid == request.auth.uid
+                && after.approvals.manager == before.approvals.manager
+                && validReviewEvent('accountant', accountantDecision)
+                && after.status == (accountantDecision == 'approve' ? 'approved' : 'rejected')));
+      }
+      function validDisbursement() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let payout = after.disbursement;
+        let event = after.history[after.history.size() - 1];
+        return workflowUser() && before.kind == 'advance' && before.status == 'approved'
+          && before.disbursement == null
+          && before.approvals.manager.status == 'approved'
+          && before.approvals.accountant.status == 'approved'
+          && before.createdBy != request.auth.uid && role() == 'accountant'
+          && after.diff(before).affectedKeys().hasOnly(['status','disbursement','updatedAt','history'])
+          && after.status == 'disbursed' && after.updatedAt == request.time
+          && payout.keys().hasAll(['amount','reference','date','actorUid','actorName','at'])
+          && payout.keys().hasOnly(['amount','reference','date','actorUid','actorName','at'])
+          && payout.amount == before.amount
+          && payout.reference is string && payout.reference.size() >= 3 && payout.reference.size() <= 200
+          && validWorkflowDate(payout.date)
+          && payout.actorUid == request.auth.uid && payout.actorName == workflowName()
+          && payout.at is string
+          && historyOnlyAppended(before.history, after.history)
+          && event.keys().hasAll(['action','actorUid','actorName','actorRole','at','note'])
+          && event.keys().hasOnly(['action','actorUid','actorName','actorRole','at','note'])
+          && event.action == 'disbursed' && event.actorUid == request.auth.uid
+          && event.actorName == workflowName() && event.actorRole == 'accountant'
+          && event.at == payout.at && event.note == payout.reference;
+      }
+      allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
+        collection == 'advanceInvoices' && (director() || role() == 'accountant' || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
+        || collection == 'staffRequests' && (director() || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
+        || collection == 'campaigns' && (manager() || owns())
+        || collection == 'settings'
+        || collection == 'revenueEntries'
+        || collection == 'workAwardScores'
+        || collection == 'invitations' && manager()
+        || collection == 'requests' && (manager() || owns())
+        || collection == 'tasks' && (manager() || taskAssignee() || owns())
+        || collection in ['drafts', 'dailyReports'] && (manager() || owns())
+        || collection == 'contentReviews' && (manager() || owns())
+        || collection == 'inbox' && (manager() || resource.data.ownerUid == request.auth.uid)
+        || collection == 'messages' && (manager() || resource.data.ownerUid == request.auth.uid)
+        || collection == 'contentTemplates' && (manager() || resource.data.status == 'approved')
+        || collection == 'invoices' && (manager() || owns())
+        || collection == 'invoiceFiles' && ((resource.data.get('fileScope', '') == 'advance' && canReadAdvanceFile()) || (!resource.data.keys().hasAny(['fileScope']) && (manager() || resource.data.ownerUid == request.auth.uid)))
+      );
+      allow get: if signedIn() && inWorkspace()
+        && collection in ['advanceInvoices','staffRequests']
+        && documentId.matches('^' + request.auth.uid + '_[A-Za-z0-9-]{16,60}$')
+        && !exists(/databases/$(database)/documents/workspaces/$(workspaceId)/$(collection)/$(documentId));
+
+      allow create: if signedIn() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
+        collection == 'drafts'
+        || collection == 'contentReviews' && validContentReviewCreate()
+        || collection == 'dailyReports' && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
+        || collection == 'revenueEntries' && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
+        || collection == 'contentTemplates' && (request.resource.data.status == 'pending' || manager() && request.resource.data.status == 'approved')
+        || collection == 'tasks' && manager()
+        || collection == 'workAwardScores' && manager()
+        || collection == 'campaigns'
+        || collection == 'invoices' && request.resource.data.status == 'pending' && validInvoice()
+        || collection == 'invoiceFiles' && (validInvoiceFileChunk() || validAdvanceFileChunk())
+        || collection == 'advanceInvoices' && validAdvanceCreate()
+        || collection == 'staffRequests' && validStaffRequestCreate()
+        || collection in ['settings', 'invitations'] && manager()
+      );
+
+      allow update: if signedIn() && inWorkspace() && collection != 'pages' && (
+        collection == 'tasks' && (
+          manager() || taskAssignee()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy','completedAt'])
+            && request.resource.data.status in ['todo','doing','done']
+            && ((request.resource.data.status == 'done'
+              && request.resource.data.completedAt is string
+              && request.resource.data.completedAt.size() <= 40)
+              || (request.resource.data.status != 'done'
+                && (!request.resource.data.keys().hasAny(['completedAt']) || request.resource.data.completedAt == null)))
+        )
+        || collection == 'drafts' && (manager() || owns())
+        || collection == 'contentReviews' && (manager() || validContentReviewResubmit())
+        || collection == 'dailyReports' && owns() && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
+        || collection == 'revenueEntries' && owns() && validRevenueEntry() && revenueEntryMatchesDailyReportAfter()
+        || collection == 'contentTemplates' && manager()
+        || collection == 'campaigns' && (manager() || owns())
+        || collection == 'workAwardScores' && manager()
+        || collection == 'staffRequests' && validRequestReview()
+        || collection == 'advanceInvoices' && (validAdvanceReview() || validDisbursement())
+        || collection in ['settings','invitations'] && manager()
+        || collection == 'invoices' && manager() && resource.data.status == 'pending'
+          && request.resource.data.status in ['approved','rejected']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
+      );
+      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
+    }
+
+    match /workspaces/{workspaceId}/leaveSlots/{slotId} {
+      function slotReadAllowed() {
+        return slotId.matches('^' + request.auth.uid + '_.*')
+          || !exists(/databases/$(database)/documents/workspaces/fbtq/leaveSlots/$(slotId))
+          || director()
+          || role() == 'branch_manager' && (resource.data.get('branch', '') == branch()
+            || get(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(resource.data.requestId)).data.branch == branch())
+          || role() == 'department_manager' && (resource.data.get('branch', '') == branch() && resource.data.get('department', '') == department()
+            || get(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(resource.data.requestId)).data.branch == branch()
+              && get(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(resource.data.requestId)).data.department == department());
+      }
+      function matchingRequestAfter() {
+        return existsAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId))
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.kind == 'request'
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.type == 'leave'
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.createdBy == request.auth.uid
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.date == request.resource.data.date
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.branch == request.resource.data.branch
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.department == request.resource.data.department
+          && getAfter(/databases/$(database)/documents/workspaces/fbtq/staffRequests/$(request.resource.data.requestId)).data.sessions.hasAny([request.resource.data.session]);
+      }
+      function validRejectedSlotDelete() {
+        let requestPath = /databases/$(database)/documents/workspaces/fbtq/staffRequests/$(resource.data.requestId);
+        let requestAfter = getAfter(requestPath).data;
+        let event = requestAfter.history[requestAfter.history.size() - 1];
+        return existsAfter(requestPath)
+          && requestAfter.status == 'rejected'
+          && requestAfter.createdBy == resource.data.createdBy
+          && resource.data.get('date', requestAfter.date) == requestAfter.date
+          && (slotId == resource.data.createdBy + '_' + requestAfter.date + '_morning'
+            || slotId == resource.data.createdBy + '_' + requestAfter.date + '_afternoon')
+          && (requestAfter.history.size() == 2 || requestAfter.history.size() == 3)
+          && event.actorUid == request.auth.uid
+          && event.action == 'reject';
+      }
+      function validSlotDate(value) {
+        return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+      }
+      allow get: if signedIn() && workspaceId == 'fbtq' && slotReadAllowed();
+      allow list: if false;
+      allow create: if signedIn() && workspaceId == 'fbtq'
+        && request.resource.data.keys().hasAll(['requestId','createdBy','date','session','branch','department'])
+        && request.resource.data.keys().hasOnly(['requestId','createdBy','date','session','branch','department'])
+        && request.resource.data.createdBy == request.auth.uid
+        && validSlotDate(request.resource.data.date)
+        && request.resource.data.session in ['morning','afternoon']
+        && slotId == request.auth.uid + '_' + request.resource.data.date + '_' + request.resource.data.session
+        && matchingRequestAfter();
+      allow update: if false;
+      allow delete: if signedIn() && workspaceId == 'fbtq' && validRejectedSlotDelete();
+    }
+
+    // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.
+    match /workspaces/{workspaceId}/pages/{pageId} {
+      allow read, write: if false;
+    }
+
+    // Chat history belongs to its author. Restored text grants no action privileges.
+    match /workspaces/fbtq/assistantChatMessages/{messageId} {
+      allow read: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['id','createdBy','role','text','createdAt'])
+        && request.resource.data.id == messageId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.role in ['user','assistant']
+        && request.resource.data.text is string && request.resource.data.text.size() <= 12000
+        && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 35;
+      allow update: if signedIn() && resource.data.createdBy == request.auth.uid && request.resource.data == resource.data;
+      allow delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
