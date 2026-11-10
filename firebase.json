@@ -15,7 +15,11 @@
       "*.zip",
       "WORKFLOWS.md",
       "storage.rules",
-      "storage-cors.json"
+      "storage-cors.json",
+      "scripts/**",
+      "functions */**",
+      "*.bak",
+      "install-*.cjs"
     ],
     "cleanUrls": true,
     "headers": [
@@ -45,6 +49,9 @@
           }
         ]
       }
+    ],
+    "predeploy": [
+      "node scripts/check-source.cjs"
     ]
   },
   "functions": [

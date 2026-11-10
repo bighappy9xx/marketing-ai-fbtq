@@ -1,3 +1,7 @@
+# Meta Helper 2.9.0 — Điền trực tiếp báo cáo
+
+Bản này giữ nguyên cách đọc cột của 2.8.5 đã chạy tốt. Chỉ thay luồng gửi: chỉ số mở và điền thẳng Báo cáo hàng ngày trong Hiệu suất marketing; PDF mở trực tiếp biểu mẫu ở Báo cáo hóa đơn. Không mở hay thêm tin nhắn vào Trợ lý FBTQ. Vẫn kiểm tra và phê duyệt khi lưu/gửi duyệt. Cần cập nhật cả website đi kèm và extension để luồng mới có hiệu lực.
+
 # Marketing Ai FBTQ Meta Helper
 
 Extension Chrome Manifest V3 để chuyển chỉ số quảng cáo và PDF biên lai Meta vào website Marketing Ai FBTQ. Logo của extension dùng biểu tượng Favicon của website.
@@ -71,3 +75,23 @@ Cài cập nhật: thay app.js và styles.css của website, cập nhật thư m
 ## Phiên bản 2.8.0 – Nhập dữ liệu tại Trợ lý FBTQ
 
 Hai chức năng nhập chiến dịch và hóa đơn nay có nút trực tiếp trong menu/cửa sổ Trợ lý FBTQ của website. Website nhận CSV/JSON số liệu và PDF hóa đơn, tự điền biểu mẫu để xem lại trước khi lưu. Meta Helper vẫn có thể quét dòng đã chọn hoặc gửi PDF từ Meta; nơi tiếp nhận cả hai loại dữ liệu được chuyển sang Trợ lý FBTQ. Cập nhật cả website và extension, Reload extension ở chrome://extensions và tải lại các tab. Nút Mở Trợ lý FBTQ trong popup đi thẳng tới #assistant sau khi đăng nhập.
+
+## Bản sửa ánh xạ 2.8.1
+
+- Đọc tiêu đề đầy đủ (kể cả aria-label/title khi bị rút gọn), so khớp chính xác; không lấy cột tên gần giống. Cột trùng/không xác định để trống.
+- Cột có vị trí thực tế được ưu tiên hơn aria-colindex tái sử dụng trong bảng Meta có cột ghim.
+- Chỉ lấy số chính, không lấy số trong mô tả như “7 ngày”. Kết quả thiếu không thay bằng số người liên hệ hay số cuộc trò chuyện.
+- Xem trước trực tiếp Bài chạy, Trạng thái, Số Mess, Giá mess TB, Ngân sách và Chi tiêu trước khi gửi.
+- Bản website đi kèm chỉ mở đúng nhóm chiến dịch vừa chuyển, không trộn những dòng đã nhập trước. Cần cập nhật cả extension và website.
+
+## Gói Chrome 2.8.2
+Gói ZIP riêng chỉ chứa extension, có manifest.json ngay tại gốc. Giải nén trên macOS và chọn chính thư mục đó bằng Load unpacked. Không chọn thư mục website của gói cập nhật tổng. Cấu trúc gói, tham chiếu manifest, cú pháp JS và ảnh icon được kiểm tra bằng scripts/package-extension.py. Chưa thử nạp trong Chrome trên máy người dùng; nếu vẫn lỗi cần ảnh thông báo lỗi cụ thể.
+
+## Sửa Bài chạy nhận nhầm “Đang tắt” — 2.8.3
+Ưu tiên tên từ liên kết chiến dịch trong chính dòng đang chọn. Nếu ô Campaign của Meta chứa nhầm nội dung Phân phối, vẫn đối chiếu liên kết để lấy tên. Chỉ có trạng thái mà không có tên xác định thì không xuất dòng đó. Dữ liệu nguồn Chiến dịch và Bài chạy được thống nhất cùng tên đã xác định. Phiên bản xuất hiện ngay trong khung Meta Helper và bảng xem trước. Kiểm thử tái hiện ba tên từ ảnh người dùng, không phải kiểm tra trực tiếp DOM Facebook của người dùng.
+
+## 2.8.4 — Bảng chia vùng và quét lại
+Ghép đoạn dòng checkbox/tên/chỉ số cùng hàng trong bảng Meta có nhiều grid; loại toàn bộ DOM của Meta Helper khỏi nguồn quét. Không lấy bảng xem trước làm bảng Meta. Có nút Tải tệp kiểm tra lỗi xuất JSON chỉ chứa mô tả ô hiển thị, role, vị trí và phiên bản; không xuất HTML, URL, cookies hay token. Tệp có thể chứa tên chiến dịch và số liệu, cần xem trước khi chia sẻ. Khi không đọc đủ cột, không suy đoán dữ liệu. Đã kiểm tra bằng fixture bảng chia vùng; chưa xác minh trên phiên Facebook thật của người dùng.
+
+## 2.8.5 — Sửa theo tệp kiểm tra thực tế
+Tệp 2.8.4 cung cấp hàng tiêu đề semantic nhưng không có ô dữ liệu semantic; cột Chiến dịch x207..551 chồng vùng Phân phối x420..580. Bản này ưu tiên tiêu đề hiển thị, dùng liên kết tên trong vùng Chiến dịch làm mốc dòng và ô chọn/đánh dấu xanh cùng dòng, sau đó đọc các ô div/span của hàng đó. Không yêu cầu dữ liệu phải có role gridcell. Chỉ lấy dòng được chọn. Kiểm thử giữ nguyên tọa độ từ tệp chẩn đoán với các dòng dữ liệu tái hiện; không khẳng định đã truy cập phiên Meta thật. Tệp kiểm tra lỗi được mở rộng thêm visualRows để có dữ liệu phân tích nếu vẫn chưa khớp.

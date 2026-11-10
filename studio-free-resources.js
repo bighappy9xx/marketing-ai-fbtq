@@ -1,4 +1,4 @@
-import {effectPresets} from './studio-interactions.js?v=20261109-free-resources';
+import {effectPresets} from './studio-interactions.js?v=20261110-merge-fix';
 import {FREE_SOURCES} from './studio-free-catalog.js?v=20261109-free-resources';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initFreeResources(root,{addAudio,showToast}){

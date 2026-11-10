@@ -115,7 +115,7 @@ firebase deploy --project mediafbtq-6e1bb --only functions:generateContentOpenAI
 firebase deploy --project mediafbtq-6e1bb --only functions:generateContentClaude
 ```
 
-Chatbot Messenger đang dùng hàm máy chủ riêng. Nếu chọn Gemini trong chatbot, phần đó vẫn cần `GEMINI_API_KEY` secret vì yêu cầu tin nhắn đi qua Cloud Functions; Gemini Studio nội dung và giọng đọc không dùng secret đó. Không đưa bất kỳ provider key nào vào file website/GitHub.
+Chatbot Messenger dùng hàm máy chủ riêng để giữ Page token và Gemini key ở phía server. Tự trả lời dùng `GEMINI_API_KEY`; Gemini Studio nội dung và giọng đọc dùng Firebase AI Logic và không dùng secret đó. Không đưa bất kỳ provider key nào vào file website/GitHub.
 
 ## Chuyển văn bản thành giọng đọc
 
@@ -123,20 +123,22 @@ Trong **Studio nội dung → Giọng đọc**, nhập văn bản hoặc chuyể
 
 ## Kết nối Fanpage Messenger
 
-1. Tạo Meta App, thêm Messenger và cấu hình webhook HTTPS tới endpoint `metaWebhook` sau khi deploy.
+1. Đọc [CHATBOT_SETUP.md](CHATBOT_SETUP.md) để cài secrets, triển khai các hàm chatbot và lấy callback URL. Tạo Meta App, thêm Messenger, cấu hình Webhooks cho Page và đăng ký trường `messages`.
 2. Đặt secrets:
 
    ```sh
    firebase functions:secrets:set META_TOKEN_ENCRYPTION_KEY
    firebase functions:secrets:set META_VERIFY_TOKEN
    firebase functions:secrets:set META_APP_SECRET
+   firebase functions:secrets:set GEMINI_API_KEY
    ```
 
    Tạo khóa mã hoá 32 byte (64 ký tự hex) và verify token ngẫu nhiên trên máy quản trị. Cất các giá trị này trong kho bí mật; không ghi vào file website.
-3. Đăng ký webhook cho sự kiện `messages`, cấu hình App Secret/verify token và hoàn thành yêu cầu xét duyệt quyền `pages_messaging` cùng các quyền Meta bắt buộc khác.
-4. Mỗi nhân viên kết nối Page bằng Page ID và Page Access Token của họ trong **Chatbot AI → Kết nối Fanpage**. Token được mã hoá AES-GCM trong Cloud Functions trước khi lưu Firestore. Nhân viên chỉ gửi tin qua Page của chính mình.
+3. Đăng ký webhook cho sự kiện `messages`, cấu hình App Secret/verify token và hoàn thành yêu cầu xét duyệt quyền `pages_messaging` cùng `pages_manage_metadata`.
+4. Kết nối Page bằng Page ID và Page Access Token trong **Chatbot AI → Kết nối Fanpage**. Token được mã hoá AES-GCM trong Cloud Functions trước khi lưu Firestore.
+5. Bật **Trả lời tự động bằng Gemini** trong Cài đặt → Chatbot & Fanpage. Tin nhắn AI, trả lời nhân viên và tin theo lô đều bị chặn nếu trùng với từ khoá cấm đã lưu. Quản lý gửi tối đa 50 người/lượt; máy chủ kiểm tra từng người còn trong cửa sổ tin nhắn 24 giờ.
 
-Meta có thể yêu cầu xác minh doanh nghiệp, xét duyệt ứng dụng và các điều kiện riêng cho tài khoản. Chưa có quyền Meta, danh sách Fanpage và hội thoại sẽ hiển thị trạng thái chưa có dữ liệu.
+Meta có thể yêu cầu xác minh doanh nghiệp, xét duyệt ứng dụng và các điều kiện riêng cho tài khoản. Functions cần dự án Firebase Blaze có billing hoạt động; nếu đang ở Spark thì webhook và trả lời tự động chưa thể chạy trên Firebase. Chưa có quyền Meta, danh sách Fanpage và hội thoại sẽ hiển thị trạng thái chưa có dữ liệu.
 
 ## Nhập chỉ số quảng cáo
 
@@ -157,7 +159,7 @@ Tiện ích đọc bảng đang hiển thị trên trang; đây là snapshot do 
 - Tổng quan dùng các chỉ số từ mục **Hiệu suất marketing**, theo một kỳ báo cáo được chọn. Khi chưa có báo cáo, giao diện hiển thị dấu gạch và thông báo trống.
 - Nhân viên tạo đề xuất hóa đơn với trạng thái **Chờ duyệt**. Giám đốc, quản lý chi nhánh hoặc trưởng phòng có thể duyệt/từ chối; chỉ đề xuất đã duyệt mới được tải thành tệp HTML để in hoặc lưu PDF.
 - Các thay đổi Firestore Rules giới hạn quyền tạo hóa đơn và quyền cập nhật trạng thái. Sau khi lấy gói mới, triển khai Rules bằng `firebase deploy --project mediafbtq-6e1bb --only firestore:rules`.
-- Danh sách Fanpage được nạp qua callable `listMyPages`; khi cập nhật Cloud Functions, triển khai bằng `firebase deploy --project mediafbtq-6e1bb --only functions`.
+- Danh sách Fanpage được nạp qua callable `listMyPages`; hướng dẫn triển khai riêng chatbot nằm trong [CHATBOT_SETUP.md](CHATBOT_SETUP.md).
 - Tệp in hóa đơn là bản nội bộ để kiểm tra/in, không thay thế hóa đơn điện tử theo quy định. Bộ lọc từ cấm cung cấp ngữ cảnh cho mô hình gợi ý; nhân viên vẫn cần kiểm tra trước khi gửi.
 
 ## Tệp trong gói

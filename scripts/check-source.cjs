@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// Refuse to deploy unresolved merges, invalid JS/JSON or a duplicated HTML app.
+const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'..'),skip=new Set(['.git','node_modules','upload']),issues=[];let checked=0;
+const marker=/^(?:<{7}(?: |$)|>{7}(?: |$)|\|{7}(?: |$)|={7}\s*$)/m;
+function walk(dir){for(const ent of fs.readdirSync(dir,{withFileTypes:true})){if(skip.has(ent.name))continue;const file=path.join(dir,ent.name),relative=path.relative(root,file).split(path.sep).join('/');if(relative.startsWith('tests/artifacts/')||relative.startsWith('tests/fixtures/'))continue;if(ent.isDirectory()){walk(file);continue;}if(!ent.isFile()||!['.js','.cjs','.mjs','.css','.html','.json','.rules'].includes(path.extname(file)))continue;const code=fs.readFileSync(file,'utf8');checked++;if(marker.test(code))issues.push(relative+': unresolved Git conflict');
+ const ext=path.extname(file);if(['.js','.cjs','.mjs'].includes(ext)){const common=ext==='.cjs'||relative.startsWith('functions/');const result=spawnSync(process.execPath,common?['--check',file]:['--input-type=module','--check'],{input:common?undefined:code,encoding:'utf8'});if(result.status!==0)issues.push(relative+': '+(result.stderr||result.error?.message||'JavaScript syntax error').trim().slice(0,600));}
+ if(ext==='.json')try{JSON.parse(code);}catch(e){issues.push(relative+': '+e.message);}
+ if(relative.startsWith('functions/')&&ext==='.js')for(const match of code.matchAll(/require\(['"](\.\.?\/[^'"]+)['"]\)/g)){const target=path.resolve(path.dirname(file),match[1]);if(![target,target+'.js',target+'.cjs',target+'.json',path.join(target,'index.js')].some(p=>fs.existsSync(p)))issues.push(relative+': missing '+match[1]);}
+}}
+walk(root);
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),ids=new Set();if((html.match(/<!doctype\s+html/gi)||[]).length!==1)issues.push('index.html: expected exactly one HTML document');for(const match of html.matchAll(/\bid\s*=\s*["']([^"']+)["']/g)){if(ids.has(match[1]))issues.push('index.html: duplicate id '+match[1]);ids.add(match[1]);}for(const match of html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)=["']([^"']+)["']/g)){const uri=match[1];if(/^(?:https?:|data:|#|\/\/)/.test(uri))continue;const file=path.resolve(root,uri.split(/[?#]/)[0]);if(!fs.existsSync(file))issues.push('index.html: missing '+uri);}
+if(issues.length){console.error(issues.join('\n'));process.exitCode=1;}else console.log('Source check passed: '+checked+' text files; no merge markers, syntax errors, missing backend modules or duplicate HTML IDs.');

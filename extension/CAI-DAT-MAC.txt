@@ -1,0 +1,23 @@
+CAI META HELPER 2.9.0 VAO CHROME TREN MAC
+
+1. Nhan dup file ZIP de giai nen bang Archive Utility cua macOS.
+2. Mo thu muc vua giai nen: phai thay manifest.json, background.js, content.js va cac icon PNG.
+3. Chuyen thu muc nay vao Documents de giu lau dai.
+4. Mo Google Chrome, nhap chrome://extensions vao thanh dia chi.
+5. Bat Developer mode (Che do danh cho nha phat trien).
+6. Neu co ban Meta Helper cu, tam tat ban cu de tranh chay hai ban.
+7. Bam Load unpacked (Tai tien ich da giai nen), chon THU MUC co manifest.json, bam Select / Chon.
+8. Kiem tra the tien ich hien version 2.9.0, bat tien ich, ghim neu can.
+9. Tai lai Facebook Ads Manager va website FBTQ bang Command + Shift + R.
+
+Luu y:
+- Khong chon file ZIP hay file manifest.json rieng le. Chrome dang yeu cau chon THU MUC.
+- Hop thoai chon thu muc co the khong hien tep manifest.json; hay chon dung thu muc chua tep do.
+- Khong chon thu muc website hoac thu muc cha cua tien ich.
+- Khong xoa/di chuyen thu muc sau khi nap; neu chuyen thi nap lai tu vi tri moi.
+- Neu van loi, chup thong bao trong hop "Failed to load extension" de xac dinh loi thuc te.
+- Neu Chrome do cong ty quan ly va chan Developer mode, can quan tri trinh duyet cho phep cai dat; goi ZIP khong bo qua chinh sach quan ly.
+
+Goi nay chi chua extension. Ban sua anh xa tren website van can cap nhat tu goi truoc.
+
+Ban 2.9.0 can cap nhat website di kem de bo qua Tro ly: chi so mo Bao cao hang ngay; PDF mo Bao cao hoa don.

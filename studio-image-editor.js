@@ -3,7 +3,7 @@ import {STUDIO_FONT_FAMILIES} from './studio-fonts.js?v=20261109-free-resources'
 import {botanicalPath} from './studio-botanical-render.js?v=20261109-free-resources';
 const botanicalThumbs=new Map();
 function botanicalThumb(id){if(!botanicalThumbs.has(id)){const c=document.createElement('canvas');c.width=120;c.height=100;const ctx=c.getContext('2d');ctx.translate(60,50);botanicalPath(ctx,id,90,75,'#739567');botanicalThumbs.set(id,c.toDataURL('image/png'));}return botanicalThumbs.get(id);}
-import {editorIcon} from './studio-editor-chrome.js?v=20261109-timeline-resize';
+import {editorIcon} from './studio-editor-chrome.js?v=20261110-merge-fix';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initImageEditor(root,{getState,change,add,background,replaceImage}){
  const q=s=>root.querySelector(s),workspace=q('.cs-workspace'),library=q('.cs-library'),stage=q('#csStage');let section='uploads',zoom=100,lastSelection='',lastMode='',search='';
