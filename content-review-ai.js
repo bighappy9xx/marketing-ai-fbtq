@@ -35,7 +35,7 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
     const {field,panel}=editor,text=field.value,issues=[...(editor.result?.issues||[]),...local(editor)].filter((row,index,all)=>all.findIndex(other=>other.start===row.start&&other.end===row.end&&other.type===row.type)===index);
     editor.issues=issues;
     const banned=issues.filter(i=>i.type==='banned').length,spelling=issues.filter(i=>i.type==='spelling').length,blocked=editor.result?.blocked||banned>0;
-    panel.querySelector('[data-ai-status]').textContent=editor.busy?'AI đang đọc nội dung…':editor.error?editor.error:editor.result?(blocked?`Đang chặn: ${banned} đoạn có từ cấm. Hãy sửa trước khi gửi / phê duyệt.`:spelling?`Đã kiểm tra AI · ${spelling} lỗi chính tả cần xem lại.`:'Đã kiểm tra AI · Chưa phát hiện từ cấm hoặc lỗi chính tả.'):banned?`Đã phát hiện ${banned} đoạn thuộc danh sách từ cấm. AI chưa kiểm tra xong.`:'AI tự kiểm tra sau khi bạn ngừng gõ. Kết quả cần được người duyệt xem lại.';
+    panel.querySelector('[data-ai-status]').textContent=editor.busy?'Gemini đang đọc nội dung…':editor.error?editor.error:editor.result?(blocked?`Đang chặn: ${banned} đoạn có từ cấm. Hãy sửa trước khi gửi / phê duyệt.`:spelling?`Đã kiểm tra AI · ${spelling} lỗi chính tả cần xem lại.`:'Đã kiểm tra AI · Chưa phát hiện từ cấm hoặc lỗi chính tả.'):banned?`Đã phát hiện ${banned} đoạn thuộc danh sách từ cấm. AI chưa kiểm tra xong.`:'Gemini tự kiểm tra sau khi bạn ngừng gõ. Kết quả cần được người duyệt xem lại.';
     panel.classList.toggle('has-issues',issues.length>0);panel.classList.toggle('has-error',!!editor.error);
     panel.querySelector('[data-ai-check]').disabled=editor.busy||!text.trim();
     panel.querySelector('[data-ai-preview]').innerHTML=highlightContent(text,issues)||'<span class="muted">Nhập nội dung để kiểm tra.</span>';
@@ -65,7 +65,7 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
         cache.set(requestKey,{result,expires:Date.now()+600000});if(cache.size>30)cache.delete(cache.keys().next().value);
         editor.result=result;editor.resultKey=requestKey;return result;
       }catch(error){
-        if(userId()===uid&&editor.version===version){editor.error=String(error.code||'').includes('not-found')?'Chưa triển khai reviewContentAI. Quản trị viên cần cấu hình OpenAI và triển khai hàm kiểm duyệt.':error.message||'AI chưa kiểm tra được. Bài chưa được xác nhận đạt.';editor.result=null;editor.resultKey=null;}
+        if(userId()===uid&&editor.version===version){editor.error=error.message||'Gemini chưa kiểm tra được. Kiểm tra Firebase AI Logic và App Check.';editor.result=null;editor.resultKey=null;}
         return null;
       }finally{if(editor.version===version&&userId()===uid){editor.busy=false;editor.promise=null;render(editor);}}
     })();editor.promise=promise;return promise;
@@ -74,7 +74,7 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
   function attach(field){
     if(editors.has(field))return editors.get(field);
     const panel=doc.createElement('section');panel.className='review-ai-panel';panel.setAttribute('aria-label','Kiểm tra nội dung bằng AI');
-    const id='review-ai-status-'+(++sequence);panel.innerHTML=`<div class="review-ai-heading"><b>✦ AI kiểm tra từ cấm & chính tả</b><button type="button" class="btn btn-secondary" data-ai-check>Kiểm tra lại</button></div><p id="${id}" data-ai-status role="status" aria-live="polite"></p><small class="muted">Đoạn đỏ là phần cần sửa. Bấm đoạn đỏ để chọn vị trí trong ô nội dung.</small><div class="review-ai-preview" data-ai-preview></div><ul class="review-ai-issues" data-ai-issues></ul>`;
+    const id='review-ai-status-'+(++sequence);panel.innerHTML=`<div class="review-ai-heading"><b>✦ Gemini · Từ cấm & chính tả</b><button type="button" class="btn btn-secondary" data-ai-check>Kiểm tra lại</button></div><p id="${id}" data-ai-status role="status" aria-live="polite"></p><small class="muted">Firebase AI Logic · Đoạn đỏ là phần cần sửa. Bấm đoạn đỏ để chọn vị trí trong ô nội dung.</small><div class="review-ai-preview" data-ai-preview></div><ul class="review-ai-issues" data-ai-issues></ul>`;
     // Place outside the label so check/fix buttons never activate the textarea label.
     const label=field.closest('label');(label||field).after(panel);field.setAttribute('aria-describedby',[field.getAttribute('aria-describedby'),id].filter(Boolean).join(' '));
     const editor={field,panel,text:field.value,policy:JSON.stringify(words()),version:0,result:null,error:'',busy:false};editors.set(field,editor);

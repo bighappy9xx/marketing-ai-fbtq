@@ -26,7 +26,11 @@ Nếu key sai hoặc đã thu hồi, cập nhật secret và triển khai lại 
 
 Tài liệu: [OpenAI API quickstart](https://developers.openai.com/api/docs/quickstart).
 
-## AI lọc từ cấm và kiểm tra chính tả
+## AI lọc từ cấm và kiểm tra chính tả (phương án OpenAI cho sau này)
+
+**Hiện website dùng Gemini qua Firebase AI Logic**, không gọi hàm OpenAI bên dưới. Cả lựa chọn Gemini của Trợ lý FBTQ cũng chạy trực tiếp qua AI Logic. Bật Gemini Developer API và App Check theo [FIREBASE_AI_SETUP.md](FIREBASE_AI_SETUP.md) để dùng trên Spark.
+
+Hàm OpenAI `reviewContentAI` vẫn được giữ cho sau này. Chỉ thực hiện các bước OpenAI dưới đây khi muốn đổi nhà cung cấp; khi đó cần đổi đường gọi trong phần khởi tạo `initContentReviewAI` ở `app.js`. Giới hạn 120 lượt/ngày bên dưới chỉ áp dụng cho hàm OpenAI, không áp dụng cho đường Firebase AI Logic hiện tại.
 
 Mục **Kiểm duyệt nội dung** tự kiểm tra sau khi ngừng gõ khoảng 1,5 giây. Trong bản đang chờ duyệt / cần sửa, bấm vào ô nội dung hoặc **Kiểm tra lại** để AI đọc bài. Các đoạn có vấn đề hiển thị màu đỏ trong bản đánh dấu; bấm đoạn đỏ để chọn đúng vị trí trong ô nhập, hoặc bấm **Áp dụng gợi ý** để sửa từng lỗi. Sau mỗi lần sửa, kết quả cũ được xoá và bài được kiểm tra lại.
 

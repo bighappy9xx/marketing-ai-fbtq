@@ -1,4 +1,5 @@
-import {initContentReviewAI} from './content-review-ai.js?v=20261112-ai-review';
+import {initContentReviewAI} from './content-review-ai.js?v=20261112-gemini-review';
+import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-ai-text.js?v=20261112-gemini-review';
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261110-export-flows';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
@@ -11,7 +12,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let reviewBridge=null;
-let contentReviewAI=null;
+let contentReviewAI=null,geminiContentReview=null;
 let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
@@ -142,7 +143,7 @@ async function generateGeminiContent({prompt,tone,length}){
   for(let i=0;i<attempts.length;i++){
     const attempt=attempts[i];if(attempt.wait)await new Promise(resolve=>setTimeout(resolve,attempt.wait));
     try{
-      const model=aiMod.getGenerativeModel(ai,{model:attempt.model,systemInstruction,generationConfig:{temperature:0.75,maxOutputTokens:length==='Chi tiết'?1500:900}});
+      const model=aiMod.getGenerativeModel(ai,{model:attempt.model,systemInstruction,generationConfig:{maxOutputTokens:length==='Chi tiết'?1500:900}});
       const result=await withAssistantTimeout(model.generateContent(prompt.trim())),content=result.response.text().trim();
       if(!content)throw new Error('Gemini không trả về nội dung. Hãy thử prompt khác.');
       geminiFallbackUsed=attempt.model!=='gemini-3.8-flash';return content;
@@ -176,11 +177,12 @@ function fbtqLocalOperationalReply(question){
   return null;
 }
 async function generateFbtqAssistantReply(question){
-  const provider=localStorage.getItem('fbtq_assistant_provider')||'gemini';
+  const savedProvider=localStorage.getItem('fbtq_assistant_provider'),provider=['gemini','openai','claude'].includes(savedProvider)?savedProvider:'gemini';
   const list=$('#fbtqAssistantMessages')||$('#assistantMessages');
   const history=[...(list?.querySelectorAll('.assistant-message')||[])].slice(-10).map(el=>({role:el.classList.contains('assistant-message--user')?'user':'assistant',text:el.querySelector('.assistant-message-body p')?.textContent||''})).filter(m=>m.text&&!m.text.includes('Đang xử lý câu lệnh')).slice(-8);
   if(history.at(-1)?.role==='user'&&history.at(-1)?.text===question)history.pop();
-  const endpoint={gemini:'askAssistantGemini',openai:'askAssistantOpenai',claude:'askAssistantClaude'}[provider]||'askAssistantGemini';
+  if(provider==='gemini')return generateFirebaseAssistant({question,context:fbtqAssistantContext(),history,getFirebase:requireFirebaseAI,getUserId:()=>state.user?.uid||null});
+  const endpoint={openai:'askAssistantOpenai',claude:'askAssistantClaude'}[provider];
   const result=await callFunction(endpoint,{question,context:fbtqAssistantContext(),history});
   if(!result.content)throw new Error('Mô hình chưa trả về câu trả lời. Kiểm tra cấu hình AI trên máy chủ.');return result.content;
 }
@@ -327,7 +329,7 @@ async function generateGeminiSpeech(text,voice){
   const binary=atob(audioPart.inlineData.data),pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)pcm[i]=binary.charCodeAt(i);
   return pcmToWav(pcm);
 }
-function signOutToAuth(){contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;state.role='employee';state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;state.role='employee';state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
   loadLocalForUser();
   assistantHistory?.start();
@@ -695,7 +697,8 @@ function appendContentReviewHistory(item,event){return [...(Array.isArray(item.e
 function reviewActor(){return{actorUid:state.user?.uid||'',actorName:state.user?.name||state.user?.email||'Thành viên',photoData:state.user?.photoData||'',at:new Date().toISOString()}}
 $('#contentReviewText').addEventListener('input',()=>updateContentReviewInput(false));
 $('#contentReviewVideoUrl').addEventListener('input',()=>{clearTimeout(window.contentReviewVideoTimer);window.contentReviewVideoTimer=setTimeout(()=>updateContentReviewInput(true),350)});
-contentReviewAI=initContentReviewAI({call:data=>callFunction('reviewContentAI',data,{timeout:95000}),words:()=>state.banned,userId:()=>state.user?.uid||null,notify:showToast});
+geminiContentReview=createFirebaseContentReview({getFirebase:requireFirebaseAI,getUserId:()=>state.user?.uid||null,readWords:async({db,storeMod})=>{const snapshot=await storeMod.getDocFromServer(storeMod.doc(db,'workspaces','fbtq','settings','bot'));return snapshot.exists()?snapshot.data().banned||[]:[];}});
+contentReviewAI=initContentReviewAI({call:data=>geminiContentReview.review(data),words:()=>state.banned,userId:()=>state.user?.uid||null,notify:showToast});
 $('#contentReviewForm').addEventListener('submit',async event=>{event.preventDefault();const formElement=event.currentTarget;if(!state.firebase)return showToast('Cần kết nối Firebase để gửi bài kiểm duyệt.','error');const form=new FormData(formElement),title=String(form.get('title')||'').trim(),text=String(form.get('text')||'').trim(),videoUrl=String(form.get('videoUrl')||'').trim(),submit=$('button[type="submit"]',formElement),uid=state.user?.uid,pending=reviewBridge?.getPending();if(!title||!text)return showToast('Nhập tiêu đề và nội dung Content trước khi gửi.','error');if(!driveVideoLinks(videoUrl)&&!reviewBridge?.hasPending())return showToast('Thêm video Final từ Studio hoặc nhập link Google Drive hợp lệ.','error');const id=pending?.id||crypto.randomUUID(),actor=reviewActor(),review={id,title,text,videoUrl,status:'pending',createdBy:uid,createdByName:state.user.name||state.user.email||'Thành viên',createdByPhoto:state.user.photoData||'',branch:state.user.branch||'',department:state.user.department||'',submittedAt:actor.at,createdAt:actor.at,editHistory:[{...actor,action:'submitted',actionLabel:pending?'Đã gửi video Final từ Studio để duyệt':'Đã gửi bài viết và video để duyệt'}]};const oldLabel=submit.textContent;submit.disabled=true;try{if(!await contentReviewAI.ensureAllowed(text,$('#contentReviewText')))return;if(state.user?.uid!==uid)throw Error('Tài khoản đã thay đổi.');if(pending){const {db,storeMod}=state.firebase;let existing=null;try{existing=await storeMod.getDoc(storeMod.doc(db,'workspaces','fbtq','contentReviews',id));}catch(e){if(e.code!=='permission-denied')throw e;}if(state.user?.uid!==uid)throw Error('Tài khoản đã thay đổi.');if(existing?.exists()){const saved={id,...existing.data()};if(saved.createdBy!==uid)throw Error('Bản Final không thuộc tài khoản hiện tại.');state.reviews=[saved,...state.reviews.filter(r=>r.id!==id)];reviewBridge.clear();formElement.reset();updateContentReviewInput();renderContentReviews();showToast('Bản Final này đã được gửi trước đó.');return;}review.videoAttachment=await reviewBridge.upload(percent=>submit.textContent='Đang tải Final '+percent+'%…');review.source='studio';review.videoUrl='';}if(state.user?.uid!==uid)throw Error('Tài khoản đã thay đổi.');await saveRecord('contentReviews',review,id);if(state.user?.uid!==uid)return;state.reviews=[review,...state.reviews.filter(r=>r.id!==id)];if(pending)reviewBridge.clear();formElement.reset();updateContentReviewInput();renderContentReviews();renderContentQueuePreview();showToast('Đã gửi nội dung và video vào hàng chờ kiểm duyệt.');}catch(error){showToast(error.message||'Không gửi được bài viết. Kiểm tra Storage/Firestore Rules.','error');}finally{submit.disabled=false;submit.textContent=oldLabel;}});
 $('#contentReviewManageWords').addEventListener('click',()=>editBanned());
 $('#refreshContentReviews').addEventListener('click',async()=>{if(!state.firebase)return showToast('Cần kết nối Firebase để tải lịch sử kiểm duyệt.','error');const {db,storeMod}=state.firebase,ref=storeMod.collection(db,'workspaces','fbtq','contentReviews'),query=isManager()?ref:storeMod.query(ref,storeMod.where('createdBy','==',state.user.uid)),button=$('#refreshContentReviews');button.disabled=true;try{const snap=await storeMod.getDocs(query);state.reviews=snap.docs.map(doc=>({id:doc.id,...doc.data()}));renderContentReviews();renderContentQueuePreview();showToast('Đã tải mới lịch sử kiểm duyệt.')}catch(error){showToast(error.message||'Không tải được lịch sử.','error')}finally{button.disabled=false}});

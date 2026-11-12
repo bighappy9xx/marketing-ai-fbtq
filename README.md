@@ -31,7 +31,7 @@ Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ c�
    cd functions && npm install && cd ..
    ```
 
-5. Gemini trong **Studio nội dung** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp. Quy trình **Đơn Từ & Đề Xuất** và **Hoá Đơn Tạm Ứng** dùng Firestore Security Rules trực tiếp, không cần Cloud Functions. ChatGPT, Claude, chatbot Messenger, Meta webhook và các phần máy chủ khác vẫn cần Cloud Functions, vì vậy không hoạt động trên Spark.
+5. Gemini trong **Studio nội dung**, **Kiểm duyệt nội dung**, **Trợ lý FBTQ** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp. Quy trình **Đơn Từ & Đề Xuất** và **Hoá Đơn Tạm Ứng** dùng Firestore Security Rules trực tiếp, không cần Cloud Functions. ChatGPT, Claude, chatbot Messenger, Meta webhook và các phần máy chủ khác vẫn cần Cloud Functions, vì vậy không hoạt động trên Spark.
 
 6. Chỉ khi kết nối Fanpage: đặt biến môi trường `META_GRAPH_VERSION` trong `functions/.env.<PROJECT_ID>` theo phiên bản Graph API mà Meta App của công ty hỗ trợ.
 7. Nếu dùng Firebase Hosting, triển khai giao diện và Rules. Với GitHub Pages, đẩy file website lên GitHub như thường lệ; triển khai Cloud Functions riêng bằng lệnh trong mục AI bên dưới.
@@ -86,7 +86,7 @@ Tệp PDF gốc được chia thành các phần nhỏ và lưu cùng hồ sơ t
 
 ## Firebase AI Logic cho Gemini
 
-Gemini tạo nội dung trong **Studio nội dung** và chuyển văn bản thành giọng đọc qua Firebase AI Logic, dùng Gemini Developer API. Không nhập Gemini API Key vào mã nguồn, cài đặt website hay GitHub: từ giữa năm 2026, Firebase AI Logic xác thực bằng service identity do Google quản lý. Key Google AI Studio mà bạn gửi trong cuộc trò chuyện không cần cho cấu hình này. Vì key đã được chia sẻ trong chat, hãy thu hồi key đó tại [Google AI Studio API keys](https://aistudio.google.com/apikey) và không dùng lại.
+Gemini tạo nội dung, kiểm tra từ cấm/chính tả trong **Kiểm duyệt nội dung**, trò chuyện trong **Trợ lý FBTQ** và chuyển văn bản thành giọng đọc qua Firebase AI Logic, dùng Gemini Developer API. Không nhập Gemini API Key vào mã nguồn, cài đặt website hay GitHub: từ giữa năm 2026, Firebase AI Logic xác thực bằng service identity do Google quản lý. Key Google AI Studio mà bạn gửi trong cuộc trò chuyện không cần cho cấu hình này. Vì key đã được chia sẻ trong chat, hãy thu hồi key đó tại [Google AI Studio API keys](https://aistudio.google.com/apikey) và không dùng lại.
 
 ### Bật Gemini cho Firebase
 
@@ -103,7 +103,7 @@ Firebase AI Logic với Gemini Developer API có thể bắt đầu trên gói S
 
 Hướng dẫn kết nối ChatGPT cho cả Studio nội dung và Trợ lý FBTQ, gồm nút kiểm tra API thực tế: [OPENAI_SETUP.md](OPENAI_SETUP.md).
 
-Mục **Kiểm duyệt nội dung** có AI tự dò từ cấm và chính tả, đánh dấu đỏ và gợi ý sửa trực tiếp. Cần triển khai thêm `functions:reviewContentAI` theo hướng dẫn trên. Giao diện chặn gửi/phê duyệt khi còn từ cấm hoặc AI chưa kiểm tra được; lỗi chính tả được cảnh báo để người dùng sửa.
+Mục **Kiểm duyệt nội dung** có AI tự dò từ cấm và chính tả, đánh dấu đỏ và gợi ý sửa trực tiếp. Hiện dùng **Gemini qua Firebase AI Logic** trên Spark, không cần OpenAI hoặc Cloud Functions; xem [FIREBASE_AI_SETUP.md](FIREBASE_AI_SETUP.md). Giao diện chặn gửi/phê duyệt khi còn từ cấm hoặc AI chưa kiểm tra được; lỗi chính tả được cảnh báo để người dùng sửa.
 
 ChatGPT/Claude trong Studio và các chức năng Chatbot chạy qua Cloud Functions; chúng vẫn cần provider API key dạng Functions Secret và project phải đủ điều kiện triển khai Cloud Functions (thường cần Blaze có billing đang hoạt động). Chỉ lưu khóa của nhà cung cấp cần dùng:
 
