@@ -4,7 +4,7 @@ const source=()=>({id:'v',mediaId:'m',type:'video',start:25,in:40,duration:100,s
 const moment=(start=50,end=70)=>({start,end,hook:'Bạn có biết cách này?',summary:'Giải thích một mẹo trong video.',reason:'Có câu hỏi mở và minh hoạ rõ.',title:'Một mẹo hữu ích',description:'Tóm tắt đúng nội dung.',hashtags:['#MeoHay'],transitions:[{at:start,advice:'Cắt thẳng vào hành động.'}],music:[{at:start+1,advice:'Nhạc nhẹ, giảm dưới lời thoại.'}],subtitles:[{at:start+2,advice:'Nhấn từ khoá có trong lời thoại.'}]});
 test('timecodes preserve hours and subsecond boundaries and validate user clip options',async()=>{
   const c=await core();assert.equal(c.timecode(3661.25),'01:01:01.250');assert.equal(c.timecode(59.9996),'00:01:00');assert.equal(c.timecode(0),'00:00:00');
-  assert.equal(c.highlightOptions().count,3);for(const options of [{count:0},{count:1.5},{count:11},{minDuration:40,maxDuration:10},{maxDuration:181}])assert.throws(()=>c.highlightOptions(options));
+  assert.equal(c.highlightOptions().count,null);for(const options of [{count:0},{count:1.5},{count:11},{minDuration:40,maxDuration:10},{maxDuration:181}])assert.throws(()=>c.highlightOptions(options));
 });
 test('model results use source bounds, accept fewer moments and reject unsafe or fabricated ranges',async()=>{
   const c=await core(),options=c.highlightOptions({count:3,minDuration:10,maxDuration:60});
@@ -29,10 +29,23 @@ function sdkFixture(){
 }
 test('Gemini receives real inline video and source offsets with schema; no OpenAI dependency',async()=>{
   const {analyzeStudioHighlights}=await import('../studio-highlights-ai.js'),f=sdkFixture(),result=await analyzeStudioHighlights(f.args);
-  assert.equal(f.calls,1);assert.equal(f.params.model,'gemini-3.8-flash');assert.equal(f.params.generationConfig.responseMimeType,'application/json');assert.equal(f.opts.timeout,120000);assert.equal(f.parts[1].inlineData.data,Buffer.from('video bytes').toString('base64'));assert.deepEqual(f.parts[1].videoMetadata,{startOffset:'40s',endOffset:'140s'});assert.equal(JSON.parse(f.parts[0]).requestedCount,2);assert.equal(result.moments.length,1);
+  assert.equal(f.calls,1);assert.equal(f.params.model,'gemini-3.8-flash');assert.equal(f.params.generationConfig.responseMimeType,'application/json');assert.equal(f.opts.timeout,120000);assert.equal(f.parts[1].inlineData.data,Buffer.from('video bytes').toString('base64'));assert.deepEqual(f.parts[1].videoMetadata,{startOffset:'40s',endOffset:'140s'});assert.equal(JSON.parse(f.parts[0]).maxCandidates,2);assert.equal(result.moments.length,1);
 });
 test('oversize video, invalid selection, missing App Check and account switch cannot produce a plan',async()=>{
   const {analyzeStudioHighlights,HIGHLIGHT_MAX_BYTES}=await import('../studio-highlights-ai.js');
-  const f=sdkFixture();await assert.rejects(analyzeStudioHighlights({...f.args,blob:new Blob([new Uint8Array(HIGHLIGHT_MAX_BYTES+1)],{type:'video/mp4'})}),/12 MB/);await assert.rejects(analyzeStudioHighlights({...f.args,clip:{...source(),type:'audio'}}),/đoạn video/);await assert.rejects(analyzeStudioHighlights({...f.args,getFirebase:()=>({})}),/App Check/);assert.equal(f.calls,0);
+  const f=sdkFixture();await assert.rejects(analyzeStudioHighlights({...f.args,blob:{size:HIGHLIGHT_MAX_BYTES+1,type:'video/mp4'}}),/8 GB/);await assert.rejects(analyzeStudioHighlights({...f.args,clip:{...source(),type:'audio'}}),/Video cần/);await assert.rejects(analyzeStudioHighlights({...f.args,getFirebase:()=>({})}),/App Check/);assert.equal(f.calls,0);
   let release;f.pause(new Promise(r=>release=r));const pending=analyzeStudioHighlights(f.args);while(!f.calls)await new Promise(r=>setTimeout(r,1));f.user('other');release();await assert.rejects(pending,/Tài khoản/);
+});
+test('long and large source is streamed through every overlapping window with corrected absolute timecodes',async()=>{
+  const {analyzeStudioHighlights}=await import('../studio-highlights-ai.js'),f=sdkFixture(),ranges=[],progress=[];
+  const blob={size:8*1024**3,type:'video/mp4',arrayBuffer(){throw Error('Never read the entire 8 GB input');}};
+  f.result({moments:[moment(10,30)],note:'Khoảnh khắc phù hợp.'});
+  const result=await analyzeStudioHighlights({...f.args,blob,clip:{...source(),in:0,duration:500,sourceDuration:500},options:{minDuration:10,maxDuration:60},prepare:async part=>{assert.equal(part.blob,blob);ranges.push([part.start,part.end]);return new Blob(['small proxy'],{type:'video/webm'});},onProgress:p=>progress.push(p)});
+  assert.deepEqual(ranges,[[0,180],[120,300],[240,420],[360,500]]);assert.equal(f.calls,4);assert.deepEqual(result.moments.map(m=>m.start),[10,130,250,370]);assert.equal(result.moments[3].subtitles[0].at,372);assert.equal(result.options.count,null);assert.equal(progress.at(-1).percent,100);
+});
+test('window coverage has no gaps and cancellation stops before further encoding or AI requests',async()=>{
+  const {videoWindows}=await import('../studio-video-preparation.js'),{analyzeStudioHighlights}=await import('../studio-highlights-ai.js');
+  const windows=videoWindows(20,1000,10,180);assert.equal(windows[0].start,20);assert.equal(windows.at(-1).end,1020);assert.ok(windows.every((w,i)=>i===0||w.start<windows[i-1].end));
+  const f=sdkFixture(),controller=new AbortController();let prepared=0;
+  await assert.rejects(analyzeStudioHighlights({...f.args,blob:{size:20*1024**2},signal:controller.signal,prepare:async()=>{prepared++;controller.abort();return new Blob(['proxy'],{type:'video/webm'});}}),{name:'AbortError'});assert.equal(prepared,1);assert.equal(f.calls,0);
 });

@@ -32,3 +32,43 @@
 #csHighlightsCutConfirm button{margin-right:8px}
 .dark .cs-ai-panel .cs-highlight-hashtags,.dark .cs-highlights-table button{color:#c5aaff}
 @media(max-width:650px){.cs-highlight-editing{grid-template-columns:1fr}.cs-highlights-options{gap:6px}.cs-highlight-card{padding:12px}.cs-ai-panel--highlights{width:calc(100vw - 20px)}}
+
+/* Video AI uses a complete workspace from the moment it opens. */
+.cs-ai-panel[data-studio-mode="video"]{inset:18px auto 18px 50%;transform:translateX(-50%);width:min(1480px,calc(100vw - 36px));height:calc(100dvh - 36px);max-height:none;padding:24px;border-radius:20px;z-index:1400;font-size:14px;box-shadow:0 24px 100px #111b4655}
+.cs-ai-panel[data-studio-mode="video"] .cs-ai-heading{top:-24px;padding:14px 0;margin:0;min-height:44px}
+.cs-ai-panel[data-studio-mode="video"] .cs-ai-heading b{font-size:22px}
+.cs-ai-panel[data-studio-mode="video"] .cs-ai-heading small{font-size:12px}
+.cs-ai-panel[data-studio-mode="video"] #csAIStatus{margin:8px 0 18px;font-size:13px;padding:12px 16px}
+.cs-ai-panel[data-studio-mode="video"] section.cs-ai-highlights{margin:0;padding:0;border:0}
+.cs-highlights-workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.cs-highlights-view{min-width:0;position:sticky;top:78px}
+.cs-highlights-video-heading{display:flex;gap:14px;align-items:center;justify-content:space-between;margin:0 0 14px;min-width:0}
+.cs-highlights-video-heading>div{min-width:0}.cs-highlights-video-heading button{flex-shrink:0}
+.cs-ai-panel .cs-highlights-eyebrow{font-size:10px;letter-spacing:1.2px;color:#7963bd;font-weight:700}
+.cs-ai-panel #csHighlightsVideoName{font-size:18px;margin:7px 0;overflow-wrap:anywhere;line-height:1.4}
+.cs-ai-panel #csHighlightsVideoMeta{font-size:12px;margin:0}
+#csHighlightsPlayer{width:100%;height:min(58vh,600px);min-height:240px;display:block;object-fit:contain;background:#111725;border:1px solid #20283b;border-radius:14px}
+#csHighlightsPlayer[hidden]{display:none}
+.cs-highlights-empty{min-height:360px;border:1px dashed var(--cs-border,#d8d7e7);border-radius:14px;background:var(--cs-soft,#f5f6fc);display:grid;align-content:center;text-align:center;gap:12px;padding:24px;color:var(--cs-muted,#6b7590)}
+.cs-highlights-empty[hidden]{display:none}.cs-highlights-empty b{font-size:18px;color:var(--cs-ink,#243246)}
+.cs-highlights-video-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;color:var(--cs-muted,#6b7590);font-size:12px}
+.cs-highlights-settings{padding:20px;background:var(--cs-soft,#f7f6fc);border:1px solid var(--cs-border,#e5e1ef);border-radius:14px;min-width:0}
+.cs-ai-panel .cs-highlights-settings h3{font-size:17px;line-height:1.45;margin:7px 0 8px}
+.cs-ai-panel .cs-highlights-settings p,.cs-ai-panel .cs-highlights-settings small{font-size:12px;line-height:1.7}
+.cs-ai-panel .cs-highlights-settings label{font-size:12px;margin:16px 0 8px;font-weight:600;gap:8px}
+.cs-ai-panel .cs-highlights-settings input,.cs-ai-panel .cs-highlights-settings select,.cs-ai-panel .cs-highlights-settings textarea{font-size:13px;min-height:42px;background:var(--cs-panel,#fff)}
+.cs-highlights-settings .cs-highlights-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cs-ai-panel .cs-highlights-settings .cs-ai-primary{min-height:46px;font-size:13px;margin:16px 0 12px}
+.cs-highlights-settings>small{display:block}
+#csHighlightsProgress{margin-top:12px;border:1px solid var(--cs-border,#ddd5ef);padding:12px;border-radius:10px;background:var(--cs-panel,#fff)}
+#csHighlightsProgress progress{width:100%;height:10px;accent-color:#7945ed;margin:5px 0 12px}
+.cs-ai-panel #csHighlightsProgress label{margin:0 0 7px;line-height:1.5}
+.cs-ai-legacy{border-top:1px solid var(--cs-border,#e1e7ee);margin:24px 0 8px;padding-top:16px}
+.cs-ai-legacy>summary{cursor:pointer;font-size:13px;color:var(--cs-muted,#77849a);font-weight:600;padding:8px 0}
+.cs-ai-legacy[open]>summary{margin-bottom:12px}
+.cs-ai-panel[data-studio-mode="video"] #csHighlightsResult{margin-top:28px;padding-top:20px;border-top:1px solid var(--cs-border,#e1e7ee)}
+.cs-ai-panel[data-studio-mode="video"] .cs-highlights-table,.cs-ai-panel[data-studio-mode="video"] .cs-highlight-card p,.cs-ai-panel[data-studio-mode="video"] .cs-highlight-cues{font-size:13px}
+.cs-ai-panel[data-studio-mode="video"] .cs-highlight-card h4{font-size:18px}
+.cs-ai-panel[data-studio-mode="video"] button{font-size:12px;min-height:38px}
+@media(max-width:1050px){.cs-highlights-workspace{grid-template-columns:minmax(0,1fr) 300px;gap:18px}.cs-highlights-settings{padding:16px}#csHighlightsPlayer{height:44vh}}
+@media(max-width:760px){.cs-ai-panel[data-studio-mode="video"]{inset:8px;width:calc(100vw - 16px);height:calc(100dvh - 16px);transform:none;padding:16px;border-radius:14px}.cs-ai-panel[data-studio-mode="video"] .cs-ai-heading{top:-16px}.cs-highlights-workspace{grid-template-columns:1fr;gap:20px}.cs-highlights-view{position:static}#csHighlightsPlayer{height:38vh;min-height:210px}.cs-highlights-empty{min-height:220px}.cs-ai-panel #csHighlightsVideoName{font-size:16px}.cs-highlights-video-footer{align-items:flex-start}.cs-highlight-editing{grid-template-columns:1fr}.cs-highlights-video-heading{gap:8px}}

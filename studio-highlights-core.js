@@ -3,15 +3,15 @@ export function timecode(value){
   return [Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':')+(ms%1000?'.'+String(ms%1000).padStart(3,'0'):'');
 }
 export function highlightSourceKey(uid,clip){return JSON.stringify([uid,clip?.id,clip?.mediaId,clip?.in||0,clip?.duration,clip?.start]);}
-export function highlightOptions({count=3,minDuration=10,maxDuration=60,platform='TikTok / Reels / Shorts',goal=''}={}){
-  if(!Number.isInteger(count)||count<1||count>10)throw Error('Chọn từ 1 đến 10 khoảnh khắc.');
+export function highlightOptions({count=null,minDuration=10,maxDuration=60,platform='TikTok / Reels / Shorts',goal=''}={}){
+  if(count!==null&&(!Number.isInteger(count)||count<1||count>10))throw Error('Số khoảnh khắc nội bộ không hợp lệ.');
   if(![minDuration,maxDuration].every(Number.isFinite)||minDuration<5||maxDuration>180||minDuration>maxDuration)throw Error('Thời lượng clip cần từ 5 đến 180 giây; tối thiểu không vượt tối đa.');
   if(!['TikTok / Reels / Shorts','TikTok','Facebook Reels','YouTube Shorts'].includes(platform)||typeof goal!=='string'||goal.length>1000)throw Error('Nền tảng hoặc mục tiêu nội dung không hợp lệ.');
   return {count,minDuration,maxDuration,platform,goal:goal.trim()};
 }
 export function validateHighlights(data,clip,options){
   const fail=()=>{throw Error('Gemini trả mốc cắt hoặc nội dung chưa hợp lệ. Hãy phân tích lại.');};
-  if(!data||!Array.isArray(data.moments)||data.moments.length>options.count||typeof data.note!=='string'||data.note.length>1500)fail();
+  if(!data||!Array.isArray(data.moments)||data.moments.length>(options.count??10)||typeof data.note!=='string'||data.note.length>1500)fail();
   const lower=clip.in||0,upper=lower+clip.duration,rows=[];
   for(const row of data.moments){
     if(!row||![row.start,row.end].every(Number.isFinite)||row.start<lower||row.end>upper||row.end-row.start<options.minDuration-.001||row.end-row.start>options.maxDuration+.001)fail();

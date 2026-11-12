@@ -123,7 +123,7 @@ Chatbot Messenger dùng hàm máy chủ riêng để giữ Page token và Gemini
 
 ## AI tìm khoảnh khắc hấp dẫn trong video
 
-Trong **Studio Sáng Tạo → Studio AI**, chọn số clip và thời lượng để Gemini đọc video đang chọn, tạo bảng Start/End, hook, lý do chọn, tiêu đề, mô tả, hashtag và gợi ý chuyển cảnh/nhạc/phụ đề. Có thể nhảy timecode, xuất CSV và xác nhận đặt điểm cắt có Hoàn tác. Tính năng dùng Firebase AI Logic, không cần OpenAI; video nguồn tối đa 12 MB, phạm vi chọn tối đa 10 phút. Hướng dẫn: [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md).
+Trong **Studio Sáng Tạo → Studio AI**, đặt thời lượng để Gemini tự chọn số khoảnh khắc trong toàn bộ video nguồn, tạo bảng Start/End, hook, lý do chọn, tiêu đề, mô tả, hashtag và gợi ý chuyển cảnh/nhạc/phụ đề. Có thể nhảy timecode, xuất CSV và xác nhận đặt điểm cắt có Hoàn tác. Tính năng dùng Firebase AI Logic, không cần OpenAI; nguồn tối đa 8 GB/file, có trình xem video lớn và tự chia/nén từng phần khi phân tích video lớn. Hướng dẫn: [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md).
 
 ## Chuyển văn bản thành giọng đọc
 
