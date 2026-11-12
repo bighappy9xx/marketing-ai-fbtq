@@ -121,6 +121,10 @@ firebase deploy --project mediafbtq-6e1bb --only functions:generateContentClaude
 
 Chatbot Messenger dùng hàm máy chủ riêng để giữ Page token và Gemini key ở phía server. Tự trả lời dùng `GEMINI_API_KEY`; Gemini Studio nội dung và giọng đọc dùng Firebase AI Logic và không dùng secret đó. Không đưa bất kỳ provider key nào vào file website/GitHub.
 
+## AI tìm khoảnh khắc hấp dẫn trong video
+
+Trong **Studio Sáng Tạo → Studio AI**, chọn số clip và thời lượng để Gemini đọc video đang chọn, tạo bảng Start/End, hook, lý do chọn, tiêu đề, mô tả, hashtag và gợi ý chuyển cảnh/nhạc/phụ đề. Có thể nhảy timecode, xuất CSV và xác nhận đặt điểm cắt có Hoàn tác. Tính năng dùng Firebase AI Logic, không cần OpenAI; video nguồn tối đa 12 MB, phạm vi chọn tối đa 10 phút. Hướng dẫn: [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md).
+
 ## Chuyển văn bản thành giọng đọc
 
 Trong **Studio nội dung → Giọng đọc**, nhập văn bản hoặc chuyển bản nháp đang mở sang giọng đọc, nghe thử và tải WAV. Website dùng Firebase AI Logic, model `gemini-3.1-flash-tts-preview`, với năm giọng dựng sẵn: **Thảo Nhi — Aoede**, **Giang Chu — Kore**, **Trần Hà Linh — Zephyr**, **Mai Công Chúa — Callirrhoe** và **Vũ Khánh Phương — Sulafat**. Gemini trả về âm thanh PCM; website chuyển thành WAV trên trình duyệt. Mỗi lần tạo giới hạn 1.800 ký tự. Hoàn tất các bước cấu hình Firebase AI Logic và App Check ở trên; không cần lưu Secret Gemini cho tính năng này.

@@ -14,4 +14,6 @@ Giới hạn 120 lượt/ngày của hàm OpenAI cũ không áp dụng cho đư�
 
 OpenAI vẫn được giữ để cấu hình sau theo [OPENAI_SETUP.md](OPENAI_SETUP.md). Các chức năng tạo ảnh/chép âm thanh bằng OpenAI và chatbot Messenger vẫn cần backend riêng.
 
+**Studio AI → Tìm khoảnh khắc hấp dẫn** cũng dùng Firebase AI Logic trực tiếp: xem video để đề xuất clip ngắn, bảng timeline, hook, nội dung đăng và gợi ý dựng. Xem [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md) để biết giới hạn video và thao tác đặt điểm cắt.
+
 Tài liệu chính thức: [Firebase AI Logic và Spark](https://firebase.google.com/docs/ai-logic/faq-and-troubleshooting), [JSON có cấu trúc](https://firebase.google.com/docs/ai-logic/generate-structured-output), [App Check cho web](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider).

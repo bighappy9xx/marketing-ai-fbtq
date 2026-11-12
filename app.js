@@ -1,7 +1,8 @@
+import {analyzeStudioHighlights} from './studio-highlights-ai.js?v=20261112-highlights';
 import {initContentReviewAI} from './content-review-ai.js?v=20261112-gemini-review';
 import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-ai-text.js?v=20261112-gemini-review';
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
-import { initCreativeStudio } from './creative-studio.js?v=20261110-export-flows';
+import { initCreativeStudio } from './creative-studio.js?v=20261112-highlights';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261108-chatbot';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261110-merge-fix';
@@ -1055,7 +1056,7 @@ function refreshDailyBoundary(){const day=vnToday();if(day===lastDailyBoundary)r
 setInterval(refreshDailyBoundary,60000);window.addEventListener('focus',refreshDailyBoundary);
 
 reviewBridge=createFinalReviewBridge({state,navigate,toast:showToast,onPreviewChanged:()=>updateContentReviewInput()});
-const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>callFunction(name,data,{timeout:200000}),onFinal:artifact=>reviewBridge.stage(artifact)});
+const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>name==='analyzeStudioHighlights'?analyzeStudioHighlights({...data,getFirebase:requireFirebaseAI,getUserId:()=>state.user?.uid||null}):callFunction(name,data,{timeout:200000}),onFinal:artifact=>reviewBridge.stage(artifact)});
 const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages});
 
 for(const container of [$('#fbtqAssistantWindow .fbtq-dock-head'),$('#page-assistant .page-heading')].filter(Boolean)){

@@ -2,7 +2,11 @@
 
 Đã tích hợp sẵn lời thoại tiếng Việt có mốc thời gian, tách câu, cắt khoảng lặng, cảnh báo cụm từ và tạo ảnh bằng prompt. Chưa triển khai Cloud Functions và chưa gọi API thật trong phiên cập nhật này.
 
-## Cấu hình Firebase mediafbtq-6e1bb
+## Tìm khoảnh khắc hấp dẫn bằng Gemini
+
+**Studio AI → Tìm khoảnh khắc hấp dẫn** dùng Firebase AI Logic để phân tích video, lập bảng timecode, viết tiêu đề/mô tả/hashtag và gợi ý dựng từng clip. Tính năng này chạy trên Spark với Gemini Developer API và App Check, không cần cấu hình OpenAI bên dưới. Xem [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md).
+
+## Cấu hình OpenAI cho phiên âm và tạo ảnh
 
 1. Giải nén ZIP, chép các file vào dự án đang dùng, giữ đúng thư mục `functions`. Các file JavaScript/CSS mới của Studio phải được đưa lên hosting cùng `index.html` và `app.js` mới.
 2. Mở Terminal trong thư mục dự án. Dùng tài khoản có quyền triển khai Firebase và dự án có billing hoạt động cho Cloud Functions/Secret Manager. Kiểm tra project trước khi deploy:
