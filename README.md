@@ -31,7 +31,7 @@ Nếu cùng ngày và chiến dịch đã có báo cáo, thao tác lưu sẽ c�
    cd functions && npm install && cd ..
    ```
 
-5. Gemini trong **Studio nội dung**, **Kiểm duyệt nội dung**, **Trợ lý FBTQ** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp. Quy trình **Đơn Từ & Đề Xuất** và **Hoá Đơn Tạm Ứng** dùng Firestore Security Rules trực tiếp, không cần Cloud Functions. ChatGPT, Claude, chatbot Messenger, Meta webhook và các phần máy chủ khác vẫn cần Cloud Functions, vì vậy không hoạt động trên Spark.
+5. Gemini trong **Studio nội dung**, **Kiểm duyệt nội dung**, **Trợ lý FBTQ** và mục **Giọng đọc** dùng Firebase AI Logic trực tiếp. Quy trình **Đơn Từ & Đề Xuất** và **Hoá Đơn Tạm Ứng** dùng Firestore Security Rules trực tiếp, không cần Cloud Functions. ChatGPT có thể chạy qua backend Cloudflare Worker riêng để giữ Spark (xem OPENAI_SPARK_SETUP.md). Claude, chatbot Messenger, Meta webhook và các phần máy chủ Firebase khác vẫn cần Cloud Functions.
 
 6. Chỉ khi kết nối Fanpage: đặt biến môi trường `META_GRAPH_VERSION` trong `functions/.env.<PROJECT_ID>` theo phiên bản Graph API mà Meta App của công ty hỗ trợ.
 7. Nếu dùng Firebase Hosting, triển khai giao diện và Rules. Với GitHub Pages, đẩy file website lên GitHub như thường lệ; triển khai Cloud Functions riêng bằng lệnh trong mục AI bên dưới.
@@ -101,11 +101,13 @@ Firebase AI Logic với Gemini Developer API có thể bắt đầu trên gói S
 
 ### ChatGPT, Claude và Chatbot
 
+**OpenAI không cần bật Blaze nếu dùng backend riêng:** đã có Cloudflare Worker + D1 trong `openai-worker/`. Vào **Cài đặt → Mô hình AI → Thêm OpenAI API** để lưu URL backend sau khi triển khai. API key được lưu trong Worker Secret. Hướng dẫn: [OPENAI_SPARK_SETUP.md](OPENAI_SPARK_SETUP.md).
+
 Hướng dẫn kết nối ChatGPT cho cả Studio nội dung và Trợ lý FBTQ, gồm nút kiểm tra API thực tế: [OPENAI_SETUP.md](OPENAI_SETUP.md).
 
 Mục **Kiểm duyệt nội dung** có AI tự dò từ cấm và chính tả, đánh dấu đỏ và gợi ý sửa trực tiếp. Hiện dùng **Gemini qua Firebase AI Logic** trên Spark, không cần OpenAI hoặc Cloud Functions; xem [FIREBASE_AI_SETUP.md](FIREBASE_AI_SETUP.md). Giao diện chặn gửi/phê duyệt khi còn từ cấm hoặc AI chưa kiểm tra được; lỗi chính tả được cảnh báo để người dùng sửa.
 
-ChatGPT/Claude trong Studio và các chức năng Chatbot chạy qua Cloud Functions; chúng vẫn cần provider API key dạng Functions Secret và project phải đủ điều kiện triển khai Cloud Functions (thường cần Blaze có billing đang hoạt động). Chỉ lưu khóa của nhà cung cấp cần dùng:
+Nếu dùng đường Firebase Functions cũ thay cho Worker, ChatGPT/Claude trong Studio và các chức năng Chatbot vẫn cần provider API key dạng Functions Secret và project đủ điều kiện triển khai Cloud Functions (thường cần Blaze có billing đang hoạt động). Chỉ lưu khóa của nhà cung cấp cần dùng:
 
 ```sh
 firebase functions:secrets:set OPENAI_API_KEY --project mediafbtq-6e1bb

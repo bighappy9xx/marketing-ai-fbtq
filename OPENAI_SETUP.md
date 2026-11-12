@@ -1,5 +1,7 @@
 # Kết nối ChatGPT vào Marketing AI FBTQ
 
+**Giữ Firebase Spark:** dùng backend Cloudflare Worker và D1 theo [OPENAI_SPARK_SETUP.md](OPENAI_SPARK_SETUP.md). Website có ô URL backend tại **Cài đặt → Mô hình AI → Thêm OpenAI API**. Các bước Functions bên dưới là phương án cần Blaze.
+
 Studio nội dung và Trợ lý FBTQ gọi OpenAI Responses API qua Firebase Cloud Functions. API key chỉ lưu ở máy chủ.
 
 1. Bật gói **Blaze** cho Firebase project `mediafbtq-6e1bb`. Tạo API key trong OpenAI project có API billing và quyền dùng model.

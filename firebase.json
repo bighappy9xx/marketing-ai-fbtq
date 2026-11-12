@@ -19,7 +19,8 @@
       "scripts/**",
       "functions */**",
       "*.bak",
-      "install-*.cjs"
+      "install-*.cjs",
+      "openai-worker/**"
     ],
     "cleanUrls": true,
     "headers": [

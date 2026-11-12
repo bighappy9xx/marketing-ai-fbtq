@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS usage (
+  path TEXT PRIMARY KEY,
+  version INTEGER NOT NULL,
+  value TEXT NOT NULL
+);

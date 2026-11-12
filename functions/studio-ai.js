@@ -1,4 +1,6 @@
 const crypto=require('node:crypto');
+const {Buffer}=require('node:buffer');
+const process=require('node:process');
 module.exports.registerStudioAI=function({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY,fetchImpl=fetch}){
  const fail=(code,message)=>{throw new HttpsError(code,message);};
  async function user(request){const auth=await requireSignedIn(request);if(auth.profile?.approved===false||!['employee','department_manager','branch_manager','accountant','director'].includes(auth.profile?.role))fail('permission-denied','Tài khoản chưa được cấp quyền sử dụng Studio AI.');return auth;}

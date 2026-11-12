@@ -1,0 +1,19 @@
+{
+  "name": "fbtq-openai-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "FIREBASE_PROJECT_ID": "mediafbtq-6e1bb",
+    "FIREBASE_WEB_API_KEY": "REPLACE_WITH_PUBLIC_FIREBASE_WEB_API_KEY",
+    "ALLOWED_ORIGINS": "https://bighappy9xx.github.io",
+    "OPENAI_MODEL": "gpt-6-luna"
+  },
+  "d1_databases": [{
+    "binding": "QUOTA_DB",
+    "database_name": "fbtq-openai-usage",
+    "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+    "migrations_dir": "migrations"
+  }]
+}

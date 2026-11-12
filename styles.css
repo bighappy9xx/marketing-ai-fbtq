@@ -1208,3 +1208,7 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 .dark .review-ai-preview mark{color:#ffbdc5;background:#56212d;border-color:#ff7b8c}
 .dark .review-ai-panel.has-issues [data-ai-status],.dark .review-ai-panel.has-error [data-ai-status],.dark .review-ai-issues b{color:#ffabb7}
 @media(max-width:640px){.review-ai-panel{padding:12px}.review-ai-issues li{flex-direction:column;gap:8px}.review-ai-issue-actions{width:100%}.review-ai-heading .btn{font-size:12px}}
+
+.openai-setup-guide{font-size:14px;line-height:1.7}.openai-setup-guide ol{padding-left:22px}.openai-setup-guide li{margin:18px 0}.openai-setup-guide li>p{margin:6px 0 10px}.openai-setup-guide a{color:var(--primary,#535df3);text-decoration:underline}.openai-setup-command{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border,#dedfe8);border-radius:10px;background:var(--bg,#f6f7fc)}.openai-setup-command code{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-size:12px}.openai-setup-guide #openAISetupCopyStatus{display:block;margin-top:10px}
+
+.openai-setup-guide>label{display:flex;flex-direction:column;gap:6px;margin:18px 0 12px;font-weight:600}.openai-setup-guide>label input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border,#dedfe8);border-radius:8px;font:inherit;font-weight:400;background:var(--bg,#fff);color:inherit}.openai-setup-guide .settings-actions{display:flex;gap:8px;flex-wrap:wrap}.openai-setup-guide summary{cursor:pointer}

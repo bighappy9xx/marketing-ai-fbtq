@@ -3,3 +3,7 @@ functions/.env*
 !functions/env.example
 .firebase/
 firebase-debug*.log
+
+openai-worker/.dev.vars*
+openai-worker/.env*
+openai-worker/.wrangler/

@@ -1,4 +1,5 @@
 // Read-only assistant: model responses never execute tools or mutate business data.
+const process=require('node:process');
 module.exports.registerAssistantAI=function({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY}){
  const providers={gemini:GEMINI_API_KEY,openai:OPENAI_API_KEY,claude:ANTHROPIC_API_KEY},out={};
  for(const [provider,secret] of Object.entries(providers))out['askAssistant'+provider[0].toUpperCase()+provider.slice(1)]=onCall({secrets:[secret],timeoutSeconds:90,memory:'256MiB'},async request=>{

@@ -2,7 +2,7 @@
 module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireManager,OPENAI_API_KEY,fetchImpl=fetch,model=()=>process.env.OPENAI_MODEL||'gpt-6-luna'}) {
   async function generate(prompt,instructions,options={}) {
     const key=OPENAI_API_KEY.value();
-    if(!key)throw new HttpsError('failed-precondition','Chưa cấu hình OPENAI_API_KEY trong Firebase Functions Secrets.');
+    if(!key)throw new HttpsError('failed-precondition','Chưa cấu hình OPENAI_API_KEY trên backend.');
     let response;
     try {
       response=await fetchImpl('https://api.openai.com/v1/responses',{
@@ -15,7 +15,7 @@ module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireMan
     }
     const data=await response.json().catch(()=>({}));
     if(!response.ok) {
-      if(response.status===401)throw new HttpsError('failed-precondition','OpenAI API key không hợp lệ hoặc đã bị thu hồi. Cập nhật OPENAI_API_KEY và triển khai lại Functions.');
+      if(response.status===401)throw new HttpsError('failed-precondition','OpenAI API key không hợp lệ hoặc đã bị thu hồi. Cập nhật secret OPENAI_API_KEY của backend rồi thử lại.');
       if(response.status===403)throw new HttpsError('permission-denied','OpenAI từ chối truy cập. Kiểm tra quyền của API key, project và model.');
       if(response.status===404)throw new HttpsError('failed-precondition','Model OpenAI không tồn tại hoặc project chưa được cấp quyền. Kiểm tra OPENAI_MODEL ở máy chủ.');
       if(response.status===429)throw new HttpsError('resource-exhausted','OpenAI đã chạm hạn mức. Kiểm tra API billing, số dư và giới hạn yêu cầu rồi thử lại.');
