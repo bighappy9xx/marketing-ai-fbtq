@@ -36,6 +36,7 @@ async function requireDirector(request) {
 }
 const openaiIntegration=require('./openai-api').createOpenAIIntegration({onCall,HttpsError,requireManager,OPENAI_API_KEY});
 exports.checkOpenAIConnection=openaiIntegration.checkOpenAIConnection;
+Object.assign(exports,require('./content-review-ai').registerContentReviewAI({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY,generate:openaiIntegration.generate}));
 
 function cleanProvider(provider) {
   if (!['gemini','openai','claude'].includes(provider)) throw new HttpsError('invalid-argument', 'Mô hình AI không hợp lệ.');

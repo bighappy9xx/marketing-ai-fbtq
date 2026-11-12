@@ -25,3 +25,20 @@ Studio nội dung và Trợ lý FBTQ gọi OpenAI Responses API qua Firebase Clo
 Nếu key sai hoặc đã thu hồi, cập nhật secret và triển khai lại các hàm dùng key. Lỗi 429 cần kiểm tra số dư, API billing hoặc giới hạn yêu cầu; lỗi model cần kiểm tra `OPENAI_MODEL` và quyền truy cập. Cấu hình Gemini/App Check không thay thế secret OpenAI.
 
 Tài liệu: [OpenAI API quickstart](https://developers.openai.com/api/docs/quickstart).
+
+## AI lọc từ cấm và kiểm tra chính tả
+
+Mục **Kiểm duyệt nội dung** tự kiểm tra sau khi ngừng gõ khoảng 1,5 giây. Trong bản đang chờ duyệt / cần sửa, bấm vào ô nội dung hoặc **Kiểm tra lại** để AI đọc bài. Các đoạn có vấn đề hiển thị màu đỏ trong bản đánh dấu; bấm đoạn đỏ để chọn đúng vị trí trong ô nhập, hoặc bấm **Áp dụng gợi ý** để sửa từng lỗi. Sau mỗi lần sửa, kết quả cũ được xoá và bài được kiểm tra lại.
+
+- Từ cấm công ty được đối chiếu ngay trên máy và máy chủ, kể cả chữ hoa hoặc biến thể không dấu. AI bổ sung nhận diện câu cam kết thiếu căn cứ, ngôn từ xúc phạm và lỗi chính tả theo ngữ cảnh. Phát hiện của AI áp dụng cho bài đang kiểm tra; danh sách cấm chung vẫn do quản lý chỉnh sửa.
+- Giao diện chặn gửi mới, gửi lại và phê duyệt khi còn đoạn bị cấm. Lỗi chính tả hiện đỏ kèm gợi ý, người dùng quyết định sửa. Quản lý vẫn có thể trả bài để yêu cầu sửa.
+- Nếu AI chưa kiểm tra được hoặc chưa cấu hình, giao diện không cho gửi / phê duyệt bài. Kết quả AI cần được người duyệt xem lại. Đây là bước kiểm tra trên giao diện, không thay thế phân quyền và quy trình xét duyệt Firestore.
+- Mỗi tài khoản tối đa 120 yêu cầu AI/ngày theo giờ Việt Nam, chỉ một yêu cầu chạy cùng lúc; kết quả giống nhau được tái dùng trong 10 phút. Không tự thử lại yêu cầu lỗi. Các lượt gọi OpenAI có tính phí theo mức dùng.
+
+Sau khi cấu hình Blaze và `OPENAI_API_KEY`, triển khai thêm:
+
+```sh
+firebase deploy --project mediafbtq-6e1bb --only functions:reviewContentAI
+```
+
+Đưa `app.js`, `index.html`, `styles.css` và `content-review-ai.js` mới lên hosting. Hàm dùng `OPENAI_MODEL` hoặc biến ghi đè `CONTENT_REVIEW_OPENAI_MODEL`; model cần hỗ trợ [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).

@@ -7,7 +7,7 @@ module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireMan
     try {
       response=await fetchImpl('https://api.openai.com/v1/responses',{
         method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},
-        body:JSON.stringify({model:options.model||model(),instructions,input:prompt,max_output_tokens:options.maxTokens||1100,store:false}),
+        body:JSON.stringify({model:options.model||model(),instructions,input:prompt,max_output_tokens:options.maxTokens||1100,store:false,...(options.format?{text:{format:options.format}}:{})}),
         signal:AbortSignal.timeout(55000)
       });
     } catch {

@@ -103,6 +103,8 @@ Firebase AI Logic với Gemini Developer API có thể bắt đầu trên gói S
 
 Hướng dẫn kết nối ChatGPT cho cả Studio nội dung và Trợ lý FBTQ, gồm nút kiểm tra API thực tế: [OPENAI_SETUP.md](OPENAI_SETUP.md).
 
+Mục **Kiểm duyệt nội dung** có AI tự dò từ cấm và chính tả, đánh dấu đỏ và gợi ý sửa trực tiếp. Cần triển khai thêm `functions:reviewContentAI` theo hướng dẫn trên. Giao diện chặn gửi/phê duyệt khi còn từ cấm hoặc AI chưa kiểm tra được; lỗi chính tả được cảnh báo để người dùng sửa.
+
 ChatGPT/Claude trong Studio và các chức năng Chatbot chạy qua Cloud Functions; chúng vẫn cần provider API key dạng Functions Secret và project phải đủ điều kiện triển khai Cloud Functions (thường cần Blaze có billing đang hoạt động). Chỉ lưu khóa của nhà cung cấp cần dùng:
 
 ```sh

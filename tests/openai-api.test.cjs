@@ -11,6 +11,8 @@ test('Responses API sends credentials only in server headers and extracts messag
   assert.equal(api.calls[0].url,'https://api.openai.com/v1/responses');assert.equal(api.calls[0].headers.Authorization,'Bearer server-secret');
   assert.deepEqual(JSON.parse(api.calls[0].body),{model:'configured-model',instructions:'Tiếng Việt',input:'Xin chào',max_output_tokens:900,store:false});
   await api.generate('Hi','',{model:'assistant-model'});assert.equal(JSON.parse(api.calls[1].body).model,'assistant-model');
+  const format={type:'json_schema',name:'test_review',strict:true,schema:{type:'object'}};
+  await api.generate('Check','',{format});assert.deepEqual(JSON.parse(api.calls[2].body).text,{format});
 });
 test('connection check requires manager and confirms a real successful response',async()=>{
   const api=setup();assert.deepEqual(await api.checkOpenAIConnection({}),{connected:true,model:'configured-model'});assert.equal(api.calls.length,1);
