@@ -101,6 +101,8 @@ Firebase AI Logic với Gemini Developer API có thể bắt đầu trên gói S
 
 ### ChatGPT, Claude và Chatbot
 
+Hướng dẫn kết nối ChatGPT cho cả Studio nội dung và Trợ lý FBTQ, gồm nút kiểm tra API thực tế: [OPENAI_SETUP.md](OPENAI_SETUP.md).
+
 ChatGPT/Claude trong Studio và các chức năng Chatbot chạy qua Cloud Functions; chúng vẫn cần provider API key dạng Functions Secret và project phải đủ điều kiện triển khai Cloud Functions (thường cần Blaze có billing đang hoạt động). Chỉ lưu khóa của nhà cung cấp cần dùng:
 
 ```sh

@@ -34,6 +34,9 @@ async function requireDirector(request) {
   if ((auth.profile.role || auth.token.role) !== 'director') throw new HttpsError('permission-denied', 'Chỉ Giám đốc có thể thay đổi phân quyền.');
   return auth;
 }
+const openaiIntegration=require('./openai-api').createOpenAIIntegration({onCall,HttpsError,requireManager,OPENAI_API_KEY});
+exports.checkOpenAIConnection=openaiIntegration.checkOpenAIConnection;
+
 function cleanProvider(provider) {
   if (!['gemini','openai','claude'].includes(provider)) throw new HttpsError('invalid-argument', 'Mô hình AI không hợp lệ.');
   return provider;
@@ -48,6 +51,7 @@ function textFromResponse(provider, data) {
 }
 async function generateWithProvider(provider, prompt, system, secrets, options={}) {
   cleanProvider(provider);
+  if(provider==='openai')return openaiIntegration.generate(prompt,system,options);
   const maxTokens = options.maxTokens || 1100;
   let url, headers={'Content-Type':'application/json'}, body, key;
   if (provider === 'gemini') {
@@ -57,12 +61,6 @@ async function generateWithProvider(provider, prompt, system, secrets, options={
     url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     headers['x-goog-api-key'] = key;
     body = {systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.75,maxOutputTokens:maxTokens}};
-  } else if (provider === 'openai') {
-    key = secrets.openai;
-    if (!key) throw new HttpsError('failed-precondition', 'Quản trị viên chưa cấu hình OpenAI API key.');
-    url = 'https://api.openai.com/v1/responses';
-    headers.Authorization = `Bearer ${key}`;
-    body = {model:options.model||'gpt-6-luna',instructions:system,input:prompt,max_output_tokens:maxTokens};
   } else {
     key = secrets.claude;
     if (!key) throw new HttpsError('failed-precondition', 'Quản trị viên chưa cấu hình Anthropic API key.');
