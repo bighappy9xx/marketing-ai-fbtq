@@ -21,7 +21,7 @@ function reviewSchema(Schema){
     quote:Schema.string(),occurrence:Schema.integer(),type:Schema.enumString({enum:['banned','spelling']}),reason:Schema.string(),replacement:Schema.string()
   }})})}});
 }
-function verifiedSession(getFirebase,getUserId){
+export function verifiedSession(getFirebase,getUserId){
   const uid=getUserId();if(!uid)throw Error('Đăng nhập Firebase để sử dụng Gemini.');
   const firebase=getFirebase();
   if(!firebase?.aiMod||!firebase.ai)throw Error('Bật Firebase AI Logic với Gemini Developer API trước khi sử dụng.');
@@ -29,7 +29,7 @@ function verifiedSession(getFirebase,getUserId){
   return {uid,firebase};
 }
 function assertAccount(uid,getUserId){if(uid!==getUserId())throw Error('Tài khoản đã thay đổi. Hãy kiểm tra lại.');}
-async function generateText(firebase,params,prompt){
+export async function generateText(firebase,params,prompt){
   const model=firebase.aiMod.getGenerativeModel(firebase.ai,{model:MODEL,...params},{timeout:60000});
   const {response}=await model.generateContent(prompt);
   const finish=response?.candidates?.[0]?.finishReason;

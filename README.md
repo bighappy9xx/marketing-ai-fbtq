@@ -1,3 +1,5 @@
+> Bản test hiện dùng **Gemini Developer API qua Firebase AI Logic trên Spark**. Xem [GEMINI_SPARK_SETUP.md](GEMINI_SPARK_SETUP.md). Hướng dẫn OpenAI/Functions bên dưới là phương án khác, chưa dùng trong bản test này.
+
 # Marketing Ai FBTQ
 
 Website quản trị marketing dạng file tĩnh, không cần bước build. Giao diện không chứa số liệu chiến dịch, hội thoại hay nhân sự mẫu. Đăng nhập Firebase để làm việc; các bảng chỉ hiển thị dữ liệu thật đã lưu hoặc trạng thái chưa có dữ liệu.

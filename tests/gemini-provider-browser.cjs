@@ -1,0 +1,29 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=path.resolve(__dirname,'..');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{localStorage.setItem('fbtq_default_model','openai');localStorage.setItem('fbtq_assistant_provider','claude');});
+ await page.route('https://**/*',r=>r.abort());await page.route('https://fbtq.test/**',r=>{
+  const u=new URL(r.request().url()),file=path.resolve(root,'.'+(u.pathname==='/'?'/index.html':u.pathname));
+  if(u.pathname==='/firebase-config.js')return r.fulfill({contentType:'text/javascript',body:'window.FBTQ_FIREBASE_CONFIG={};'});
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file))return r.fulfill({status:404,body:''});
+  let body=fs.readFileSync(file);if(u.pathname==='/app.js')body=body.toString()+'\nwindow.__geminiQA={state,navigate,generateFbtqAssistantReply};';
+  return r.fulfill({body,contentType:({'.js':'text/javascript','.mjs':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});
+ });
+ await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__geminiQA);
+ await page.evaluate(()=>{const q=window.__geminiQA;q.state.user={uid:'manager',name:'QA'};q.state.role='director';window.__calls=[];window.__failGemini=false;
+  q.state.firebase={ai:{},appCheck:{},aiMod:{getGenerativeModel:(_,params)=>({generateContent:async prompt=>{window.__calls.push({params,prompt});if(window.__failGemini)throw Error('App Check token invalid');return{response:{candidates:[{finishReason:'STOP'}],text:()=> 'Nội dung thử Gemini thành công.'}};}})},funcMod:{httpsCallable:()=>{throw Error('Functions must not be called');}},storeMod:{doc:()=>({}),setDoc:async()=>{},serverTimestamp:()=>({})},db:{}};
+  document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');q.navigate('settings');
+ });
+ await page.locator('[data-setting=ai]').click();assert.equal(await page.locator('#defaultModel option').count(),1);assert.equal(await page.locator('#defaultModel').inputValue(),'gemini');assert.equal(await page.locator('#contentModel').inputValue(),'gemini');assert.equal(await page.evaluate(()=>localStorage.getItem('fbtq_assistant_provider')),'gemini');
+ await page.locator('#setupGeminiAPI').click();assert.match(await page.locator('.openai-setup-guide').innerText(),/Gemini Developer API/);assert.equal(await page.locator('.openai-setup-guide input').count(),0);await page.keyboard.press('Escape');
+ // Close using the app's modal control if Escape is not supported.
+ await page.evaluate(()=>document.querySelector('#modalRoot').replaceChildren());
+ await page.locator('#checkGeminiConnection').click();await page.waitForFunction(()=>document.querySelector('#geminiConnectionStatus').textContent.includes('Đã kết nối Gemini Developer API'));assert.equal(await page.evaluate(()=>window.__calls.length),1);
+ await page.evaluate(()=>window.__geminiQA.navigate('content'));await page.locator('#contentPrompt').fill('Viết bài giới thiệu sản phẩm');await page.locator('#generateContent').click();await page.waitForFunction(()=>document.querySelector('#resultPanel').textContent.includes('Nội dung thử Gemini thành công.'));
+ const reply=await page.evaluate(()=>window.__geminiQA.generateFbtqAssistantReply('Giải thích CPM'));assert.match(reply,/Gemini/);assert.equal(await page.evaluate(()=>window.__calls.length),3);
+ await page.evaluate(()=>window.__geminiQA.navigate('creative-studio'));await page.waitForFunction(()=>!document.querySelector('#page-creative-studio').classList.contains('cs-busy'));await page.locator('#csStudioAI').click();assert.match(await page.locator('.cs-ai-legacy summary').innerText(),/Gemini/);await page.locator('.cs-ai-legacy summary').click();await page.locator('[data-ai-action=setup]').click();await page.waitForFunction(()=>document.querySelector('#csAIStatus').textContent.includes('Đã kết nối Gemini'));
+ await page.locator('[data-ai-action=close]').click();await page.locator('[data-studio-tab=image]').click();await page.locator('#csStudioAI').click();assert.ok(await page.locator('[data-ai-action=generate]').isDisabled());
+ await page.evaluate(()=>{window.__failGemini=true;window.__geminiQA.navigate('settings');});await page.locator('[data-setting=ai]').click();await page.locator('#checkGeminiConnection').click();await page.waitForFunction(()=>document.querySelector('#geminiConnectionStatus').textContent.includes('App Check token invalid'));
+ assert.deepEqual(errors,[]);console.log('PASS Gemini-only selectors, old preference migration, content/assistant/Studio use AI Logic, disabled image generation, setup guide and failed-connection status.');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
