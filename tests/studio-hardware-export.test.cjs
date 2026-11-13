@@ -32,6 +32,13 @@ test('automatic encoder tries hardware then CPU, while explicit hardware never s
  calls.length=0;await assert.rejects(probeHardware(mock,1280,720,false,'hardware'));assert.deepEqual(calls,['prefer-hardware']);
  calls.length=0;await probeHardware(mock,1280,720,false,'software');assert.deepEqual(calls,['prefer-software']);
 });
+test('setup reports hardware, CPU and audio independently, including invalid project dimensions',async()=>{
+ const {inspectExportSupport}=await import('../studio-export-settings.js');
+ const mock={canEncodeVideo:async(c,o)=>o.hardwareAcceleration==='prefer-software',canEncodeAudio:async()=>false};
+ const result=await inspectExportSupport(mock,1920,1080);assert.equal(result.hardware,false);assert.equal(result.software,true);assert.equal(result.audio,false);assert.match(result.reason,/chưa hỗ trợ/);
+ const odd=await inspectExportSupport(mock,1919,1080);assert.equal(odd.hardware,false);assert.equal(odd.software,false);assert.match(odd.reason,/số chẵn/);
+ const broken=await inspectExportSupport({...mock,canEncodeAudio:async()=>{throw Error('unavailable');}},1280,720);assert.equal(broken.software,true);assert.equal(broken.audio,false);
+});
 function mockPipeline({cancelAt=Infinity,missingFrame=false}={}){
  const calls={timestamps:[],writes:0,disposed:0,cancelled:0,aborted:0,painted:[],audio:[]};let checked=0;
  const file=new Blob(['mp4'],{type:'video/mp4'});
