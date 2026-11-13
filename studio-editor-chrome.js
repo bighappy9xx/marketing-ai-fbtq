@@ -13,7 +13,7 @@ const paths={
  rotate:'M5 8a8 8 0 111 10 M5 3v5h5',layers:'M12 3L2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5',
  duplicate:'M8 8h12v12H8z M16 8V4H4v12h4',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 100 6 3 3 0 000-6',
  speaker:'M4 9h4l5-4v14l-5-4H4z M16 8a6 6 0 010 8 M19 5a10 10 0 010 14',
- play:'M9 5l11 7-11 7z',pause:'M8 5v14 M16 5v14',crop:'M7 3v14h14 M3 7h14v14'
+ play:'M8 5l12 7-12 7z',pause:'M8 5v14 M16 5v14',crop:'M7 3v14h14 M3 7h14v14'
 };
 export function editorIcon(name){return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${name==='play'?'<path d="'+paths.play+'" fill="currentColor" stroke="none"/>':'<path d="'+(paths[name]||paths.select)+'"/>'}</svg>`;}
 export function initEditorChrome(root,{zoomBy,onVisualAction}){
