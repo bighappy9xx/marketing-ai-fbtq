@@ -1,6 +1,6 @@
 # Gemini Developer API trên Firebase Spark
 
-Bản test chọn Gemini Developer API qua Firebase AI Logic (`GoogleAIBackend`), model văn bản/âm thanh `gemini-3.8-flash`. Không cần triển khai OpenAI Worker hoặc Firebase Cloud Functions cho các công cụ Gemini. Các lựa chọn OpenAI/Claude cũ trong trình duyệt được chuyển về Gemini; model mặc định cũ từ workspace không ghi đè lựa chọn này.
+Bản test chọn Gemini Developer API qua Firebase AI Logic (`GoogleAIBackend`), model văn bản nhanh `gemini-3.5-flash-lite`; kiểm duyệt và âm thanh giữ `gemini-3.8-flash`. Không cần triển khai OpenAI Worker hoặc Firebase Cloud Functions cho các công cụ Gemini. Các lựa chọn OpenAI/Claude cũ trong trình duyệt được chuyển về Gemini; model mặc định cũ từ workspace không ghi đè lựa chọn này.
 
 ## Thiết lập trong Firebase Console
 
@@ -27,3 +27,11 @@ Không bảo đảm quota vô hạn. Nếu 429/quota, kiểm tra hạn mức tro
 Mã đã được kiểm thử bằng phản hồi Gemini mô phỏng; chưa xác minh tài khoản Google hoặc gọi Gemini thật thay người dùng.
 
 Tài liệu: [Thiết lập Firebase AI Logic](https://firebase.google.com/docs/ai-logic/get-started?platform=web), [giá và tầng miễn phí](https://firebase.google.com/docs/ai-logic/pricing?api=dev), [phân tích âm thanh](https://firebase.google.com/docs/ai-logic/analyze-audio).
+
+## Thời gian phản hồi
+
+Kiểm tra kết nối dùng Flash-Lite, phản hồi ngắn, tối đa 20 giây; các lượt kiểm tra trùng trong cùng phiên/tài khoản được gộp. Nội dung và Trợ lý dùng Flash-Lite với thinking MINIMAL; chỉ thử Flash với thinking LOW một lần khi nhận lỗi quá tải 500/503, trong cùng giới hạn 60 giây. Không tự gửi lại sau timeout/429/lỗi App Check. Yêu cầu phía trình duyệt được truyền AbortSignal để tránh bỏ chờ rồi tạo thêm lượt song song; hủy trên trình duyệt không bảo đảm tác vụ phía Google chưa dùng quota.
+
+Kiểm duyệt giữ schema/kiểm tra kết quả, model Flash với thinking LOW và 60 giây. Phiên âm có giới hạn chờ 120 giây do gửi âm thanh. Không tăng giới hạn token vô hạn hoặc coi phản hồi trống/chưa hoàn tất là thành công. Kết nối kiểm tra Lite thành công không chứng minh mọi model media đều hoạt động; cần thử công cụ tương ứng.
+
+Nếu vẫn gặp timeout: kiểm tra App Check và site key/domain, kết nối tới dịch vụ Google, sau đó thử lại một lần. Model nhanh không sửa được lỗi cấu hình hoặc bảo đảm thời gian phản hồi của dịch vụ miễn phí. Tài liệu: [thinking levels](https://firebase.google.com/docs/ai-logic/thinking), [hủy từng yêu cầu](https://firebase.google.com/docs/reference/js/ai.singlerequestoptions).

@@ -1,3 +1,4 @@
+import {requestGemini,FAST_GEMINI_MODEL,QUALITY_GEMINI_MODEL} from './firebase-ai-request.js?v=20261113-ai-speed';
 import {companyIssues} from './content-review-ai.js?v=20261112-gemini-review';
 
 const MODEL='gemini-3.8-flash';
@@ -29,14 +30,7 @@ export function verifiedSession(getFirebase,getUserId){
   return {uid,firebase};
 }
 function assertAccount(uid,getUserId){if(uid!==getUserId())throw Error('Tài khoản đã thay đổi. Hãy kiểm tra lại.');}
-export async function generateText(firebase,params,prompt){
-  const model=firebase.aiMod.getGenerativeModel(firebase.ai,{model:MODEL,...params},{timeout:60000});
-  const {response}=await model.generateContent(prompt);
-  const finish=response?.candidates?.[0]?.finishReason;
-  if(response?.promptFeedback?.blockReason||finish&&finish!=='STOP')throw Error('Gemini chưa hoàn thành kiểm tra hoặc phản hồi đã bị chặn. Hãy kiểm tra lại với nội dung ngắn hơn.');
-  const text=response?.text()?.trim();if(!text)throw Error('Gemini chưa trả về phản hồi. Hãy thử lại.');
-  return text;
-}
+export async function generateText(firebase,params,prompt,options={}){return (await requestGemini(firebase,params,prompt,options)).content;}
 export function createFirebaseContentReview({getFirebase,getUserId,readWords}){
   const cache=new Map();
   async function review({text}){
@@ -62,6 +56,6 @@ export async function generateFirebaseAssistant({question,context={},history=[],
   const {uid,firebase}=verifiedSession(getFirebase,getUserId);
   if(JSON.stringify(context).length>16000)throw Error('Ngữ cảnh quá dài.');
   const conversation=history.slice(-8).filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.text==='string').map(m=>({role:m.role,text:m.text.slice(0,2000)}));
-  const content=await generateText(firebase,{systemInstruction:ASSISTANT_INSTRUCTIONS,generationConfig:{maxOutputTokens:1600}},JSON.stringify({workspaceContext:context,conversation,question:question.trim()}));
+  const content=await generateText(firebase,{systemInstruction:ASSISTANT_INSTRUCTIONS,generationConfig:{maxOutputTokens:1600}},JSON.stringify({workspaceContext:context,conversation,question:question.trim()}),{model:FAST_GEMINI_MODEL,fallbackModel:QUALITY_GEMINI_MODEL});
   assertAccount(uid,getUserId);return content;
 }
