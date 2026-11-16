@@ -39,7 +39,7 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
  const inputs=new Map(),videos=new Map(),audios=[];let output,writable,finished=false;
  const assert=()=>check?.();
  try{
-  assert();const options=await probeHardware(api,canvas.width,canvas.height,false,mode);assert();onEncoderSelected(options.hardwareAcceleration);
+  onProgress({phase:'prepare',progress:0});assert();const options=await probeHardware(api,canvas.width,canvas.height,false,mode);assert();onEncoderSelected(options.hardwareAcceleration);
   // Each resource is read on demand from its Blob, rather than copied into an ArrayBuffer.
   for(const c of visible.filter(c=>['video','audio'].includes(c.type))){
    assert();let source=inputs.get(c.mediaId);
@@ -75,7 +75,7 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
   output.addVideoTrack(video,{frameRate:EXPORT_FPS});
   const audio=audios.length?new api.AudioBufferSource({codec:'aac',bitrate:192000}):null;
   if(audio)output.addAudioTrack(audio);
-  await output.start();const frames=Math.ceil(duration*EXPORT_FPS);let frame=0;
+  await output.start();onProgress({phase:'encoding',progress:0,speed:0});const frames=Math.ceil(duration*EXPORT_FPS);let frame=0;
   const started=performance.now();
   // Interleave one second of audio and video so the muxer cannot accumulate a whole movie.
   for(let sample=0;sample<Math.ceil(duration*AUDIO_RATE);sample+=AUDIO_RATE){
@@ -106,11 +106,11 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
      images.set(c.id,result.value.canvas);
     }
     await paintFrame(t,images);assert();await video.add(t,Math.min(1/EXPORT_FPS,duration-t));frame++;
-    if(frame%15===0){onProgress({progress:frame/frames,speed:t/Math.max(.001,(performance.now()-started)/1000)});await new Promise(r=>setTimeout(r,0));}
+    if(frame%15===0){onProgress({phase:'encoding',progress:frame/frames,speed:t/Math.max(.001,(performance.now()-started)/1000)});await new Promise(r=>setTimeout(r,0));}
    }
   }
-  assert();video.close();audio?.close();await output.finalize();assert();await writable.close();finished=true;
-  const file=await fileHandle.getFile();onProgress({progress:1,speed:duration/Math.max(.001,(performance.now()-started)/1000)});return file;
+  assert();onProgress({phase:'finalizing',progress:1});video.close();audio?.close();await output.finalize();assert();await writable.close();finished=true;
+  const file=await fileHandle.getFile();onProgress({phase:'complete',progress:1,speed:duration/Math.max(.001,(performance.now()-started)/1000)});return file;
  }finally{
   if(!finished){try{await output?.cancel();}catch{}try{await writable?.abort();}catch{}}
   for(const iterator of [...videos.values(),...audios.map(a=>a.iterator)])try{await iterator.return?.();}catch{}

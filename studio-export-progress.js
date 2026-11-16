@@ -1,0 +1,19 @@
+export function createExportProgress({onCancel,document:doc=document,now=()=>performance.now()}={}){
+ const dialog=doc.createElement('dialog');dialog.id='csExportProgress';dialog.className='cs-export-dialog';
+ dialog.setAttribute('aria-labelledby','csExportProgressTitle');dialog.setAttribute('aria-describedby','csExportProgressStatus');
+ dialog.innerHTML=`<div class="cs-export-dialog-heading"><span aria-hidden="true">↗</span><div><h2 id="csExportProgressTitle">Xuất video</h2><p id="csExportProgressFile"></p></div></div><div class="cs-export-percent" id="csExportProgressPercent">0%</div><progress id="csExportProgressBar" max="100" value="0" aria-label="Tiến độ xuất video"></progress><p id="csExportProgressStatus" role="status" aria-live="polite">Đang chuẩn bị…</p><div class="cs-export-statistics"><span id="csExportProgressElapsed">Đã chạy 0 giây</span><span id="csExportProgressSpeed"></span></div><p class="cs-export-progress-note">Giữ tab mở cho đến khi xuất xong.</p><div class="cs-export-dialog-actions"><button type="button" class="btn btn-secondary" id="csExportProgressCancel">Hủy xuất</button><button type="button" class="btn btn-primary" id="csExportProgressClose" hidden>Đóng</button></div>`;
+ doc.body.append(dialog);const q=s=>dialog.querySelector(s),bar=q('#csExportProgressBar'),cancel=q('#csExportProgressCancel'),close=q('#csExportProgressClose');
+ let active=false,running=false,cancelling=false,started=0,timer,percent=0,returnFocus;
+ function tick(){q('#csExportProgressElapsed').textContent='Đã chạy '+Math.floor(Math.max(0,now()-started)/1000)+' giây';}
+ function setPercent(value){percent=value;bar.value=value;q('#csExportProgressPercent').textContent=value+'%';}
+ function dismiss(){active=false;running=false;clearInterval(timer);if(dialog.open)dialog.close();dialog.removeAttribute('aria-modal');if(returnFocus?.isConnected&&!returnFocus.disabled)returnFocus.focus({preventScroll:true});}
+ close.onclick=dismiss;
+ cancel.onclick=()=>{if(!running||cancelling)return;cancelling=true;cancel.disabled=true;cancel.textContent='Đang hủy…';q('#csExportProgressStatus').textContent='Đang hủy và dọn file xuất chưa hoàn tất…';onCancel?.();};
+ dialog.addEventListener('cancel',event=>{if(running)event.preventDefault();else dismiss();});
+ return {
+  start({name='',review=false}={}){clearInterval(timer);returnFocus=doc.activeElement;active=running=true;cancelling=false;started=now();dialog.dataset.state='running';dialog.setAttribute('aria-modal','true');setPercent(0);q('#csExportProgressTitle').textContent=review?'Xuất Final để kiểm duyệt':'Xuất video';q('#csExportProgressFile').textContent=name;q('#csExportProgressStatus').textContent='Đang chuẩn bị tư liệu và nơi lưu…';q('#csExportProgressSpeed').textContent='';cancel.hidden=false;cancel.disabled=false;cancel.textContent='Hủy xuất';close.hidden=true;tick();timer=setInterval(tick,1000);if(!dialog.open)dialog.showModal();cancel.focus();},
+  update({progress=0,phase='encoding',speed,message}={}){if(!active||!running||cancelling)return;const value=phase==='prepare'?0:phase==='finalizing'||phase==='complete'?99:Math.min(98,Math.floor(Math.max(0,Math.min(1,progress))*98));setPercent(Math.max(percent,value));q('#csExportProgressStatus').textContent=message||(phase==='prepare'?'Đang kiểm tra tư liệu và bộ mã hóa…':phase==='finalizing'||phase==='complete'?'Đang hoàn tất và lưu file…':'Đang dựng và mã hóa video…');if(Number.isFinite(speed)&&speed>0)q('#csExportProgressSpeed').textContent='Tốc độ '+speed.toFixed(1)+'×';tick();},
+  finish({state='success',message}={}){if(!active)return;running=false;clearInterval(timer);dialog.dataset.state=state;if(state==='success')setPercent(100);q('#csExportProgressStatus').textContent=message||(state==='success'?'Xuất file hoàn tất.':state==='cancelled'?'Đã hủy xuất.':'Không xuất được video.');cancel.hidden=true;close.hidden=false;close.textContent=state==='success'?'Hoàn tất':'Đóng';tick();close.focus();},
+  dismiss
+ };
+}
