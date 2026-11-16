@@ -42,7 +42,7 @@ test('setup reports hardware, CPU and audio independently, including invalid pro
 function mockPipeline({cancelAt=Infinity,missingFrame=false}={}){
  const calls={timestamps:[],writes:0,disposed:0,cancelled:0,aborted:0,painted:[],audio:[]};let checked=0;
  const file=new Blob(['mp4'],{type:'video/mp4'});
- class Input{async getFirstTimestamp(){return 2;}async getPrimaryVideoTrack(){return{canDecode:async()=>true};}async getPrimaryAudioTrack(){return null;}dispose(){calls.disposed++;}}
+ class Input{async getFirstTimestamp(){return 2;}async getPrimaryVideoTrack(){return{canDecode:async()=>true,getFirstTimestamp:async()=>2};}async getPrimaryAudioTrack(){return null;}dispose(){calls.disposed++;}}
  class CanvasSink{canvasesAtTimestamps(times){return(async function*(){for(const t of times){calls.timestamps.push(t);yield missingFrame?null:{canvas:{t}};}})();}}
  class Output{constructor(){calls.created=true;}addVideoTrack(){}addAudioTrack(){}async start(){calls.started=true;}async finalize(){calls.finalized=true;}async cancel(){calls.cancelled++;}}
  class CanvasSource{constructor(c,options){calls.options=options;}async add(t,d){calls.writes++;assert.ok(d>0);}close(){calls.closed=true;}}
@@ -54,6 +54,19 @@ test('pipeline encodes offline timestamps and finalizes streamed file rather tha
  const {exportHardware}=await api(),{options,calls,file}=mockPipeline();assert.equal(await exportHardware(options),file);
  assert.equal(calls.writes,3);assert.deepEqual(calls.painted,[0,1/30,2/30]);assert.equal(calls.timestamps[0],7);
  assert.equal(calls.options.hardwareAcceleration,'prefer-hardware');assert.equal(calls.finalized,true);assert.equal(calls.disposed,1);assert.equal(calls.cancelled,0);
+});
+test('audio-first sources hold the first video frame only before the video starts, without shifting trims or later timestamps',async()=>{
+ const {clipFrameTimes,exportHardware}=await api(),{options,calls}=mockPipeline();
+ options.clips[0].in=0;options.clips[0].duration=.2;
+ const Base=options.api.Input;options.api.Input=class extends Base{async getPrimaryVideoTrack(){return{canDecode:async()=>true,getFirstTimestamp:async()=>2.08};}};
+ options.api.CanvasSink=class{canvasesAtTimestamps(times){return(async function*(){for(const t of times){calls.timestamps.push(t);yield t<2.08?null:{canvas:{t}};}})();}};
+ await exportHardware(options);assert.equal(calls.finalized,true);assert.equal(calls.timestamps.length,6);assert.deepEqual(calls.timestamps.slice(0,3),[2.08,2.08,2.08]);assert.equal(calls.timestamps[3],2.1);assert.equal(calls.timestamps[5],2+5/30);
+ const trimmed=[...clipFrameTimes({start:0,duration:.1,in:5},2,30,2.08)];assert.equal(trimmed[0],7);assert.equal(trimmed[2],7+2/30);
+});
+test('a missing frame after a valid leading frame still aborts instead of concealing a damaged source',async()=>{
+ const {exportHardware}=await api(),{options,calls}=mockPipeline();
+ options.api.CanvasSink=class{canvasesAtTimestamps(times){return(async function*(){let frame=0;for(const t of times)yield frame++?null:{canvas:{t}};})()}};
+ await assert.rejects(exportHardware(options),/Thiếu khung hình/);assert.equal(calls.committed,undefined);assert.equal(calls.aborted,1);assert.equal(calls.disposed,1);
 });
 test('cancellation and missing decoded frames abort file and dispose input without finalizing',async()=>{
  const {exportHardware}=await api();

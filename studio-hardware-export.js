@@ -2,9 +2,9 @@
 import {opacityAt,endOf} from './studio-timeline-core.js?v=20261109-free-resources';
 export const EXPORT_FPS=30;
 export const AUDIO_RATE=48000;
-export function* clipFrameTimes(clip,origin=0,fps=EXPORT_FPS){
+export function* clipFrameTimes(clip,origin=0,fps=EXPORT_FPS,firstVideoTimestamp=-Infinity){
  for(let i=Math.ceil(clip.start*fps);i<Math.ceil(endOf(clip)*fps);i++){
-  const t=i/fps;if(t>=clip.start&&t<endOf(clip))yield origin+(clip.in||0)+t-clip.start;
+  const t=i/fps;if(t>=clip.start&&t<endOf(clip))yield Math.max(firstVideoTimestamp,origin+(clip.in||0)+t-clip.start);
  }
 }
 export function exportBitrate(width,height){return Math.min(24000000,Math.max(4000000,Math.round(width*height*30*.1)));}
@@ -51,7 +51,12 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
    }
    if(c.type==='video'){
     if(!source.video||!await source.video.canDecode())throw Error('Không giải mã được video: '+c.name+'. Hãy chuyển file nguồn sang MP4 H.264.');
-    const iterator=new api.CanvasSink(source.video,{poolSize:2}).canvasesAtTimestamps(clipFrameTimes(c,source.origin));videos.set(c.id,iterator);
+    // A file can start with audio before its first video presentation timestamp (e.g. MP4 edit lists).
+    // Hold the first real video frame over that leading gap. Keep the common source origin for A/V
+    // and all later requests: moving the entire video track would desynchronize speech and trims.
+    if(source.videoStart===undefined){source.videoStart=await source.video.getFirstTimestamp();assert();}
+    if(!Number.isFinite(source.videoStart))throw Error('Không đọc được mốc khung hình đầu của '+c.name+'.');
+    const iterator=new api.CanvasSink(source.video,{poolSize:2}).canvasesAtTimestamps(clipFrameTimes(c,source.origin,EXPORT_FPS,source.videoStart));videos.set(c.id,iterator);
    }
    if(audible.includes(c)&&source.audio){
     if(!await source.audio.canDecode())throw Error('Không giải mã được âm thanh: '+c.name);
@@ -97,7 +102,7 @@ export async function exportHardware({clips,tracks,resources,canvas,paintFrame,f
     assert();const t=frame/EXPORT_FPS,images=new Map();
     for(const c of visible)if(c.type==='video'&&t>=c.start&&t<endOf(c)){
      const result=await videos.get(c.id).next();assert();
-     if(result.done||!result.value)throw Error('Thiếu khung hình trong '+c.name+' tại '+t.toFixed(2)+'s.');
+     if(result.done||!result.value?.canvas)throw Error('Thiếu khung hình trong '+c.name+' tại '+t.toFixed(2)+'s.');
      images.set(c.id,result.value.canvas);
     }
     await paintFrame(t,images);assert();await video.add(t,Math.min(1/EXPORT_FPS,duration-t));frame++;

@@ -1,7 +1,7 @@
-import {initExportSettings} from './studio-export-settings.js?v=20261113-hardware-setup';
+import {initExportSettings} from './studio-export-settings.js?v=20261116-first-frame';
 import {splitHighlight as splitHighlightClips} from './studio-highlights-core.js?v=20261112-wide-studio';
 import {prepareExportDestination} from './studio-export-destination.js?v=20261110-export-flows';
-import {exportHardware} from './studio-hardware-export.js?v=20261113-hardware-setup';
+import {exportHardware} from './studio-hardware-export.js?v=20261116-first-frame';
 import {initFreeResources} from './studio-free-resources.js?v=20261109-free-resources';
 import {ensureStudioFont,ensureProjectFonts} from './studio-fonts.js?v=20261109-free-resources';
 import {HERBAL_TEMPLATES} from './studio-free-catalog.js?v=20261109-free-resources';

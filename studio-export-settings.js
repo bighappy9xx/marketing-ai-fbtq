@@ -1,4 +1,4 @@
-import {probeHardware,AUDIO_RATE} from './studio-hardware-export.js?v=20261113-hardware-setup';
+import {probeHardware,AUDIO_RATE} from './studio-hardware-export.js?v=20261116-first-frame';
 
 const storageKey='fbtq_studio_export_engine';
 const modes=new Set(['auto','hardware','software','realtime']);
