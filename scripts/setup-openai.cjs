@@ -59,6 +59,9 @@ async function main(){
  console.log('4/5 · Triển khai 9 chức năng OpenAI (có thể mất vài phút)…');
  stage('deploying-functions');
  await run(firebase,['deploy','--project',PROJECT,'--only',FUNCTIONS.map(n=>'functions:'+n).join(',')],{env});
+ console.log('Kiểm tra quyền HTTP để trình duyệt gọi được Functions…');
+ stage('repairing-invokers');
+ await run(process.execPath,[path.join(ROOT,'scripts/repair-openai-invokers.cjs')],{env});
  console.log('5/5 · Cập nhật Firebase Hosting…');
  stage('deploying-hosting');
  await run(firebase,['deploy','--project',PROJECT,'--only','hosting'],{env});
