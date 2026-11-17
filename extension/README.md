@@ -1,4 +1,4 @@
-# Meta Helper 2.9.0 — Điền trực tiếp báo cáo
+# Meta Helper 2.9.2 — Điền trực tiếp báo cáo
 
 Bản này giữ nguyên cách đọc cột của 2.8.5 đã chạy tốt. Chỉ thay luồng gửi: chỉ số mở và điền thẳng Báo cáo hàng ngày trong Hiệu suất marketing; PDF mở trực tiếp biểu mẫu ở Báo cáo hóa đơn. Không mở hay thêm tin nhắn vào Trợ lý FBTQ. Vẫn kiểm tra và phê duyệt khi lưu/gửi duyệt. Cần cập nhật cả website đi kèm và extension để luồng mới có hiệu lực.
 
@@ -95,3 +95,10 @@ Ghép đoạn dòng checkbox/tên/chỉ số cùng hàng trong bảng Meta có n
 
 ## 2.8.5 — Sửa theo tệp kiểm tra thực tế
 Tệp 2.8.4 cung cấp hàng tiêu đề semantic nhưng không có ô dữ liệu semantic; cột Chiến dịch x207..551 chồng vùng Phân phối x420..580. Bản này ưu tiên tiêu đề hiển thị, dùng liên kết tên trong vùng Chiến dịch làm mốc dòng và ô chọn/đánh dấu xanh cùng dòng, sau đó đọc các ô div/span của hàng đó. Không yêu cầu dữ liệu phải có role gridcell. Chỉ lấy dòng được chọn. Kiểm thử giữ nguyên tọa độ từ tệp chẩn đoán với các dòng dữ liệu tái hiện; không khẳng định đã truy cập phiên Meta thật. Tệp kiểm tra lỗi được mở rộng thêm visualRows để có dữ liệu phân tích nếu vẫn chưa khớp.
+
+## Sửa đọc cột 2.9.2
+
+- Ghép tên chiến dịch ghim bên trái với phần chỉ số của cùng dòng, tránh đếm một dòng thành nhiều mục.
+- Tự cuộn ngang vùng bảng để đọc các ô Meta chỉ dựng khi xuất hiện trên màn hình, sau đó khôi phục vị trí cũ. Trong lúc quét, tránh bấm/chọn/cuộn bảng Meta; extension sẽ dừng nếu phát hiện thao tác để không ghép nhầm dữ liệu.
+- Giữ nguyên tên/dòng đã chọn; chỉ ghép thêm giá trị theo cột chính xác. Dữ liệu không có vẫn để trống, không thay bằng 0 hay lấy Tần suất/Người tiếp cận làm giá hoặc chi tiêu.
+- Bấm Reload extension trong chrome://extensions, sau đó tải lại cả tab Meta và website FBTQ. Đối chiếu bảng xem trước trước khi bấm Điền Báo cáo hàng ngày.

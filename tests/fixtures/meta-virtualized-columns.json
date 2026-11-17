@@ -1,0 +1,193 @@
+{
+  "description": "Sanitized geometry from the user diagnostic: one selected campaign, pinned name, split metric row, offscreen virtualized financial columns.",
+  "viewport": 1396,
+  "headers": [
+    {
+      "text": "Tắt/Bật",
+      "x": 113,
+      "y": 319,
+      "w": 94,
+      "h": 48
+    },
+    {
+      "text": "Chiến dịch",
+      "x": 207,
+      "y": 319,
+      "w": 344,
+      "h": 48
+    },
+    {
+      "text": "Phân phối",
+      "x": 551,
+      "y": 319,
+      "w": 160,
+      "h": 48
+    },
+    {
+      "text": "Hành động",
+      "x": 711,
+      "y": 319,
+      "w": 200,
+      "h": 48
+    },
+    {
+      "text": "Cài đặt ghi nhận",
+      "x": 911,
+      "y": 319,
+      "w": 120,
+      "h": 49
+    },
+    {
+      "text": "Kết quả",
+      "x": 1031,
+      "y": 319,
+      "w": 146,
+      "h": 48
+    },
+    {
+      "text": "Người tiếp cận",
+      "x": 1177,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Tần suất",
+      "x": 1323,
+      "y": 319,
+      "w": 146,
+      "h": 48
+    },
+    {
+      "text": "Chi phí trên mỗi kết quả",
+      "x": 1469,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Ngân sách",
+      "x": 1615,
+      "y": 319,
+      "w": 134,
+      "h": 48
+    },
+    {
+      "text": "Số tiền đã chi tiêu",
+      "x": 1749,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Kết thúc",
+      "x": 1895,
+      "y": 319,
+      "w": 113,
+      "h": 48
+    },
+    {
+      "text": "Lượt hiển thị",
+      "x": 2008,
+      "y": 319,
+      "w": 146,
+      "h": 48
+    },
+    {
+      "text": "CPM (Chi phí trên mỗi 1.000 lượt hiển thị)",
+      "x": 2154,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Lượt click vào liên kết",
+      "x": 2300,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Lượt nhấp vào cửa hàng",
+      "x": 2446,
+      "y": 319,
+      "w": 120,
+      "h": 49
+    },
+    {
+      "text": "CPC (chi phí trên mỗi lượt click vào liên kết)",
+      "x": 2566,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "CTR (tỷ lệ click vào liên kết)",
+      "x": 2712,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Lượt click (tất cả)",
+      "x": 2858,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "CTR (tất cả)",
+      "x": 3004,
+      "y": 319,
+      "w": 146,
+      "h": 48
+    },
+    {
+      "text": "CPC (tất cả)",
+      "x": 3150,
+      "y": 319,
+      "w": 146,
+      "h": 48
+    },
+    {
+      "text": "Lượt xem trang đích",
+      "x": 3296,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Chi phí trên mỗi lượt xem trang đích",
+      "x": 3442,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    },
+    {
+      "text": "Đơn đặt hàng đã tạo",
+      "x": 3588,
+      "y": 319,
+      "w": 146,
+      "h": 49
+    }
+  ],
+  "nameBand": {
+    "x": 0,
+    "y": 371,
+    "w": 1396,
+    "h": 40
+  },
+  "metricsBand": {
+    "x": 551,
+    "y": 367,
+    "w": 3215,
+    "h": 46
+  },
+  "values": {
+    "campaign": "Chiến dịch thử nghiệm",
+    "status": "Đang hoạt động",
+    "results": "4\nLượt bắt đầu cuộc trò chuyện qua tin nhắn",
+    "reach": "5.713",
+    "frequency": "1,23"
+  }
+}

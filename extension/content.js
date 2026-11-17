@@ -333,7 +333,7 @@
       const rect = element.getBoundingClientRect();
       const rowKey = key(elementText(element));
       if (headerTerms.filter(term => rowKey.includes(term)).length >= 3) continue;
-      if (rows.some(row => { const other = row.getBoundingClientRect(); return Math.abs(rect.top - other.top) < 5 && Math.abs(rect.left - other.left) < 12; })) continue;
+      if (rows.some(row => { const other = row.getBoundingClientRect(); return Math.abs(rect.top - other.top) <= 6 && Math.abs(rect.bottom - other.bottom) <= 6; })) continue;
       rows.push(element);
     }
     const allHeaderNodes = [...document.querySelectorAll('div,span,button,th')].filter(element => {
@@ -395,10 +395,11 @@
       completeMetric(item, rawColumns, row);
       output.push(item);
     }
-    lastScanInfo = { headers: [...detectedHeaders], rows: rows.length, selected: rows.length, metaSelectedCount };
-    return [...new Map(output.map(item => [`${key(item.account)}|${key(item.name)}|${item.spend}`, item])).values()];
+    lastScanInfo = { headers: [...detectedHeaders], rows: output.length, selected: output.length, metaSelectedCount };
+    return [...new Map(output.map(item => [`${key(item.account)}|${key(item.name)}|${Math.round(item._rowBand?.top||0)}`, item])).values()];
   }
   function completeMetric(item, rawColumns, row) {
+    if(row?.getBoundingClientRect)Object.defineProperty(item,'_rowBand',{value:row.getBoundingClientRect(),configurable:true});
     for(const column of rawColumns){if(headerSpecs.find(spec=>spec.field==='campaign').labels.some(label=>headerKey(label)===headerKey(column.label)))column.value=item.name;}
     item.rawColumns = rawColumns;
     const headers = rawColumns.map((column,index) => ({label: column.label,index}));
@@ -510,8 +511,88 @@
     preview.append(table);
   }
 
-  function collectMetrics() {
-    lastRows = rowsFromTable();
+  // Meta virtualizes metric cells outside the horizontal viewport. Join later cells to the
+  // selected row's original vertical band, never to a new name or a neighboring row.
+  function readColumnSnapshot(item) {
+    const band=item._rowBand;if(!band)return item.rawColumns||[];
+    const bounds={...band,top:band.top-6,bottom:band.bottom+6};
+    const elements=[...document.querySelectorAll('[role="gridcell"],[role="cell"],td,div,span,a,button')].filter(isMetaElement);
+    const cells=elements.map(element=>({element,rect:element.getBoundingClientRect(),text:String(element.innerText||element.textContent||'').trim()})).filter(c=>c.rect.width>0&&c.rect.height>0&&c.rect.top>=bounds.top&&c.rect.bottom<=bounds.bottom);
+    const headers=[...document.querySelectorAll('[role="columnheader"],thead th')].filter(isMetaElement);
+    const columns=[];
+    for(const element of headers){
+      const rect=columnBounds(element),label=headerLabel(element);
+      if(!label||rect.width<10||rect.bottom>band.top+6||band.top-rect.bottom>260||rect.right<=0||rect.left>=innerWidth)continue;
+      if(columns.some(c=>headerKey(c.label)===headerKey(label)))continue;
+      columns.push({label,value:textInColumn(cells,rect,bounds,true)});
+    }
+    return columns;
+  }
+  function mergeColumnSnapshot(item,columns) {
+    const merged=new Map((item.rawColumns||[]).map(c=>[headerKey(c.label),{...c}]));
+    for(const column of columns){const k=headerKey(column.label);if(column.value.trim())merged.set(k,{...column});else if(!merged.has(k))merged.set(k,{...column});}
+    const rawColumns=[...merged.values()],headers=rawColumns.map((c,index)=>({label:c.label,index})),cells=new Map(rawColumns.map((c,index)=>[index,c.value]));
+    const value=field=>{const spec=headerSpecs.find(s=>s.field===field);return spec?cellValue(headers,cells,spec.labels):'';};
+    // Name, identity and selection are fixed by the first scan; subsequent panes supply metrics only.
+    for(const field of ['results','costPerResult','budget','spend','impressions','reach','newMessagingContacts','costPerNewMessagingContact','messagingConversationsStarted','costPerMessagingConversationStart'])item[field]=numberFrom(value(field));
+    const enabled=item.enabled;
+    completeMetric(item,rawColumns,null);item.enabled=enabled;
+    return item;
+  }
+  function horizontalScrollers() {
+    const headers=[...document.querySelectorAll('[role="columnheader"],thead th')].filter(isMetaElement);
+    const headerBottom=Math.min(...headers.map(h=>h.getBoundingClientRect().bottom).filter(n=>n>0));
+    const candidates=[...document.querySelectorAll('div,[role="grid"],[role="table"]')].filter(element=>{
+      if(!isMetaElement(element)||element.clientWidth<300||element.scrollWidth-element.clientWidth<40)return false;
+      const r=element.getBoundingClientRect(),overflow=getComputedStyle(element).overflowX;
+      return r.height>=80&&r.bottom>headerBottom+12&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&/auto|scroll|hidden/.test(overflow)
+        && (!!element.querySelector('[role="columnheader"],thead th')||!!element.querySelector('[role="gridcell"],[role="cell"],td')||!!element.querySelector('span'));
+    });
+    const native=candidates.filter(e=>/auto|scroll/.test(getComputedStyle(e).overflowX));
+    return (native.length?native:candidates).filter((element,_i,list)=>!list.some(other=>other!==element&&element.contains(other))).sort((a,b)=>(b.scrollWidth-b.clientWidth)-(a.scrollWidth-a.clientWidth)).slice(0,3);
+  }
+  let scanPromise=null;
+  async function collectMetrics() {
+    if(scanPromise)return scanPromise;
+    const work=async()=>{
+      const buttons=[...root.querySelectorAll('#fbtq-rescan,#fbtq-send-metrics,#fbtq-copy,#fbtq-download,#fbtq-diagnostic')];buttons.forEach(b=>b.disabled=true);
+      const positions=horizontalScrollers().map(element=>({element,left:element.scrollLeft}));
+      let interrupted=false;
+      const interaction=event=>{if(!root.contains(event.target))interrupted=true;};
+      const pause=()=>new Promise(resolve=>setTimeout(resolve,180));
+      for(const event of ['pointerdown','wheel','keydown'])document.addEventListener(event,interaction,true);
+      const check=()=>{if(interrupted)throw Error('Đã dừng quét vì có thao tác trên Meta. Chọn lại các dòng rồi bấm Quét mục đã chọn.');};
+      try{
+        setStatus('Đang đọc các dòng đã chọn và cột ngoài màn hình. Bảng sẽ tự cuộn ngang rồi trở về vị trí cũ…');
+        // Begin at the name pane so all selected rows have a stable identity.
+        for(const {element} of positions)element.scrollLeft=0;
+        if(positions.length)await pause();check();
+        const rows=rowsFromTable(),expected=Number(normalize(document.body.innerText).match(/đã chọn\s+(\d+)\s+mục/i)?.[1])||0;
+        lastScanInfo.metaSelectedCount=expected;
+        if(expected&&rows.length!==expected)throw Error('Meta báo chọn '+expected+' mục nhưng chỉ đọc chắc chắn '+rows.length+' dòng. Chưa chuyển dữ liệu để tránh điền nhầm; tải lại Meta và quét lại.');
+        if(rows.length){
+          rows.forEach(item=>mergeColumnSnapshot(item,readColumnSnapshot(item)));
+          for(const {element} of positions){
+            const max=element.scrollWidth-element.clientWidth,step=Math.max(200,Math.floor(element.clientWidth*.7));
+            for(let at=step,pass=0;pass<16;at+=step,pass++){
+              check();const target=Math.min(max,at);element.scrollLeft=target;await pause();check();
+              rows.forEach(item=>mergeColumnSnapshot(item,readColumnSnapshot(item)));
+              if(target>=max)break;
+            }
+          }
+        }
+        check();return await renderCollectedMetrics(rows);
+      }catch(error){lastRows=[];renderMetricPreview([]);setStatus(error.message||'Không quét được các cột Meta. Hãy thử lại.','error');return [];}
+      finally{
+        for(const {element,left} of positions)if(element.isConnected)element.scrollLeft=left;
+        for(const event of ['pointerdown','wheel','keydown'])document.removeEventListener(event,interaction,true);
+        buttons.forEach(b=>b.disabled=false);
+      }
+    };
+    scanPromise=work();try{return await scanPromise;}finally{scanPromise=null;}
+  }
+  async function renderCollectedMetrics(rows) {
+    lastRows = rows;
     renderMetricPreview(lastRows);
     const headerSummary = lastScanInfo.headers.slice(0, 8).join(' · ');
     count.textContent = lastScanInfo.selected ? `${lastScanInfo.selected} hàng đã chọn · ${lastRows.length} hàng nhận diện` : lastScanInfo.metaSelectedCount ? `Meta đã chọn ${lastScanInfo.metaSelectedCount} mục · chưa đọc được hàng` : `${lastScanInfo.rows} hàng trong bảng · chưa chọn`;
@@ -521,7 +602,8 @@
       : !lastScanInfo.selected
         ? lastScanInfo.metaSelectedCount ? `Meta đang báo đã chọn ${lastScanInfo.metaSelectedCount} mục nhưng extension chưa đọc được dòng. Giữ tab Chiến dịch đang mở, tải lại Ads Manager rồi quét lại.` : headerSummary ? 'Chưa có chiến dịch nào được tích chọn. Tích ô vuông bên trái các dòng trong tab Chiến dịch trên Meta, sau đó quét lại.' : 'Meta chưa hiển thị bảng Chiến dịch. Chọn tab Chiến dịch, chờ bảng tải xong rồi tích chọn các dòng cần gửi.'
         : headerSummary ? `Đã thấy ${lastScanInfo.selected} dòng được chọn nhưng chưa ghép đủ tên chiến dịch và Phân phối. Bấm Tải tệp kiểm tra lỗi nếu quét lại vẫn không được. Các cột đang thấy: ${headerSummary}.` : 'Đã thấy dòng được chọn nhưng chưa đọc được bảng Chiến dịch. Chờ bảng tải xong rồi quét lại.';
-    setStatus(message, lastRows.length ? 'success' : 'warning');
+    const missing=lastRows.filter(item=>['costPerResult','budget','spend'].some(field=>item[field]===null));
+    setStatus(message+(missing.length?' Có '+missing.length+' dòng còn ô chưa đọc được/Meta để trống; không tự thay bằng 0. Đối chiếu trước khi chuyển.':''),lastRows.length&&!missing.length?'success':'warning');
     return lastRows;
   }
   function scanPdfLinks() {
@@ -573,7 +655,7 @@
     setStatus('Đã đưa vào hàng đợi. Website sẽ điền thẳng vào báo cáo hoặc biểu mẫu hóa đơn sau khi đăng nhập, không qua Trợ lý.', 'success');
   }
   async function sendMetrics() {
-    const rows = collectMetrics();
+    const rows = await collectMetrics();
     if (!rows.length) return;
     try { await queuePayload({ kind: 'metrics', campaigns: rows, reportAt: rows[0]?.reportAt || '', reportStart: rows[0]?.reportStart || '', reportEnd: rows[0]?.reportEnd || '', capturedAt: new Date().toISOString(), source: 'Marketing Ai FBTQ Meta Helper' }); }
     catch (error) { setStatus(error.message || 'Không gửi được chỉ số.', 'error'); }
@@ -624,7 +706,7 @@
     const anchor=document.createElement('a');anchor.href=URL.createObjectURL(blob);anchor.download='fbtq-kiem-tra-cot.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(anchor.href),1000);
     setStatus('Đã tải tệp kiểm tra cấu trúc bảng. Tệp có thể chứa tên chiến dịch và chỉ số hiển thị; xem lại trước khi chia sẻ.','info');
   }
-  function downloadJson() {
+  async function downloadJson() {
     const rows = collectMetrics();
     if (!rows.length) return;
     const blob = new Blob([JSON.stringify({ source: 'Marketing Ai FBTQ Meta Helper', reportAt: rows[0]?.reportAt || '', reportStart: rows[0]?.reportStart || '', reportEnd: rows[0]?.reportEnd || '', capturedAt: new Date().toISOString(), campaigns: rows }, null, 2)], { type: 'application/json' });
