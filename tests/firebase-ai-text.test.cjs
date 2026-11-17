@@ -8,7 +8,7 @@ function service({output={issues:[]},finish='STOP',appCheck=true,feedback=false}
 }
 test('Firebase review uses JSON schema directly, maps quotes exactly and blocks company terms even if Gemini misses them',async()=>{
   const {createFirebaseContentReview}=await moduleAPI(),s=service({output:{issues:[{quote:'phẫm',occurrence:2,type:'spelling',reason:'Sai dấu',replacement:'phẩm'}]}}),api=createFirebaseContentReview(s.options);
-  s.policy(['cam kết']);const text='😀 phẫm, phẫm CAM KET';const result=await api.review({text});assert.equal(result.blocked,true);assert.equal(text.slice(result.issues[0].start,result.issues[0].end),'phẫm');assert.equal(result.issues[0].start,text.lastIndexOf('phẫm'));
+  s.policy(['cam kết']);const text='😀 phẫm, phẫm CAM KẾT';const result=await api.review({text});assert.equal(result.blocked,true);assert.equal(text.slice(result.issues[0].start,result.issues[0].end),'phẫm');assert.equal(result.issues[0].start,text.lastIndexOf('phẫm'));
   assert.equal(s.params.generationConfig.responseMimeType,'application/json');assert.equal(s.params.generationConfig.responseSchema.properties.issues.items.properties.type.enum[0],'banned');assert.equal(s.params.generationConfig.temperature,undefined);assert.equal(s.requestOptions.timeout,60000);assert.equal(JSON.parse(s.prompt).article,text);assert.equal(result.provider,'gemini');
 });
 test('review caches model calls, reads current policy every action and isolates accounts',async()=>{

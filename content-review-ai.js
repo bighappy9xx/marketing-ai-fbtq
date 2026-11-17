@@ -1,21 +1,10 @@
+import {createReviewRewrite} from './content-review-rewrite.js?v=20261117-precise-review';
+import './keyword-matcher.js?v=20261117-precise-review';
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Keep UTF-16 offsets so a red phrase selects the exact original textarea range.
 export function companyIssues(text,words=[]){
-  let normalized='',offset=0;const starts=[],ends=[];
-  const normalize=value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').toLowerCase();
-  for(const char of text){const part=normalize(char);for(let i=0;i<part.length;i++){normalized+=part[i];starts.push(offset);ends.push(offset+char.length);}if(!part&&ends.length)ends[ends.length-1]=offset+char.length;offset+=char.length;}
-  const out=[];
-  for(const word of [...new Set(words)]){
-    const term=normalize(String(word).trim());if(!term)continue;
-    let from=0,start;
-    while((start=normalized.indexOf(term,from))>=0&&out.length<200){
-      const a=starts[start],b=ends[start+term.length-1];
-      if(!out.some(row=>row.start===a&&row.end===b))out.push({start:a,end:b,quote:text.slice(a,b),type:'banned',reason:'Thuộc danh sách từ cấm của công ty.',replacement:null,source:'company'});
-      from=start+term.length;
-    }
-  }
-  return out.sort((a,b)=>a.start-b.start);
+  return globalThis.FBTQKeywords.findKeywordMatches(text,words).map(row=>({...row,type:'banned',reason:'Khớp đúng từ khoá công ty “'+row.word+'” (phân biệt dấu và ranh giới từ).',replacement:null,source:'company'}));
 }
 export function highlightContent(text,issues){
   const ranges=issues.filter(i=>Number.isInteger(i.start)&&Number.isInteger(i.end)&&i.start>=0&&i.end>i.start&&i.end<=text.length).sort((a,b)=>a.start-b.start);
@@ -24,7 +13,7 @@ export function highlightContent(text,issues){
   return html+escapeHTML(text.slice(from));
 }
 
-export function initContentReviewAI({call,words,userId,notify,document:doc=document,delay=1500}){
+export function initContentReviewAI({call,improve,words,userId,notify,document:doc=document,delay=1500}){
   const editors=new Map(),cache=new Map();let identity=userId(),sequence=0,queue=Promise.resolve();
   const selector='#contentReviewText,[data-review-manager-text],[data-review-owner-text]';
   const visible=()=>doc.querySelector('#page-content-review')?.classList.contains('active');
@@ -32,14 +21,14 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
   function local(editor){return companyIssues(editor.field.value,[...words(),...(editor.result?.companyMatches||[])]);}
   function select(editor,start,end){editor.field.focus();editor.field.setSelectionRange(start,end);editor.field.scrollIntoView({block:'center',behavior:'smooth'});}
   function render(editor){
-    const {field,panel}=editor,text=field.value,issues=[...(editor.result?.issues||[]),...local(editor)].filter((row,index,all)=>all.findIndex(other=>other.start===row.start&&other.end===row.end&&other.type===row.type)===index);
+    const {field,panel}=editor,text=field.value,issues=[...local(editor),...(editor.result?.issues||[])].filter((row,index,all)=>all.findIndex(other=>other.start===row.start&&other.end===row.end&&other.type===row.type)===index);
     editor.issues=issues;
     const banned=issues.filter(i=>i.type==='banned').length,spelling=issues.filter(i=>i.type==='spelling').length,blocked=editor.result?.blocked||banned>0;
     panel.querySelector('[data-ai-status]').textContent=editor.busy?'AI đang đọc nội dung…':editor.error?editor.error:editor.result?(blocked?`Đang chặn: ${banned} đoạn có từ cấm. Hãy sửa trước khi gửi / phê duyệt.`:spelling?`Đã kiểm tra AI · ${spelling} lỗi chính tả cần xem lại.`:'Đã kiểm tra AI · Chưa phát hiện từ cấm hoặc lỗi chính tả.'):banned?`Đã phát hiện ${banned} đoạn thuộc danh sách từ cấm. AI chưa kiểm tra xong.`:'AI tự kiểm tra sau khi bạn ngừng gõ. Kết quả cần được người duyệt xem lại.';
     panel.classList.toggle('has-issues',issues.length>0);panel.classList.toggle('has-error',!!editor.error);
     panel.querySelector('[data-ai-check]').disabled=editor.busy||!text.trim();
     panel.querySelector('[data-ai-preview]').innerHTML=highlightContent(text,issues)||'<span class="muted">Nhập nội dung để kiểm tra.</span>';
-    panel.querySelector('[data-ai-issues]').innerHTML=issues.map((issue,index)=>`<li><div><b>${issue.type==='banned'?'⊘ Từ cấm':'✎ Chính tả'}: ${escapeHTML(issue.quote)}</b><p>${escapeHTML(issue.reason)}</p>${typeof issue.replacement==='string'?`<small>Gợi ý: ${issue.replacement?escapeHTML(issue.replacement):'Bỏ đoạn này'}</small>`:''}</div><div class="review-ai-issue-actions"><button type="button" class="text-button" data-ai-select="${index}">Chọn để sửa</button>${typeof issue.replacement==='string'?`<button type="button" class="btn btn-secondary" data-ai-fix="${index}">Áp dụng gợi ý</button>`:''}</div></li>`).join('');
+    panel.querySelector('[data-ai-issues]').innerHTML=issues.map((issue,index)=>`<li><div><b>${issue.type==='banned'?(issue.source==='company'?'⊘ Từ khoá công ty':'⚑ Rủi ro nội dung (AI)'):'✎ Chính tả'}: ${escapeHTML(issue.quote)}</b><p>${escapeHTML(issue.reason)}</p>${typeof issue.replacement==='string'?`<small>Gợi ý: ${issue.replacement?escapeHTML(issue.replacement):'Bỏ đoạn này'}</small>`:''}</div><div class="review-ai-issue-actions"><button type="button" class="text-button" data-ai-select="${index}">Chọn để sửa</button>${typeof issue.replacement==='string'?`<button type="button" class="btn btn-secondary" data-ai-fix="${index}">Áp dụng gợi ý</button>`:''}</div></li>`).join('');
   }
   function reset(editor){clearTimeout(editor.timer);editor.version++;editor.text=editor.field.value;editor.result=null;editor.resultKey=null;editor.promise=null;editor.promiseKey=null;editor.error='';editor.busy=false;render(editor);}
   async function check(editor,{force=false}={}){
@@ -74,7 +63,7 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
   function attach(field){
     if(editors.has(field))return editors.get(field);
     const panel=doc.createElement('section');panel.className='review-ai-panel';panel.setAttribute('aria-label','Kiểm tra nội dung bằng AI');
-    const id='review-ai-status-'+(++sequence);panel.innerHTML=`<div class="review-ai-heading"><b>✦ AI · Từ cấm & chính tả</b><button type="button" class="btn btn-secondary" data-ai-check>Kiểm tra lại</button></div><p id="${id}" data-ai-status role="status" aria-live="polite"></p><small class="muted">Đoạn đỏ là phần cần sửa. Bấm đoạn đỏ để chọn vị trí trong ô nội dung.</small><div class="review-ai-preview" data-ai-preview></div><ul class="review-ai-issues" data-ai-issues></ul>`;
+    const id='review-ai-status-'+(++sequence);panel.innerHTML=`<div class="review-ai-heading"><b>✦ AI · Từ cấm & chính tả</b><button type="button" class="btn btn-secondary" data-ai-check>Kiểm tra lại</button></div><p id="${id}" data-ai-status role="status" aria-live="polite"></p><small class="muted">So khớp đúng dấu, trọn từ/cụm từ. Đoạn đỏ là phần cần sửa. Bấm đoạn đỏ để chọn vị trí trong ô nội dung.</small><div class="review-ai-preview" data-ai-preview></div><ul class="review-ai-issues" data-ai-issues></ul>`;
     // Place outside the label so check/fix buttons never activate the textarea label.
     const label=field.closest('label');(label||field).after(panel);field.setAttribute('aria-describedby',[field.getAttribute('aria-describedby'),id].filter(Boolean).join(' '));
     const editor={field,panel,text:field.value,policy:JSON.stringify(words()),version:0,result:null,error:'',busy:false};editors.set(field,editor);
@@ -92,16 +81,16 @@ export function initContentReviewAI({call,words,userId,notify,document:doc=docum
       }else select(editor,issue.start,issue.end);
     });
     panel.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-review-ai-start]')){event.preventDefault();event.target.click();}});
-    render(editor);return editor;
+    if(improve)editor.rewrite=createReviewRewrite({field,panel,call:improve,userId,words,notify});render(editor);return editor;
   }
   function refresh(){
     if(identity!==userId())clear();
-    for(const [field,editor]of editors)if(!field.isConnected){clearTimeout(editor.timer);editor.version++;editors.delete(field);}
+    for(const [field,editor]of editors)if(!field.isConnected){clearTimeout(editor.timer);editor.version++;editor.rewrite?.dispose();editors.delete(field);}
     for(const field of doc.querySelectorAll(selector)){
-      const editor=attach(field);if(editor.text!==field.value||editor.policy!==JSON.stringify(words())){reset(editor);editor.policy=JSON.stringify(words());if(field.id==='contentReviewText')schedule(editor);}else render(editor);
+      const editor=attach(field);editor.rewrite?.refresh();if(editor.text!==field.value||editor.policy!==JSON.stringify(words())){reset(editor);editor.policy=JSON.stringify(words());if(field.id==='contentReviewText')schedule(editor);}else render(editor);
     }
   }
-  function clear(){identity=userId();cache.clear();for(const editor of editors.values()){reset(editor);editor.policy=JSON.stringify(words());} }
+  function clear(){identity=userId();cache.clear();for(const editor of editors.values()){editor.rewrite?.clear();reset(editor);editor.policy=JSON.stringify(words());} }
   async function ensureAllowed(text,field){
     const uid=userId(),editor=field?attach(field):null;
     if(!editor){notify('Mở bài viết trong mục Kiểm duyệt nội dung để AI kiểm tra trước khi phê duyệt.','error');return false;}

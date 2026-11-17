@@ -27,6 +27,7 @@ Khi báo **ĐÃ TRIỂN KHAI**, mở `https://mediafbtq-6e1bb.web.app`, đăng n
 | Trợ lý FBTQ | `gpt-6-luna` | Không suy luận; chỉ 4 lượt lịch sử gần nhất, tối đa 1.000 token đầu ra; 80 lượt/ngày/người |
 | Gợi ý trả lời hộp thư | `gpt-6-luna` | Tối đa 300 token đầu ra, không suy luận; 100 lượt/ngày/người; vẫn xác nhận trước khi gửi |
 | Từ cấm & chính tả | `gpt-6-luna` | Suy luận thấp, JSON theo schema, tối đa 5.000 token bao gồm suy luận; cache cùng bài và chính sách trong 10 phút; 120 lượt/ngày/người |
+| AI biên tập bài viết | `gpt-6-luna` | Qua `reviewContentAI` với action improve; không suy luận, tối đa 6.000 token đầu ra; 20 lượt/ngày/người, cache 10 phút. Có xem trước, Hoàn tất chỉnh sửa và Hoàn tác |
 | Tìm khoảnh khắc video | `gpt-6-luna` + Whisper | Chia phần tối đa 3 phút, 8 ảnh mẫu nhỏ/phần + lời thoại. Tối đa 6.000 token đầu ra/phần bao gồm suy luận thấp; 40 phần/ngày/người |
 | Lời thoại / mốc cắt video | `whisper-1` | Gửi âm thanh mono 16 kHz của đoạn, tối đa 3 phút/lượt, 40 lượt/ngày/người |
 | Tạo ảnh Studio | `gpt-image-2.6-flare` | 1 ảnh/lượt, quality low, complexity low, tối đa 8 ảnh/ngày/người |
@@ -112,6 +113,7 @@ CONTENT_OPENAI_MODEL=gpt-6-luna
 ASSISTANT_OPENAI_MODEL=gpt-6-luna
 REPLY_OPENAI_MODEL=gpt-6-luna
 CONTENT_REVIEW_OPENAI_MODEL=gpt-6-luna
+CONTENT_REWRITE_OPENAI_MODEL=gpt-6-luna
 STUDIO_HIGHLIGHTS_OPENAI_MODEL=gpt-6-luna
 STUDIO_AI_IMAGE_MODEL=gpt-image-2.6-flare
 ```

@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {registerContentReviewAI,validateIssues}=require('../functions/content-review-ai');
 class HttpsError extends Error{constructor(code,message){super(message);this.code=code;}}
-const core=()=>import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(path.join(__dirname,'../content-review-ai.js'),'utf8')).toString('base64'));
+const core=()=>import('../content-review-ai.js');
 function service({banned=[],output={issues:[]},key='secret',role='employee',approved=true}={}){
   const data=new Map([['workspaces/fbtq/settings/bot',{banned}]]);let queue=Promise.resolve(),calls=0,hold=null,last;
   const db={doc:p=>({path:p,get:async()=>({exists:data.has(p),data:()=>data.get(p)})}),runTransaction:fn=>{const p=queue.then(()=>fn({get:async ref=>({exists:data.has(ref.path),data:()=>data.get(ref.path)}),set:(ref,value)=>data.set(ref.path,value),update:(ref,value)=>data.set(ref.path,{...data.get(ref.path),...value})}));queue=p.catch(()=>{});return p;}};
@@ -17,11 +17,11 @@ test('server bounds authentication, input, secret access and policy before paid 
   await assert.rejects(service({banned:['x'.repeat(201)]}).reviewContentAI(req('Nội dung')),{code:'failed-precondition'});assert.equal(api.calls,0);
 });
 test('company terms cannot be waived by empty model output; cache is policy-specific',async()=>{
-  const api=service({banned:['Cam kết 100%']});const result=await api.reviewContentAI(req('CAM KET 100% hiệu quả.'));
+  const api=service({banned:['Cam kết 100%']});const result=await api.reviewContentAI(req('CAM KẾT 100% hiệu quả.'));
   assert.equal(result.blocked,true);assert.deepEqual(result.companyMatches,['Cam kết 100%']);assert.equal(api.last[2].format.strict,true);
-  assert.equal(JSON.parse(api.last[0]).article,'CAM KET 100% hiệu quả.');assert.equal(api.last[2].maxTokens,5000);
-  assert.deepEqual(await api.reviewContentAI(req('CAM KET 100% hiệu quả.')),result);assert.equal(api.calls,1);
-  api.data.set('workspaces/fbtq/settings/bot',{banned:[]});assert.equal((await api.reviewContentAI(req('CAM KET 100% hiệu quả.'))).blocked,false);assert.equal(api.calls,2);
+  assert.equal(JSON.parse(api.last[0]).article,'CAM KẾT 100% hiệu quả.');assert.equal(api.last[2].maxTokens,5000);
+  assert.deepEqual(await api.reviewContentAI(req('CAM KẾT 100% hiệu quả.')),result);assert.equal(api.calls,1);
+  api.data.set('workspaces/fbtq/settings/bot',{banned:[]});assert.equal((await api.reviewContentAI(req('CAM KẾT 100% hiệu quả.'))).blocked,false);assert.equal(api.calls,2);
 });
 test('AI discoveries block only banned phrases; spelling keeps a safe replacement and exact offsets',async()=>{
   const text='😀 Sản phẫm cam kết khỏi.',api=service({output:{issues:[{quote:'Sản phẫm',occurrence:1,type:'spelling',reason:'Sai dấu.',replacement:'Sản phẩm'},{quote:'cam kết khỏi',occurrence:1,type:'banned',reason:'Cam kết chữa bệnh tuyệt đối.',replacement:'hỗ trợ chăm sóc'}]}});
@@ -44,3 +44,5 @@ test('Vietnamese red marks preserve emoji, combining marks, repeated words and e
   assert.equal(issues.length,2);assert.equal(text.slice(issues[0].start,issues[0].end),'CAM KẾT');assert.equal(text.slice(issues[1].start,issues[1].end),'cam kết');
   const html=highlightContent(text,[...issues,{start:3,end:6}]);assert.equal((html.match(/<mark /g)||[]).length,2);assert.ok(html.includes('&lt;script&gt;'));assert.equal(html.includes('<script>'),false);
 });
+
+test('accent-sensitive company policy never confuses chưa with chữa or matches part of a word',async()=>{const api=service({banned:['chữa']});assert.equal((await api.reviewContentAI(req('Chúng tôi chưa công bố.'))).blocked,false);assert.equal((await api.reviewContentAI(req('chữaabc không phải từ trọn vẹn'))).blocked,false);assert.equal((await api.reviewContentAI(req('CHỮA và chữa'))).blocked,true);assert.deepEqual((await api.reviewContentAI(req('CHỮA và chữa'))).companyMatches,['chữa']);});

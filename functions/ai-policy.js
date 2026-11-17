@@ -4,6 +4,7 @@ const tasks={
  assistant:{env:'ASSISTANT_OPENAI_MODEL',maxTokens:1000,effort:'none'},
  reply:{env:'REPLY_OPENAI_MODEL',maxTokens:300,effort:'none'},
  review:{env:'CONTENT_REVIEW_OPENAI_MODEL',maxTokens:5000,effort:'low'},
+ rewrite:{env:'CONTENT_REWRITE_OPENAI_MODEL',maxTokens:6000,effort:'none'},
  highlights:{env:'STUDIO_HIGHLIGHTS_OPENAI_MODEL',maxTokens:6000,effort:'low'},
  check:{env:'OPENAI_MODEL',maxTokens:64,effort:'none'}
 };

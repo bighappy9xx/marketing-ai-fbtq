@@ -10,4 +10,5 @@ function walk(dir){for(const ent of fs.readdirSync(dir,{withFileTypes:true})){if
 }}
 walk(root);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),ids=new Set();if((html.match(/<!doctype\s+html/gi)||[]).length!==1)issues.push('index.html: expected exactly one HTML document');for(const match of html.matchAll(/\bid\s*=\s*["']([^"']+)["']/g)){if(ids.has(match[1]))issues.push('index.html: duplicate id '+match[1]);ids.add(match[1]);}for(const match of html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)=["']([^"']+)["']/g)){const uri=match[1];if(/^(?:https?:|data:|#|\/\/)/.test(uri))continue;const file=path.resolve(root,uri.split(/[?#]/)[0]);if(!fs.existsSync(file))issues.push('index.html: missing '+uri);}
+if(fs.readFileSync(path.join(root,'keyword-matcher.js'),'utf8')!==fs.readFileSync(path.join(root,'functions/keyword-matcher.js'),'utf8'))issues.push('keyword-matcher.js: browser and server copies must match');
 if(issues.length){console.error(issues.join('\n'));process.exitCode=1;}else console.log('Source check passed: '+checked+' text files; no merge markers, syntax errors, missing backend modules or duplicate HTML IDs.');
