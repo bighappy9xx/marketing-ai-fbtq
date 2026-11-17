@@ -1,4 +1,5 @@
-export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages}){
+import {initInboxTools} from './inbox-workspace.js?v=20261117-inbox';
+export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange}){
   const $=s=>document.querySelector(s);let callbackBusy=false;
   const page=$('#page-inbox');
   page?.classList.add('messenger-workspace');
@@ -20,8 +21,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   state.chatbotDetails=details;details();
   toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();toolbar.querySelector('[data-bot-handoff]').onclick=()=>handoff();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
-  function filter(){page?.querySelectorAll('.conversation').forEach(row=>{row.hidden=!row.textContent.toLocaleLowerCase().includes(search.value.toLocaleLowerCase());});}
-  search.oninput=filter;const list=page?.querySelector('.inbox-list');if(list)new MutationObserver(filter).observe(list,{childList:true});
+  const inboxTools=initInboxTools({page,state,search,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
   const hint=page?.querySelector('.chat-settings>p');if(hint)hint.textContent='Chọn AI, kịch bản hoặc kết hợp theo từng Trang. Có thể chuyển hội thoại cho nhân viên.';
   const oldToggle=$('#botToggle');if(oldToggle){const next=oldToggle.cloneNode(true);next.className='btn btn-secondary';next.setAttribute('role','button');next.tabIndex=0;next.textContent='Cấu hình';oldToggle.replaceWith(next);next.onclick=()=>configure();next.onkeydown=e=>{if(e.key==='Enter')configure();};}
   async function guarded(work){try{if(!state.firebase||!state.user)throw new Error('Đăng nhập Firebase để sử dụng Chatbot.');return await work();}catch(e){showToast(e.message,'error');}}

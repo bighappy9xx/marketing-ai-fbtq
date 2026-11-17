@@ -1,0 +1,53 @@
+import {defaultInboxFilters,filterInboxThreads,inboxSource,inboxAssignee,inboxTeam,validInboxDates,expandedInboxURL} from './inbox-filter-core.js?v=20261117-inbox';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const paths={all:'M4 5h16v12H9l-5 4z M8 9h8 M8 13h5',comment:'M4 4h16v13H9l-5 4z',message:'M3 5h18v14H3z M3 5l9 8 9-8',rating:'m12 3 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z',phone:'M7 3 4 5c0 8 7 15 15 15l2-3-5-3-2 2c-3-1-5-3-6-6l2-2z',no_phone:'M7 3 4 5c0 8 7 15 15 15l2-3-5-3-2 2 M3 3l18 18',reply:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v6l4 2',date:'M4 5h16v16H4z M8 3v5 M16 3v5 M4 10h16 M8 14h2 M14 14h2',source:'M3 7h18v14H3z M5 3h7l2 4 M3 11h18',assignee:'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M2 21v-3a7 7 0 0 1 14 0v3 M17 4a4 4 0 0 1 0 8 M19 15a6 6 0 0 1 3 6'};
+const labels={all:'Tất cả hội thoại',comment:'Lọc bình luận',message:'Lọc tin nhắn',rating:'Lọc đánh giá',phone:'Có số điện thoại',no_phone:'Không có số điện thoại',reply:'Lọc chưa trả lời',date:'Lọc theo khoảng thời gian',source:'Lọc theo nguồn',assignee:'Lọc nhân viên / nhóm được phân công'};
+export function initInboxTools({page,state,search,onChange}){
+ let filters=defaultInboxFilters(),owner=state.user?.uid||'',open='',anchor=null,autoExpanded=false;
+ const layout=page.querySelector('.inbox-layout'),rail=document.createElement('nav');rail.className='inbox-filter-rail';rail.setAttribute('aria-label','Bộ lọc hội thoại');
+ rail.innerHTML=Object.entries(labels).map(([id,label])=>`<button type="button" data-inbox-filter="${id}" title="${label}" aria-label="${label}" aria-pressed="${id==='all'}"${['all','phone','no_phone'].includes(id)?'':' aria-expanded="false" aria-controls="inboxFilterPopover"'}><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[id]}"/></svg></button>`).join('');layout.prepend(rail);
+ const summary=document.createElement('div');summary.className='inbox-filter-summary';summary.innerHTML='<span id="inboxFilterSummary" role="status"></span><button type="button" id="inboxClearFilters">Xóa lọc</button>';page.querySelector('.inbox-search').after(summary);
+ const pop=document.createElement('section');pop.id='inboxFilterPopover';pop.className='inbox-filter-popover';pop.hidden=true;pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Bộ lọc hội thoại');document.body.append(pop);
+ const note=document.createElement('p');note.className='inbox-filter-data-note';note.textContent='Bộ lọc dùng dữ liệu hội thoại hiện có. Bình luận, đánh giá, trạng thái AI và phân công cần được đồng bộ từ nguồn.';page.querySelector('.integration-note').before(note);
+ const actions=document.createElement('div');actions.className='inbox-space-actions';actions.innerHTML=`<button type="button" class="btn btn-secondary" id="inboxExpand" aria-pressed="false">⛶ Mở Rộng Không Gian</button><a class="btn btn-primary" id="inboxOpenExpandedTab" href="${esc(expandedInboxURL(location.href))}" target="_blank" rel="noopener noreferrer">↗ Mở Tab Mở Rộng</a>`;page.querySelector('.page-heading').append(actions);
+ const expand=actions.querySelector('#inboxExpand');
+ function expanded(value){page.classList.toggle('inbox-expanded',value);document.body.classList.toggle('inbox-immersive',value);expand.textContent=value?'⛶ Thu Gọn Không Gian':'⛶ Mở Rộng Không Gian';expand.setAttribute('aria-pressed',String(value));close();}
+ expand.onclick=()=>expanded(!page.classList.contains('inbox-expanded'));
+ function updateSpace(){if(!page.classList.contains('active')||document.querySelector('#app').classList.contains('hidden')){if(page.classList.contains('inbox-expanded'))expanded(false);close();return;}if(!autoExpanded&&new URL(location.href).searchParams.get('inbox')==='expanded'){autoExpanded=true;expanded(true);}}
+ new MutationObserver(updateSpace).observe(page,{attributes:true,attributeFilter:['class']});new MutationObserver(updateSpace).observe(document.querySelector('#app'),{attributes:true,attributeFilter:['class']});updateSpace();
+ function close(){pop.hidden=true;pop.replaceChildren();rail.querySelectorAll('[aria-expanded]').forEach(b=>b.setAttribute('aria-expanded','false'));open='';}
+ function active(id){if(id==='all')return Object.entries(filters).every(([key,v])=>key==='query'?!v:['from','to'].includes(key)?!v:v==='all');if(id==='phone')return filters.phone==='yes';if(id==='no_phone')return filters.phone==='no';if(id==='comment')return filters.kind==='comment';if(id==='message')return filters.kind==='message'||filters.ai!=='all';if(id==='date')return !!(filters.from||filters.to);if(id==='source')return filters.source!=='all'||filters.page!=='all';if(id==='assignee')return filters.assignee!=='all'||filters.team!=='all';return filters[id]!=='all';}
+ function refresh(count){rail.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(active(b.dataset.inboxFilter))));summary.querySelector('span').textContent=count+' / '+state.inboxThreads.length+' hội thoại';summary.querySelector('button').hidden=active('all');}
+ function apply(){close();onChange();}
+ function reset(){filters=defaultInboxFilters();search.value='';apply();}
+ summary.querySelector('button').onclick=reset;
+ const options=(field,rows)=>`<div class="inbox-filter-options">${rows.map(([value,label])=>`<label><input type="radio" name="${field}" value="${esc(value)}" ${filters[field]===value?'checked':''}>${esc(label)}</label>`).join('')}</div>`;
+ const select=(field,label,rows)=>`<label class="inbox-filter-select">${label}<select data-filter-field="${field}">${rows.map(([v,text])=>`<option value="${esc(v)}"${filters[field]===v?' selected':''}>${esc(text)}</option>`).join('')}</select></label>`;
+ function show(id,button){
+  if(open===id){close();return;}close();open=id;anchor=button;button.setAttribute('aria-expanded','true');
+  let body='';
+  if(id==='comment')body=options('comment',[['all','Tất cả bình luận'],['no_private','Chưa gửi tin nhắn riêng'],['ordered','Đã đánh dấu tạo đơn hàng'],['livestream','Đến từ livestream'],['not_livestream','Không đến từ livestream']]);
+  if(id==='message')body=options('ai',[['all','Tất cả tin nhắn'],['processing','AI đang xử lý'],['off','AI đã tắt'],['forwarded','AI đã chuyển tiếp / nhân viên tiếp nhận']]);
+  if(id==='rating')body=options('rating',[['all','Tất cả'],['rated','Đã có đánh giá'],['unrated','Chưa có đánh giá'],...Array.from({length:5},(_,i)=>[String(5-i),(5-i)+' sao'])]);
+  if(id==='reply')body=options('reply',[['all','Tất cả hội thoại'],['unanswered','Giảm dần theo thời gian'],['oldest','Đợi phản hồi lâu nhất'],['read_unanswered','Đã đọc nhưng chưa trả lời']]);
+  if(id==='date')body=`<label class="inbox-filter-select">Từ ngày<input type="date" id="inboxFilterFrom" value="${filters.from}"></label><label class="inbox-filter-select">Đến hết ngày<input type="date" id="inboxFilterTo" value="${filters.to}"></label><small>Ngày theo giờ Việt Nam</small><p id="inboxFilterDateError" role="status"></p><button type="button" class="btn btn-primary" data-filter-dates>Áp dụng</button><button type="button" class="btn btn-secondary" data-filter-date-reset>Xóa ngày</button>`;
+  if(id==='source')body=select('source','Nguồn',[['all','Tất cả nguồn'],...[...new Set(state.inboxThreads.map(inboxSource))].map(v=>[v,v])])+select('page','Fanpage',[['all','Tất cả Fanpage'],...[...new Map(state.inboxThreads.map(t=>[t.pageId,t.pageName||t.pageId])).entries()].filter(([id])=>id)]);
+  if(id==='assignee'){
+   const names=new Map([...state.users||[],...state.members||[]].map(u=>[u.uid,u.name||u.email||u.uid]));
+   const ids=[...new Set(state.inboxThreads.map(inboxAssignee).filter(Boolean))];
+   body=select('assignee','Nhân viên',[['all','Tất cả nhân viên'],['me','Được phân công cho tôi'],['unassigned','Chưa được phân công'],...ids.map(uid=>[uid,names.get(uid)||uid])])+select('team','Nhóm',[['all','Tất cả nhóm'],...[...new Set(state.inboxThreads.map(inboxTeam).filter(Boolean))].map(v=>[v,v])]);
+  }
+  pop.innerHTML=`<div class="inbox-filter-popover-head"><b>${labels[id]}</b><button type="button" data-filter-close aria-label="Đóng bộ lọc">×</button></div>${body}`;pop.hidden=false;pop.querySelector('[data-filter-close]').onclick=close;
+  pop.querySelectorAll('input[type=radio]').forEach(el=>el.onclick=()=>{filters[el.name]=el.value;if(id==='comment'){filters.kind='comment';filters.ai='all';}if(id==='message'){filters.kind='message';filters.comment='all';}apply();});
+  pop.querySelectorAll('[data-filter-field]').forEach(el=>el.onchange=()=>{filters[el.dataset.filterField]=el.value;apply();});
+  pop.querySelector('[data-filter-dates]')?.addEventListener('click',()=>{const from=pop.querySelector('#inboxFilterFrom').value,to=pop.querySelector('#inboxFilterTo').value;if(!validInboxDates(from,to)){pop.querySelector('#inboxFilterDateError').textContent='Ngày kết thúc phải từ ngày bắt đầu trở đi.';return;}Object.assign(filters,{from,to});apply();});
+  pop.querySelector('[data-filter-date-reset]')?.addEventListener('click',()=>{filters.from=filters.to='';apply();});
+  const rect=button.getBoundingClientRect();pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,rect.right+10))+'px';pop.style.top=Math.max(8,Math.min(innerHeight-pop.offsetHeight-8,rect.top))+'px';pop.querySelector('input,select,button')?.focus();
+ }
+ rail.onclick=e=>{const button=e.target.closest('[data-inbox-filter]');if(!button)return;const id=button.dataset.inboxFilter;if(id==='all')reset();else if(id==='phone'||id==='no_phone'){filters.phone=filters.phone===(id==='phone'?'yes':'no')?'all':id==='phone'?'yes':'no';apply();}else show(id,button);};
+ document.addEventListener('pointerdown',e=>{if(open&&!pop.contains(e.target)&&!rail.contains(e.target))close();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&open){e.preventDefault();close();anchor?.focus();}});
+ window.addEventListener('resize',close);
+ search.oninput=()=>{filters.query=search.value;onChange();};
+ return {filter(threads){if(owner!==(state.user?.uid||'')){owner=state.user?.uid||'';filters=defaultInboxFilters();search.value='';close();}const rows=filterInboxThreads(threads,filters,{uid:owner,pages:state.pages});refresh(rows.length);return rows;}};
+}
