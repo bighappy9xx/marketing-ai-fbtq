@@ -16,7 +16,8 @@ Giọng đọc dùng `gemini-3.8-flash-lite-tts` mặc định, tùy chọn `gem
 
 - Blaze không đồng nghĩa Gemini miễn phí. Quota và phí theo model/project Google, tách riêng với API OpenAI. Kiểm tra ngân sách/quota trong Google Cloud và Google AI Studio.
 - **App Check**: kiểm tra đúng Web App, site key và domain, lưu rồi tải lại. Site key là mã công khai, không phải API key.
-- **429/quota**: kiểm tra quota/billing của Gemini; không bấm tạo liên tục.
+- **Your prepayment credits are depleted (429 hoặc 402)**: mở Google AI Studio → Projects → chọn đúng `mediafbtq-6e1bb` → Billing, kiểm tra Prepay credit balance. Bạn cần tự bổ sung tín dụng nếu số dư bằng 0. Firebase Blaze và số dư OpenAI không thay thế số dư trả trước Gemini. Nếu đã nạp nhưng vẫn lỗi, kiểm tra trạng thái giao dịch và liên hệ Google; không tự nạp lặp. Thay API key, đổi model hay cấu hình lại App Check không sửa được lỗi này.
+- **429/quota khác**: kiểm tra quota và thời điểm phục hồi của Gemini; không bấm tạo liên tục hoặc mặc định coi mọi lỗi 429 là cần nạp tiền.
 - **Model không khả dụng/403**: kiểm tra Gemini Developer API và quyền truy cập model TTS của project.
 - **Chờ quá lâu**: thử đoạn ngắn hơn, kiểm tra mạng. Không tự coi yêu cầu đã hủy là không phát sinh phí.
 
