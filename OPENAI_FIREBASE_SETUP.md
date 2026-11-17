@@ -2,6 +2,21 @@
 
 Cấu hình ngày 17/11/2026 cho project `mediafbtq-6e1bb`. Trình duyệt gọi Firebase callable Functions bằng phiên đăng nhập Firebase. Functions gọi OpenAI; API key nằm trong Google Secret Manager. Không cần Worker hoặc nhập URL backend riêng nữa.
 
+## Cài tự động trên Mac — chỉ nhập key
+
+Mở file **Cai-dat-OpenAI.command** trong thư mục dự án bằng Terminal. Hoặc chạy:
+
+```bash
+cd /Users/amsbetrd/Documents/GitHub/marketing-ai-fbtq
+node scripts/setup-openai.cjs
+```
+
+Trình cài đặt kiểm tra mã nguồn, cài thư viện, kiểm tra đăng nhập Google, rồi hỏi API key ở lời nhắc **ẩn ký tự**. Dán key mới và Enter. Nó thử một phản hồi OpenAI tối đa 64 token, lưu key vào đúng secret `OPENAI_API_KEY`, triển khai 9 hàm và cập nhật Firebase Hosting. Key không được đưa vào tên secret, đối số câu lệnh hoặc file tạm. Bước lưu secret tắt file debug của CLI để tránh ghi payload secret vào nhật ký ở phiên bản CLI cũ.
+
+Nếu cần đăng nhập Google hoặc Firebase hỏi cấu hình dịch vụ/giữ ảnh build, hoàn tất lời nhắc trong Terminal. Chỉ sử dụng key mới nếu key trước đã xuất hiện trong ảnh hoặc cuộc trò chuyện. Ctrl+C ở phần nhập key sẽ huỷ cài đặt. Khi thất bại, trình cài đặt dừng, không tự gửi lặp yêu cầu OpenAI; có thể mở lại sau khi sửa lỗi.
+
+Khi báo **ĐÃ TRIỂN KHAI**, mở `https://mediafbtq-6e1bb.web.app`, đăng nhập rồi vào **Cài đặt → Mô hình AI → Kiểm tra OpenAI** để thử luồng Firebase thật. Cài đặt thành công chưa chứng minh mọi endpoint Images/Audio đã được cấp quyền. Website đang dùng GitHub Pages vẫn phải cập nhật mã lên Pages; Firebase Hosting không tự sửa Pages. Các bước thủ công và giải thích chi tiết ở dưới.
+
 ## 1. Mô hình và chi phí
 
 Đây là cấu hình tiết kiệm ban đầu, cần thử với nội dung thực tế để đánh giá chất lượng. Không có mô hình luôn tốt nhất hoặc dùng ít token nhất cho mọi yêu cầu.

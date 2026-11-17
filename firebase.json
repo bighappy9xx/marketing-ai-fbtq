@@ -20,7 +20,8 @@
       "functions */**",
       "*.bak",
       "install-*.cjs",
-      "openai-worker/**"
+      "openai-worker/**",
+      "Cai-dat-OpenAI.command"
     ],
     "cleanUrls": true,
     "headers": [
