@@ -11,6 +11,15 @@
 .cs-ai-highlights>small{display:block;margin-top:9px}
 .cs-highlights-result-heading{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:20px}
 .cs-highlights-result-heading>div{display:flex;gap:8px;flex-wrap:wrap}
+.cs-ai-panel button.cs-highlight-assemble{background:#7945ed;color:#fff;border-color:#7945ed;font-weight:700}
+.cs-highlight-selection{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:12px 0;border:1px solid var(--cs-border,#e1e7ee);border-radius:9px;background:var(--cs-soft,#f5f2ff)}
+.cs-ai-panel .cs-highlight-selection label{display:flex;align-items:center;gap:8px;margin:0}
+.cs-ai-highlights input[type=checkbox]{width:17px;height:17px;padding:0;accent-color:#7945ed;cursor:pointer;flex-shrink:0}
+.cs-highlight-selection span{font-size:12px;font-weight:600}
+#csHighlightsAssemblySummary{padding:12px;background:var(--cs-panel,#fff);border-radius:8px;margin:12px 0;line-height:1.7;font-variant-numeric:tabular-nums}
+#csHighlightsAssemblySummary ol{padding-left:22px;margin:8px 0 0}#csHighlightsAssemblySummary li+li{margin-top:8px}
+.cs-ai-panel #csHighlightsAssemblyError{color:#bd3548}
+.cs-ai-panel button[data-highlight-disabled=true]{cursor:not-allowed}
 .cs-highlights-table-scroll{overflow:auto;border:1px solid var(--cs-border,#e1e7ee);border-radius:10px;margin-top:14px}
 .cs-highlights-table{width:100%;min-width:680px;border-collapse:collapse;text-align:left;font-size:11px;line-height:1.65}
 .cs-highlights-table caption{text-align:left;padding:10px 12px;font-weight:700;background:var(--cs-soft,#f5f3fc)}
