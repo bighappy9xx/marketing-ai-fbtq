@@ -1,0 +1,27 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=path.resolve(__dirname,'..');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{if(location.origin==='https://fbtq.test')localStorage.setItem('fbtq_ai_provider_v2','openai');});
+ await page.route('https://**/*',r=>r.abort());await page.route('https://fbtq.test/**',r=>{
+  const u=new URL(r.request().url()),file=path.resolve(root,'.'+(u.pathname==='/'?'/index.html':u.pathname));
+  if(u.pathname==='/firebase-config.js')return r.fulfill({contentType:'text/javascript',body:'window.FBTQ_FIREBASE_CONFIG={};'});
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file))return r.fulfill({status:404,body:''});
+  let body=fs.readFileSync(file);if(u.pathname==='/app.js')body=body.toString()+'\nwindow.__speechQA={state,navigate,clearSpeechSession};';
+  return r.fulfill({body,contentType:({'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});
+ });
+ await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__speechQA);
+ await page.evaluate(()=>{const q=window.__speechQA;q.state.user={uid:'speech-qa'};q.state.role='director';window.__speechCalls=[];window.__openaiCalls=[];
+  q.state.firebase={ai:{},appCheck:{},aiMod:{ResponseModality:{AUDIO:'AUDIO'},getGenerativeModel:(_,params)=>({generateContent:async prompt=>{window.__speechCalls.push({params,prompt});if(window.__hold)await new Promise(resolve=>window.__release=resolve);if(window.__fail)throw Error('Gemini quota 429');const b=new Uint8Array(48);b.set([... 'RIFF'].map(x=>x.charCodeAt(0)));b.set([... 'WAVE'].map(x=>x.charCodeAt(0)),8);return {response:{candidates:[{finishReason:'STOP'}],inlineDataParts:()=>[{inlineData:{mimeType:'audio/wav',data:btoa(String.fromCharCode(...b))}}]}};}})},funcMod:{httpsCallable:(_,name)=>async()=>{window.__openaiCalls.push(name);return {data:{content:'Bài viết do OpenAI tạo.'}};}}};
+  document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');q.navigate('settings');});
+ await page.locator('[data-setting=ai]').click();assert.equal(await page.locator('#defaultModel').inputValue(),'openai');await page.locator('#setting-ai details summary').click();await page.locator('#openGeminiSpeech').click();assert.ok(await page.locator('#speechTab').isVisible());
+ await page.locator('#speechText').fill('Xin chào Việt Nam.');await page.locator('#synthesizeSpeech').click();await page.waitForFunction(()=>!document.querySelector('#speechResult').classList.contains('hidden'));
+ assert.equal(await page.evaluate(()=>window.__openaiCalls.length),0);assert.equal(await page.evaluate(()=>window.__speechCalls[0].params.model),'gemini-3.8-flash-lite-tts');assert.equal(await page.locator('#defaultModel').inputValue(),'openai');
+ const bytes=await page.evaluate(async()=>Array.from(new Uint8Array(await (await fetch(document.querySelector('#downloadSpeech').href)).arrayBuffer())));assert.equal(bytes.length,48);assert.equal(String.fromCharCode(...bytes.slice(0,4)),'RIFF');
+ await page.locator('#speechModel').selectOption('gemini-3.8-flash-tts');await page.locator('[data-speech-voice=Kore]').click();await page.locator('#synthesizeSpeech').click();await page.waitForFunction(()=>!document.querySelector('#synthesizeSpeech').disabled);assert.equal(await page.evaluate(()=>window.__speechCalls[1].params.model),'gemini-3.8-flash-tts');
+ await page.screenshot({path:'/private/tmp/fbtq-gemini-speech.png'});
+ await page.locator('[data-editor-tab=create]').click();await page.locator('#contentPrompt').fill('Giới thiệu sản phẩm');await page.locator('#generateContent').click();await page.waitForFunction(()=>document.querySelector('#resultPanel').textContent.includes('Bài viết do OpenAI'));assert.deepEqual(await page.evaluate(()=>window.__openaiCalls),['generateContentOpenAI']);
+ await page.locator('[data-editor-tab=speech]').click();await page.evaluate(()=>window.__fail=true);await page.locator('#synthesizeSpeech').click();await page.waitForFunction(()=>!document.querySelector('#speechError').classList.contains('hidden'));assert.ok(await page.locator('#speechResult').isVisible());assert.ok(await page.locator('#synthesizeSpeech').isEnabled());assert.equal(await page.evaluate(()=>window.__speechCalls.length),3);
+ await page.evaluate(()=>{window.__fail=false;window.__hold=true;});await page.locator('#synthesizeSpeech').click();await page.waitForFunction(()=>!!window.__release);await page.evaluate(()=>{window.__speechQA.clearSpeechSession();window.__speechQA.state.user=null;window.__release();});await page.waitForFunction(()=>!document.querySelector('#synthesizeSpeech').disabled);assert.ok(await page.locator('#speechResult').isHidden());assert.equal(await page.locator('#speechText').inputValue(),'');assert.deepEqual(errors,[]);
+ console.log('PASS OpenAI content and independent Gemini TTS, both speech models, unchanged WAV download, quota error without retry, and sign-out isolation.');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

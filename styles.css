@@ -177,6 +177,7 @@ body.dark .speech-controls select{background:#202f44;border-color:#34445a;color:
 .speech-section-heading p{margin:5px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
 .speech-step{flex:none;width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:var(--blue-pale);color:var(--blue);font-size:11px;font-weight:800}
 .speech-step-preview{background:#f1ebff;color:#8b63ed}
+.speech-model-field{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;font-size:11px;font-weight:700}.speech-model-field select{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--canvas);color:var(--ink);font:inherit;font-weight:400}.speech-model-field select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .speech-field-label{display:block;margin:0 0 7px;color:var(--ink);font-size:10px;font-weight:700}
 .speech-editor-panel #speechText{display:block;width:100%;min-height:180px;resize:vertical;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--canvas);color:var(--ink);font:inherit;font-size:12px;line-height:1.7;transition:border-color .2s,box-shadow .2s}
 .speech-editor-panel #speechText:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 13%,transparent)}

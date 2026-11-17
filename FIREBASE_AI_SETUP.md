@@ -1,19 +1,25 @@
-# Dùng Gemini trước trên Firebase Spark
+# Gemini chạy song song với OpenAI
 
-**Studio nội dung**, **Kiểm duyệt nội dung** (lọc từ cấm và chính tả) và lựa chọn **Gemini** của **Trợ lý FBTQ** dùng Firebase AI Logic trực tiếp. Không cần triển khai Cloud Functions hoặc cấu hình OpenAI để dùng các tính năng văn bản này.
+Giữ **Cài đặt → Mô hình AI → Nhà cung cấp mặc định: OpenAI** để dùng các chức năng OpenAI hiện tại. **Studio Nội Dung → Giọng đọc AI** luôn gọi Gemini qua Firebase AI Logic riêng, không phụ thuộc lựa chọn mặc định.
 
-1. Trong [Firebase Console](https://console.firebase.google.com/project/mediafbtq-6e1bb/overview), chọn project `mediafbtq-6e1bb` → **Firebase AI Logic → Get started** → chọn **Gemini Developer API**. Provider này hỗ trợ Spark với hạn mức miễn phí; hạn mức Gemini vẫn áp dụng. Nếu chọn Agent Platform/Vertex AI, sẽ cần Blaze.
-2. Tạo **reCAPTCHA Enterprise Web site key** cho tên miền `bighappy9xx.github.io` và tên miền website thực tế nếu có. Đăng ký Web App trong **App Check** với provider **reCAPTCHA Enterprise**, dùng cùng site key. Bật enforcement cho Firebase AI Logic.
-3. Điền site key công khai vào `appCheckSiteKey` trong `firebase-config.js` để cả công ty dùng chung, hoặc lưu tại **Cài đặt → Firebase & dữ liệu → Kết nối Firebase** rồi tải lại trang. Không đưa secret key reCAPTCHA hoặc khóa nhà cung cấp AI vào mã nguồn.
-4. Đưa các file `app.js`, `index.html`, `content-review-ai.js`, `firebase-ai-text.js` và `styles.css` mới lên hosting. Nếu sửa cấu hình chung, đưa cả `firebase-config.js` lên.
-5. Đăng nhập website. Vào **Kiểm duyệt nội dung**, nhập bài hoặc bấm **Kiểm tra lại**. Gemini tự kiểm tra khi ngừng gõ, tô đỏ đoạn cần sửa, kèm gợi ý. Bấm đoạn đỏ để chọn vị trí sửa hoặc **Áp dụng gợi ý**. Trong **Trợ lý FBTQ**, chọn **Gemini**.
+## Kích hoạt trên project mediafbtq-6e1bb
 
-Kiểm tra văn bản dùng `gemini-3.8-flash`. Nếu App Check, quota hoặc mạng gặp lỗi, website hiển thị lỗi và không coi bài là đạt. Từ cấm đã lưu vẫn được dò ngay trên trình duyệt; trước khi gửi/phê duyệt, website đọc lại danh sách từ cấm từ Firestore và kiểm tra bài. Kết quả AI được tái dùng tối đa 10 phút theo tài khoản, nội dung và danh sách từ cấm. Không tự chuyển sang OpenAI khi Gemini lỗi.
+1. Mở [Firebase AI Logic](https://console.firebase.google.com/project/mediafbtq-6e1bb/ailogic), bấm bắt đầu nếu chưa cấu hình, chọn **Gemini Developer API**, hoàn thành các bước bật API. Project hiện đã lên Blaze; không cần hạ gói hoặc thay đổi OpenAI.
+2. Vào **App Check → Apps**, chọn Web App của website và đăng ký **reCAPTCHA Enterprise**. Tạo site key cho tên miền `bighappy9xx.github.io` (không thêm https hoặc đường dẫn), cùng các tên miền thực tế khác nếu dùng. Không tắt App Check để bỏ qua lỗi.
+3. Trong website → **Cài đặt → Firebase & dữ liệu**, nhập **App Check site key** công khai rồi lưu và tải lại. Để cả công ty dùng chung, đặt site key đó trong `appCheckSiteKey` của `firebase-config.js` và cập nhật GitHub Pages. Không nhập reCAPTCHA secret key, service account key hoặc Gemini API key vào file công khai.
+4. Trong **Mô hình AI**, giữ **OpenAI**, mở **Gemini chạy song song · giọng đọc → Kiểm tra kết nối Gemini**. Đây là kiểm tra văn bản, không xác nhận model TTS đã được cấp quyền.
+5. Bấm **Mở Giọng đọc Gemini**, nhập câu ngắn, chọn **Gemini Flash-Lite TTS · nhanh, tiết kiệm** hoặc **Gemini Flash TTS · chất lượng cao**, chọn giọng, bấm **Tạo giọng đọc**. Nghe và tải WAV. Mỗi lần tối đa 1.800 ký tự. Phát âm vùng miền là yêu cầu hướng dẫn model; cần nghe lại trước khi dùng.
 
-Giới hạn 120 lượt/ngày của hàm OpenAI cũ không áp dụng cho đường Firebase AI Logic. Quota của Firebase AI Logic/Gemini và App Check áp dụng; cấu hình hạn mức trong Firebase Console. Các bước chặn trên giao diện không thay thế Firestore Security Rules và người duyệt.
+Giọng đọc dùng `gemini-3.8-flash-lite-tts` mặc định, tùy chọn `gemini-3.8-flash-tts`. Nội dung và hướng dẫn giọng được gửi riêng. WAV trả về đã có header, không bọc thêm header PCM. Yêu cầu có thời gian chờ 90 giây, không tự gửi lại hoặc tự chuyển sang OpenAI; nút tạo khóa trong lúc chờ. Kiểm thử tự động dùng âm thanh giả lập; cần thử câu thật trên tài khoản đã đăng nhập và App Check hợp lệ để xác nhận project.
 
-OpenAI vẫn được giữ để cấu hình sau theo [OPENAI_SETUP.md](OPENAI_SETUP.md). Các chức năng tạo ảnh/chép âm thanh bằng OpenAI và chatbot Messenger vẫn cần backend riêng.
+## Chi phí và xử lý lỗi
 
-**Studio AI → Tìm khoảnh khắc hấp dẫn** cũng dùng Firebase AI Logic trực tiếp: xem video để đề xuất clip ngắn, bảng timeline, hook, nội dung đăng và gợi ý dựng. Xem [STUDIO-HIGHLIGHTS.md](STUDIO-HIGHLIGHTS.md) để biết giới hạn video và thao tác đặt điểm cắt.
+- Blaze không đồng nghĩa Gemini miễn phí. Quota và phí theo model/project Google, tách riêng với API OpenAI. Kiểm tra ngân sách/quota trong Google Cloud và Google AI Studio.
+- **App Check**: kiểm tra đúng Web App, site key và domain, lưu rồi tải lại. Site key là mã công khai, không phải API key.
+- **429/quota**: kiểm tra quota/billing của Gemini; không bấm tạo liên tục.
+- **Model không khả dụng/403**: kiểm tra Gemini Developer API và quyền truy cập model TTS của project.
+- **Chờ quá lâu**: thử đoạn ngắn hơn, kiểm tra mạng. Không tự coi yêu cầu đã hủy là không phát sinh phí.
 
-Tài liệu chính thức: [Firebase AI Logic và Spark](https://firebase.google.com/docs/ai-logic/faq-and-troubleshooting), [JSON có cấu trúc](https://firebase.google.com/docs/ai-logic/generate-structured-output), [App Check cho web](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider).
+Đường giọng đọc trên website dùng Firebase AI Logic, không gọi hàm Cloud Functions `synthesizeSpeech` cũ; không cần thêm secret `GEMINI_API_KEY` cho đường này. Các chức năng Gemini văn bản/video vẫn có thể chọn riêng trong website. OpenAI giữ nguyên API key, Functions và IAM.
+
+Tài liệu: [Firebase AI Logic TTS](https://firebase.google.com/docs/ai-logic/generate-speech), [Gemini TTS và lựa chọn model](https://ai.google.dev/gemini-api/docs/speech-generation), [App Check reCAPTCHA Enterprise](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider).

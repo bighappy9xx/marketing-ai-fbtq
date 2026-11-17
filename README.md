@@ -131,7 +131,7 @@ Trong **Studio Sáng Tạo → Studio AI**, AI tự chọn các khoảnh khắc 
 
 ## Chuyển văn bản thành giọng đọc
 
-Trong **Studio nội dung → Giọng đọc**, nhập văn bản hoặc chuyển bản nháp đang mở sang giọng đọc, nghe thử và tải WAV. Website dùng Firebase AI Logic, model `gemini-3.1-flash-tts-preview`, với năm giọng dựng sẵn: **Thảo Nhi — Aoede**, **Giang Chu — Kore**, **Trần Hà Linh — Zephyr**, **Mai Công Chúa — Callirrhoe** và **Vũ Khánh Phương — Sulafat**. Gemini trả về âm thanh PCM; website chuyển thành WAV trên trình duyệt. Mỗi lần tạo giới hạn 1.800 ký tự. Hoàn tất các bước cấu hình Firebase AI Logic và App Check ở trên; không cần lưu Secret Gemini cho tính năng này.
+Trong **Studio nội dung → Giọng đọc**, nhập văn bản hoặc chuyển bản nháp đang mở sang giọng đọc, nghe thử và tải WAV. Giọng đọc luôn dùng Gemini qua Firebase AI Logic, kể cả khi nhà cung cấp mặc định là OpenAI. Chọn `gemini-3.8-flash-lite-tts` để ưu tiên tốc độ/chi phí hoặc `gemini-3.8-flash-tts` để ưu tiên chất lượng, với năm giọng dựng sẵn: **Thảo Nhi — Aoede**, **Giang Chu — Kore**, **Trần Hà Linh — Zephyr**, **Mai Công Chúa — Callirrhoe** và **Vũ Khánh Phương — Sulafat**. Gemini 3.8 trả về WAV hoàn chỉnh; website giữ nguyên dữ liệu âm thanh để nghe/tải xuống. Mỗi lần tạo giới hạn 1.800 ký tự. Hoàn tất các bước cấu hình Firebase AI Logic và App Check ở trên; không cần lưu Secret Gemini cho tính năng này.
 
 ## Kết nối Fanpage Messenger
 
