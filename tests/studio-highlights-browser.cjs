@@ -11,6 +11,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
    let body=fs.readFileSync(file);if(url.pathname==='/app.js')body=body.toString()+'\nwindow.__highlightQA={state,creativeStudio,navigate};';
    return r.fulfill({contentType:({'.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.html':'text/html','.png':'image/png','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream',body});
   });
+  await page.addInitScript(()=>localStorage.setItem('fbtq_ai_provider_v2','gemini'));
   await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__highlightQA);
   await page.evaluate(()=>{const {state,navigate}=window.__highlightQA;state.user={uid:'video-qa',name:'Video QA'};document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');navigate('creative-studio');});
   const ready=()=>page.waitForFunction(()=>!document.querySelector('#page-creative-studio').classList.contains('cs-busy'));await ready();await page.locator('#csExpand').click();

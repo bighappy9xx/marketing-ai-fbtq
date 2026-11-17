@@ -25,7 +25,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
       `;
       return route.fulfill({contentType:({'.js':'text/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.png':'image/png'})[path.extname(file)]||'application/octet-stream',body});
     });
-    await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__reviewQA);
+    await page.addInitScript(()=>localStorage.setItem('fbtq_ai_provider_v2','gemini'));
+  await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__reviewQA);
     await page.evaluate(()=>{const qa=window.__reviewQA;qa.state.user={uid:'qa',name:'Quản lý QA'};qa.state.role='director';qa.state.firebase=qa.firebase;document.querySelector('#authScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');qa.navigate('content-review');});
     assert.equal(await page.evaluate(async()=>{localStorage.setItem('fbtq_assistant_provider','gemini');return window.__reviewQA.generateFbtqAssistantReply('Xin chào');}),'Trợ lý đang dùng Firebase AI Logic.');
     const input=page.locator('#contentReviewText'),panel=page.locator('.content-review-form-fields > .review-ai-panel');
