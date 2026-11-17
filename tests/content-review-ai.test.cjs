@@ -19,7 +19,7 @@ test('server bounds authentication, input, secret access and policy before paid 
 test('company terms cannot be waived by empty model output; cache is policy-specific',async()=>{
   const api=service({banned:['Cam kết 100%']});const result=await api.reviewContentAI(req('CAM KET 100% hiệu quả.'));
   assert.equal(result.blocked,true);assert.deepEqual(result.companyMatches,['Cam kết 100%']);assert.equal(api.last[2].format.strict,true);
-  assert.equal(JSON.parse(api.last[0]).article,'CAM KET 100% hiệu quả.');assert.equal(api.last[2].maxTokens,6000);
+  assert.equal(JSON.parse(api.last[0]).article,'CAM KET 100% hiệu quả.');assert.equal(api.last[2].maxTokens,5000);
   assert.deepEqual(await api.reviewContentAI(req('CAM KET 100% hiệu quả.')),result);assert.equal(api.calls,1);
   api.data.set('workspaces/fbtq/settings/bot',{banned:[]});assert.equal((await api.reviewContentAI(req('CAM KET 100% hiệu quả.'))).blocked,false);assert.equal(api.calls,2);
 });

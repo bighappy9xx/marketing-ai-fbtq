@@ -1,0 +1,7 @@
+.openai-setup-guide{min-width:0;line-height:1.65}
+.openai-setup-guide ol{padding-left:22px}
+.openai-setup-guide li{margin-bottom:18px}
+.openai-setup-guide pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid #dce6f5;border-radius:8px;background:#f3f7fd;font-size:11px}
+#setting-ai .settings-actions{flex-wrap:wrap;gap:10px}
+#setting-ai details{margin:18px 0;padding:12px;border:1px solid #e0e8f5;border-radius:8px}
+#setting-ai summary{cursor:pointer;color:#375a87;font-size:12px}

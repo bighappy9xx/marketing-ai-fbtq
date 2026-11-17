@@ -10,7 +10,7 @@ export function highlightOptions({count=null,minDuration=10,maxDuration=60,platf
   return {count,minDuration,maxDuration,platform,goal:goal.trim()};
 }
 export function validateHighlights(data,clip,options){
-  const fail=()=>{throw Error('Gemini trả mốc cắt hoặc nội dung chưa hợp lệ. Hãy phân tích lại.');};
+  const fail=()=>{throw Error('AI trả mốc cắt hoặc nội dung chưa hợp lệ. Hãy phân tích lại.');};
   if(!data||!Array.isArray(data.moments)||data.moments.length>(options.count??10)||typeof data.note!=='string'||data.note.length>1500)fail();
   const lower=clip.in||0,upper=lower+clip.duration,rows=[];
   for(const row of data.moments){

@@ -1,13 +1,18 @@
 // Server-only OpenAI integration. Never return credentials or provider error bodies.
-module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireManager,OPENAI_API_KEY,fetchImpl=fetch,model=()=>process.env.OPENAI_MODEL||'gpt-6-luna'}) {
+const {textPolicy,publicPolicy,requireAIAccount}=require('./ai-policy');
+module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireManager,OPENAI_API_KEY,fetchImpl=fetch,model=()=>textPolicy('content').model,withUsage=(_uid,_kind,_limit,work)=>work()}) {
   async function generate(prompt,instructions,options={}) {
     const key=OPENAI_API_KEY.value();
     if(!key)throw new HttpsError('failed-precondition','Chưa cấu hình OPENAI_API_KEY trên backend.');
+    const selected=options.model||model(),policy=textPolicy(options.task);
+    const modern=/^gpt-(?:5|6)(?:[.-]|$)/.test(selected);
+    const body={model:selected,instructions,input:prompt,max_output_tokens:options.maxTokens||policy.maxTokens,store:false,
+      ...(modern?{reasoning:{effort:options.effort||policy.effort},text:{verbosity:'low',...(options.format?{format:options.format}:{})}}:options.format?{text:{format:options.format}}:{})};
     let response;
     try {
       response=await fetchImpl('https://api.openai.com/v1/responses',{
         method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},
-        body:JSON.stringify({model:options.model||model(),instructions,input:prompt,max_output_tokens:options.maxTokens||1100,store:false,...(options.format?{text:{format:options.format}}:{})}),
+        body:JSON.stringify(body),
         signal:AbortSignal.timeout(55000)
       });
     } catch {
@@ -26,11 +31,12 @@ module.exports.createOpenAIIntegration = function ({onCall,HttpsError,requireMan
     if(!content)throw new HttpsError('unavailable','OpenAI không trả về văn bản. Hãy đổi yêu cầu hoặc kiểm tra model.');
     return content;
   }
-  const checkOpenAIConnection=onCall({secrets:[OPENAI_API_KEY],timeoutSeconds:60,memory:'256MiB'},async request=>{
-    await requireManager(request);
+  const checkOpenAIConnection=onCall({secrets:[OPENAI_API_KEY],timeoutSeconds:75,memory:'256MiB'},async request=>{
+    const auth=await requireManager(request);
+    requireAIAccount(auth,HttpsError);
     const selectedModel=model();
-    await generate('Trả lời đúng một từ: OK.','Bạn đang kiểm tra kết nối API.',{model:selectedModel,maxTokens:256});
-    return {connected:true,model:selectedModel};
+    await withUsage(auth?.uid,'connection',20,()=>generate('Trả lời đúng một từ: OK.','Bạn đang kiểm tra kết nối API.',{model:selectedModel,task:'check',maxTokens:64}));
+    return {connected:true,model:selectedModel,policies:publicPolicy()};
   });
   return {generate,checkOpenAIConnection};
 };

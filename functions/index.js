@@ -34,7 +34,9 @@ async function requireDirector(request) {
   if ((auth.profile.role || auth.token.role) !== 'director') throw new HttpsError('permission-denied', 'Chỉ Giám đốc có thể thay đổi phân quyền.');
   return auth;
 }
-const openaiIntegration=require('./openai-api').createOpenAIIntegration({onCall,HttpsError,requireManager,OPENAI_API_KEY});
+const {textPolicy,requireAIAccount}=require('./ai-policy');
+const withAIUsage=require('./ai-usage').createAIUsageGate({db,HttpsError});
+const openaiIntegration=require('./openai-api').createOpenAIIntegration({onCall,HttpsError,requireManager,OPENAI_API_KEY,withUsage:withAIUsage});
 exports.checkOpenAIConnection=openaiIntegration.checkOpenAIConnection;
 Object.assign(exports,require('./content-review-ai').registerContentReviewAI({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY,generate:openaiIntegration.generate}));
 
@@ -84,15 +86,18 @@ async function readBotSettings() {
   return snap.exists?snap.data():{};
 }
 function contentCallable(provider, secret) {
-  return onCall({secrets:[secret],timeoutSeconds:60,memory:'256MiB'},async request=>{
-    await requireSignedIn(request);
+  return onCall({secrets:[secret],timeoutSeconds:75,memory:'256MiB'},async request=>{
+    const auth=await requireSignedIn(request);
+    if(provider==='openai')requireAIAccount(auth,HttpsError);
     const {prompt,tone='Thân thiện, gần gũi',length='Tiêu chuẩn',model=provider}=request.data||{};
     if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>5000)throw new HttpsError('invalid-argument','Prompt cần từ 3 đến 5.000 ký tự.');
+    if(typeof tone!=='string'||tone.length>120||!['Tiêu chuẩn','Ngắn gọn','Chi tiết'].includes(length))throw new HttpsError('invalid-argument','Giọng điệu hoặc độ dài nội dung không hợp lệ.');
     if(cleanProvider(model)!==provider)throw new HttpsError('invalid-argument','Hãy chọn đúng mô hình AI cho chức năng này.');
     const settings=await readBotSettings();
-    const voice=settings.brandVoice||'Thân thiện, rõ ràng, tích cực. Không tự tạo số liệu, giá bán hoặc cam kết chưa có trong yêu cầu.';
+    const voice=String(settings.brandVoice||'Thân thiện, rõ ràng, tích cực. Không tự tạo số liệu, giá bán hoặc cam kết chưa có trong yêu cầu.').slice(0,2000);
     const system=`Bạn là trợ lý nội dung marketing của công ty FBTQ. Viết bằng tiếng Việt tự nhiên. Giọng thương hiệu: ${voice}.\nGiọng điệu mong muốn: ${tone}. Độ dài: ${length}. Viết độc lập, không tự mặc định một nền tảng cụ thể.\nTuân thủ chính sách quảng cáo và tránh khẳng định sức khoẻ, tài chính hoặc kết quả tuyệt đối. Không tự thêm thông tin giá, ưu đãi, tồn kho hay số liệu nếu người dùng không cung cấp. Chỉ trả về nội dung có thể chỉnh sửa, không giải thích quy trình.`;
-    const content=await generateWithProvider(provider,prompt.trim(),system,{[provider]:secret.value()},{maxTokens:length==='Chi tiết'?1500:900});
+    const work=()=>generateWithProvider(provider,prompt.trim(),system,{[provider]:secret.value()},{...(provider==='openai'?textPolicy('content'):{}),task:'content',maxTokens:length==='Chi tiết'?1500:900});
+    const content=await (provider==='openai'?withAIUsage(auth.uid,'content',40,work):work());
     return {content,provider};
   });
 }
@@ -135,16 +140,20 @@ exports.synthesizeSpeech = onCall({secrets:[GEMINI_API_KEY],timeoutSeconds:60,me
   return {audioContent,mimeType:data.output_audio.mime_type||'audio/wav',voice};
 });
 
-exports.suggestReply = onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSeconds:45,memory:'256MiB'},async request=>{
-  const auth=await requireSignedIn(request);const {pageId,message,model='gemini'}=request.data||{};
+async function suggestReplyFor(request,provider,keys){
+  const auth=await requireSignedIn(request);const {pageId,message}=request.data||{},model=provider;
   if(typeof message!=='string'||message.trim().length<1||message.length>3000)throw new HttpsError('invalid-argument','Tin nhắn không hợp lệ.');
   const page=await db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`).get();
   if(!page.exists||page.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Bạn chưa kết nối Fanpage này.');
   const settings=await readBotSettings();const banned=Array.isArray(settings.banned)?settings.banned:[];const scripts=Array.isArray(settings.scripts)?settings.scripts:[];
   const system=`Bạn viết một câu trả lời chăm sóc khách hàng ngắn gọn, thân thiện bằng tiếng Việt cho Fanpage ${page.data().pageName||''}. Chỉ đề xuất câu trả lời, không tự xác nhận giá, tồn kho, giao dịch hay chính sách nếu dữ liệu không có. Không lặp lại hoặc sử dụng các cụm cấm: ${banned.join(', ')}. Kịch bản được duyệt để tham khảo: ${scripts.map(s=>`${s.title}: ${s.text}`).join('\n')}`;
-  const content=await generateWithProvider(cleanProvider(model),message.trim(),system,{gemini:GEMINI_API_KEY.value(),openai:OPENAI_API_KEY.value(),claude:''},{maxTokens:250});
+  if(auth.profile?.approved===false)throw new HttpsError('permission-denied','Tài khoản chưa được duyệt.');
+  const work=()=>generateWithProvider(cleanProvider(model),message.trim(),system,keys,{...(model==='openai'?textPolicy('reply'):{}),task:'reply',maxTokens:300});
+  const content=await (model==='openai'?withAIUsage(auth.uid,'reply',100,work):work());
   return {content};
-});
+}
+exports.suggestReply=onCall({secrets:[GEMINI_API_KEY,OPENAI_API_KEY],timeoutSeconds:70,memory:'256MiB'},request=>suggestReplyFor(request,request.data?.model||'gemini',{gemini:GEMINI_API_KEY.value(),openai:OPENAI_API_KEY.value()}));
+exports.suggestReplyOpenAI=onCall({secrets:[OPENAI_API_KEY],timeoutSeconds:70,memory:'256MiB'},request=>suggestReplyFor(request,'openai',{}));
 
 exports.setUserRole = onCall({timeoutSeconds:30,memory:'256MiB'},async request=>{
   const auth=await requireDirector(request);const {uidOrEmail,uid,email,role}=request.data||{};
@@ -243,5 +252,7 @@ Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError
 
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
 
-Object.assign(exports,require('./assistant-ai').registerAssistantAI({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY}));
+Object.assign(exports,require('./assistant-ai').registerAssistantAI({onCall,HttpsError,requireSignedIn,generateWithProvider,GEMINI_API_KEY,OPENAI_API_KEY,ANTHROPIC_API_KEY,withUsage:withAIUsage}));
 Object.assign(exports,require('./studio-ai').registerStudioAI({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY}));
+
+Object.assign(exports,require('./studio-highlights-openai').registerOpenAIHighlights({onCall,HttpsError,requireSignedIn,OPENAI_API_KEY,generate:openaiIntegration.generate,withUsage:withAIUsage}));

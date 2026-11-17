@@ -3,7 +3,7 @@ const {createOpenAIIntegration}=require('../functions/openai-api');
 class HttpsError extends Error{constructor(code,message){super(message);this.code=code;}}
 function setup({status=200,data={output:[{type:'message',content:[{type:'output_text',text:'OK'}]}]},key='server-secret',authorized=true,networkError=false}={}){
   let calls=[];
-  const api=createOpenAIIntegration({onCall:(opts,handler)=>handler,HttpsError,requireManager:async()=>{if(!authorized)throw new HttpsError('permission-denied','Chỉ quản lý');},OPENAI_API_KEY:{value:()=>key},model:()=> 'configured-model',fetchImpl:async(url,options)=>{calls.push({url,...options});if(networkError)throw Error('private provider details');return{ok:status===200,status,json:async()=>data};}});
+  const api=createOpenAIIntegration({onCall:(opts,handler)=>handler,HttpsError,requireManager:async()=>{if(!authorized)throw new HttpsError('permission-denied','Chỉ quản lý');return {uid:'manager',profile:{role:'director',approved:true}};},OPENAI_API_KEY:{value:()=>key},model:()=> 'configured-model',fetchImpl:async(url,options)=>{calls.push({url,...options});if(networkError)throw Error('private provider details');return{ok:status===200,status,json:async()=>data};}});
   return {...api,calls};
 }
 test('Responses API sends credentials only in server headers and extracts message text',async()=>{
@@ -15,7 +15,7 @@ test('Responses API sends credentials only in server headers and extracts messag
   await api.generate('Check','',{format});assert.deepEqual(JSON.parse(api.calls[2].body).text,{format});
 });
 test('connection check requires manager and confirms a real successful response',async()=>{
-  const api=setup();assert.deepEqual(await api.checkOpenAIConnection({}),{connected:true,model:'configured-model'});assert.equal(api.calls.length,1);
+  const api=setup();const result=await api.checkOpenAIConnection({});assert.equal(result.connected,true);assert.equal(result.model,'configured-model');assert.equal(result.policies.review.effort,'low');assert.equal(JSON.parse(api.calls[0].body).max_output_tokens,64);assert.equal(api.calls.length,1);
   const blocked=setup({authorized:false});await assert.rejects(blocked.checkOpenAIConnection({}),{code:'permission-denied'});assert.equal(blocked.calls.length,0);
   const missing=setup({key:''});await assert.rejects(missing.checkOpenAIConnection({}),{code:'failed-precondition'});assert.equal(missing.calls.length,0);
 });
@@ -32,3 +32,5 @@ test('empty, malformed and incomplete results never pass the connection check',a
     await assert.rejects(setup({data}).checkOpenAIConnection({}),{code:'unavailable'});
   }
 });
+
+test('economical model disables reasoning for simple tasks and retains JSON format',async()=>{const api=setup();await api.generate('check','',{model:'gpt-6-luna',task:'reply'});let body=JSON.parse(api.calls[0].body);assert.deepEqual(body.reasoning,{effort:'none'});assert.equal(body.max_output_tokens,300);assert.equal(body.text.verbosity,'low');const format={type:'json_schema',name:'review',strict:true,schema:{type:'object'}};await api.generate('review','',{model:'gpt-6-luna',task:'review',format});body=JSON.parse(api.calls[1].body);assert.equal(body.reasoning.effort,'low');assert.equal(body.max_output_tokens,5000);assert.deepEqual(body.text.format,format);});
