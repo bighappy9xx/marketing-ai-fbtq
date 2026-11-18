@@ -122,3 +122,18 @@ Gửi tin thông thường trong hệ thống hiện tại chỉ cho hội tho�
 | Chỉ tester dùng được | Kiểm tra các yêu cầu App Review/Advanced Access/Publish của App |
 
 Tài liệu Meta: [Messenger Quick Start](https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start/), [Webhooks cho Pages](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-pages), [Facebook Login web](https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/), [Page subscribed_apps](https://developers.facebook.com/docs/graph-api/reference/page/subscribed_apps/).
+
+
+## Lỗi Eventarc khi triển khai autoReplyFacebook lần đầu
+
+Nếu các hàm kết nối đã báo Successful create operation nhưng `autoReplyFacebook` báo `Permission denied while using the Eventarc Service Agent`, phần kết nối và webhook có thể đã triển khai thành công. Đây là lỗi trigger Google Cloud, không phải App Secret hoặc Page Token.
+
+Kiểm tra tài khoản dịch vụ `service-231204857128@gcp-sa-eventarc.iam.gserviceaccount.com` có role `roles/eventarc.serviceAgent` trong đúng project `mediafbtq-6e1bb`. Khi role đã tồn tại, đợi vài phút để quyền có hiệu lực và triển khai lại đúng một hàm:
+
+```sh
+firebase deploy --only functions:autoReplyFacebook --project mediafbtq-6e1bb --non-interactive
+```
+
+Không cần nhập lại secret hoặc chạy lại toàn bộ trình cài đặt. Nếu role thực sự thiếu, cần người có quyền IAM khôi phục role này cho đúng Eventarc service agent; không cấp role cho tài khoản người dùng hoặc allUsers, không cấp Owner/Editor để xử lý lỗi này. Sau khi triển khai, cần xác nhận trạng thái function và Eventarc trigger trước khi bật bot. Không tạo tin nhắn giả trong Firestore để kiểm tra vì có thể kích hoạt gửi tin thật.
+
+[Tài liệu Google về lỗi quyền Eventarc](https://docs.cloud.google.com/eventarc/docs/troubleshooting#permission_denied_errors).

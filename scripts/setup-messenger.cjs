@@ -41,13 +41,20 @@ async function main(){
  const generated=await ensureEncryptionKey({exists,save});console.log(generated?'Đã tạo khóa mã hóa token.':'Đã giữ nguyên khóa mã hóa token hiện có.');
  fs.writeFileSync(file,updateEnv(old,values),{mode:0o600});
  const auto=await exists('OPENAI_API_KEY');
- const names=[...FUNCTIONS,...(auto?['autoReplyFacebook']:[])];
- console.log('Đang triển khai '+names.length+' chức năng Messenger và chỉ mục hội thoại…');
- await run(tools.binary,['deploy','--project',PROJECT,'--only',[...names.map(n=>'functions:'+n),'firestore:indexes'].join(','),'--non-interactive'],{env});
+ console.log('Đang triển khai các chức năng kết nối Messenger và chỉ mục hội thoại…');
+ await run(tools.binary,['deploy','--project',PROJECT,'--only',[...FUNCTIONS.map(n=>'functions:'+n),'firestore:indexes'].join(','),'--non-interactive'],{env});
+ console.log('Các chức năng kết nối, webhook và gửi tin thủ công đã triển khai.');
  console.log('\nCẤU HÌNH TRÊN META APP\nApp Domains: bighappy9xx.github.io\nSite URL: '+SITE+'\nValid OAuth Redirect URI: '+REDIRECT+'\nWebhook Callback URL: '+WEBHOOK);
  if(verifyToken)console.log('Verify Token (chỉ sao chép vào Meta Webhooks, không gửi chat): '+verifyToken);
  else console.log('Verify Token đã tồn tại. Giữ giá trị đã dùng; nếu cần xem để nhập Meta, chạy riêng trong Terminal: firebase functions:secrets:access META_VERIFY_TOKEN --project '+PROJECT);
- console.log('Webhook fields: messages, messaging_postbacks\n'+(auto?'Đã triển khai autoReplyFacebook với OpenAI; Trang mới vẫn tắt tự động.':'Chưa có OPENAI_API_KEY: phần nhận/gửi thủ công đã triển khai, chưa triển khai autoReplyFacebook.')+'\nSau Verify & Save trên Meta: cập nhật giao diện GitHub Pages, mở Hộp thư → + Fanpage → đăng nhập → chọn Trang → phê duyệt.\nĐây chưa phải xác nhận Meta App Review hoặc kết nối Fanpage thật đã thành công.\n');
+ console.log('Webhook fields: messages, messaging_postbacks');
+ if(auto){
+  console.log('Đang triển khai riêng bot tự động autoReplyFacebook…');
+  try{await run(tools.binary,['deploy','--project',PROJECT,'--only','functions:autoReplyFacebook','--non-interactive'],{env});}
+  catch{throw Error('Phần kết nối Messenger/webhook đã triển khai; riêng bot tự động chưa hoàn tất. Nếu log báo Permission denied while using the Eventarc Service Agent, đợi vài phút rồi chạy: firebase deploy --only functions:autoReplyFacebook --project '+PROJECT+' --non-interactive. Không cần nhập lại App Secret hoặc chạy lại toàn bộ trình cài đặt. Nếu vẫn lỗi, kiểm tra roles/eventarc.serviceAgent cho đúng service agent theo FACEBOOK-CONNECT.md.');}
+ }
+ console.log((auto?'Đã triển khai autoReplyFacebook với OpenAI; Trang mới vẫn tắt tự động.':'Chưa có OPENAI_API_KEY: phần nhận/gửi thủ công đã triển khai, chưa triển khai autoReplyFacebook.')+'\nSau Verify & Save trên Meta: cập nhật giao diện GitHub Pages, mở Hộp thư → + Fanpage → đăng nhập → chọn Trang → phê duyệt.\nĐây chưa phải xác nhận Meta App Review hoặc kết nối Fanpage thật đã thành công.\n');
+
 }
 module.exports={PROJECT,FUNCTIONS,SITE,REDIRECT,WEBHOOK,updateEnv,ensureEncryptionKey,checkApp};
 if(require.main===module)main().catch(error=>{console.error('\n'+(error?.message||'Chưa cài đặt được Messenger.'));process.exitCode=1;});
