@@ -7,7 +7,7 @@ const STATUS_FILE=path.join(os.tmpdir(),'fbtq-openai-setup-'+process.getuid()+'.
 function stage(phase){fs.writeFileSync(STATUS_FILE,JSON.stringify({project:PROJECT,phase,at:new Date().toISOString()}),{mode:0o600});}
 function environment(){const env={...process.env,PATH:[path.dirname(process.execPath),path.join(os.homedir(),'.local/bin'),process.env.PATH||''].join(path.delimiter)};delete env.OPENAI_API_KEY;return env;}
 function executable(name,env){for(const dir of env.PATH.split(path.delimiter)){const file=path.join(dir,name);try{fs.accessSync(file,fs.constants.X_OK);return file;}catch{}}throw Error(`Chưa tìm thấy ${name}. Cài Firebase CLI trước rồi mở lại trình cài đặt.`);}
-function readHiddenKey(input=process.stdin,output=process.stdout){
+function readHiddenKey(input=process.stdin,output=process.stdout,prompt='Dán API key OpenAI MỚI rồi nhấn Enter (nội dung được ẩn): '){
  if(!input.isTTY||!output.isTTY)return Promise.reject(Error('Mở trình cài đặt bằng Terminal để nhập key kín. Không nhập API key trong chat.'));
  return new Promise((resolve,reject)=>{
   let muted=false,done=false;
@@ -15,7 +15,7 @@ function readHiddenKey(input=process.stdin,output=process.stdout){
   const rl=readline.createInterface({input,output:sink,terminal:true,historySize:0});
   const finish=(error,key)=>{if(done)return;done=true;muted=true;rl.close();output.write('\n');error?reject(error):resolve(key);};
   rl.on('SIGINT',()=>finish(Error('Đã hủy cài đặt.')));rl.on('close',()=>{if(!done)finish(Error('Đã đóng phần nhập key.'));});
-  rl.question('Dán API key OpenAI MỚI rồi nhấn Enter (nội dung được ẩn): ',value=>finish(null,value.trim()));muted=true;
+  rl.question(prompt,value=>finish(null,value.trim()));muted=true;
  });
 }
 const validKey=value=>typeof value==='string'&&/^sk-[A-Za-z0-9_-]{20,}$/.test(value);

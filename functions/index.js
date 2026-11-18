@@ -36,6 +36,8 @@ async function requireDirector(request) {
 }
 const {textPolicy,requireAIAccount}=require('./ai-policy');
 const withAIUsage=require('./ai-usage').createAIUsageGate({db,HttpsError});
+const GEMINI_FREE_API_KEY=defineSecret('GEMINI_FREE_API_KEY');
+exports.synthesizeFreeSpeech=require('./gemini-free-speech').registerFreeSpeech({onCall,HttpsError,requireSignedIn,GEMINI_FREE_API_KEY,withUsage:withAIUsage});
 const openaiIntegration=require('./openai-api').createOpenAIIntegration({onCall,HttpsError,requireManager,OPENAI_API_KEY,withUsage:withAIUsage});
 exports.checkOpenAIConnection=openaiIntegration.checkOpenAIConnection;
 Object.assign(exports,require('./content-review-ai').registerContentReviewAI({db,onCall,HttpsError,requireSignedIn,OPENAI_API_KEY,generate:openaiIntegration.generate}));

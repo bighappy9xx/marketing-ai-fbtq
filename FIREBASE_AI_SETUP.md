@@ -1,26 +1,39 @@
-# Gemini chạy song song với OpenAI
+# Gemini Free TTS với project riêng
 
-Giữ **Cài đặt → Mô hình AI → Nhà cung cấp mặc định: OpenAI** để dùng các chức năng OpenAI hiện tại. **Studio Nội Dung → Giọng đọc AI** luôn gọi Gemini qua Firebase AI Logic riêng, không phụ thuộc lựa chọn mặc định.
+Cấu hình giọng đọc mới dùng key của project Google **gen-lang-client-0906214986** qua backend **synthesizeFreeSpeech** trên Firebase **mediafbtq-6e1bb**. Không đổi project đăng nhập/dữ liệu hoặc cấu hình OpenAI. Phần giọng đọc không còn gọi Firebase AI Logic của project Blaze.
 
-## Kích hoạt trên project mediafbtq-6e1bb
+## Kích hoạt: chỉ nhập key trong Terminal
 
-1. Mở [Firebase AI Logic](https://console.firebase.google.com/project/mediafbtq-6e1bb/ailogic), bấm bắt đầu nếu chưa cấu hình, chọn **Gemini Developer API**, hoàn thành các bước bật API. Project hiện đã lên Blaze; không cần hạ gói hoặc thay đổi OpenAI.
-2. Vào **App Check → Apps**, chọn Web App của website và đăng ký **reCAPTCHA Enterprise**. Tạo site key cho tên miền `bighappy9xx.github.io` (không thêm https hoặc đường dẫn), cùng các tên miền thực tế khác nếu dùng. Không tắt App Check để bỏ qua lỗi.
-3. Trong website → **Cài đặt → Firebase & dữ liệu**, nhập **App Check site key** công khai rồi lưu và tải lại. Để cả công ty dùng chung, đặt site key đó trong `appCheckSiteKey` của `firebase-config.js` và cập nhật GitHub Pages. Không nhập reCAPTCHA secret key, service account key hoặc Gemini API key vào file công khai.
-4. Trong **Mô hình AI**, giữ **OpenAI**, mở **Gemini chạy song song · giọng đọc → Kiểm tra kết nối Gemini**. Đây là kiểm tra văn bản, không xác nhận model TTS đã được cấp quyền.
-5. Bấm **Mở Giọng đọc Gemini**, nhập câu ngắn, chọn **Gemini Flash-Lite TTS · nhanh, tiết kiệm** hoặc **Gemini Flash TTS · chất lượng cao**, chọn giọng, bấm **Tạo giọng đọc**. Nghe và tải WAV. Mỗi lần tối đa 1.800 ký tự. Phát âm vùng miền là yêu cầu hướng dẫn model; cần nghe lại trước khi dùng.
+1. Đảm bảo project `gen-lang-client-0906214986` trong Google AI Studio hiển thị **Free Tier**, không liên kết Billing. Key phải được tạo trong đúng project này. Trình cài đặt không thể suy ra project/tầng thanh toán từ chuỗi key; bước xác nhận trên AI Studio là cần thiết.
+2. Mở Terminal tại thư mục repository và chạy:
 
-Giọng đọc dùng `gemini-3.8-flash-lite-tts` mặc định, tùy chọn `gemini-3.8-flash-tts`. Nội dung và hướng dẫn giọng được gửi riêng. WAV trả về đã có header, không bọc thêm header PCM. Yêu cầu có thời gian chờ 90 giây, không tự gửi lại hoặc tự chuyển sang OpenAI; nút tạo khóa trong lúc chờ. Kiểm thử tự động dùng âm thanh giả lập; cần thử câu thật trên tài khoản đã đăng nhập và App Check hợp lệ để xác nhận project.
+```sh
+cd /Users/amsbetrd/Documents/GitHub/marketing-ai-fbtq
+node scripts/setup-gemini-free.cjs
+```
 
-## Chi phí và xử lý lỗi
+Hoặc mở `Cai-dat-Gemini-Free.command`. Trình cài đặt yêu cầu Node.js 22 và Firebase CLI đã đăng nhập, thử một câu rất ngắn bằng Gemini Flash-Lite TTS, rồi lưu key qua stdin vào secret **GEMINI_FREE_API_KEY**. Nội dung key không hiển thị, không ghi vào source hoặc biến môi trường. Không nhập key vào chat.
 
-- Blaze không đồng nghĩa Gemini miễn phí. Quota và phí theo model/project Google, tách riêng với API OpenAI. Kiểm tra ngân sách/quota trong Google Cloud và Google AI Studio.
-- **App Check**: kiểm tra đúng Web App, site key và domain, lưu rồi tải lại. Site key là mã công khai, không phải API key.
-- **Your prepayment credits are depleted (429 hoặc 402)**: mở Google AI Studio → Projects → chọn đúng `mediafbtq-6e1bb` → Billing, kiểm tra Prepay credit balance. Bạn cần tự bổ sung tín dụng nếu số dư bằng 0. Firebase Blaze và số dư OpenAI không thay thế số dư trả trước Gemini. Nếu đã nạp nhưng vẫn lỗi, kiểm tra trạng thái giao dịch và liên hệ Google; không tự nạp lặp. Thay API key, đổi model hay cấu hình lại App Check không sửa được lỗi này.
-- **429/quota khác**: kiểm tra quota và thời điểm phục hồi của Gemini; không bấm tạo liên tục hoặc mặc định coi mọi lỗi 429 là cần nạp tiền.
-- **Model không khả dụng/403**: kiểm tra Gemini Developer API và quyền truy cập model TTS của project.
-- **Chờ quá lâu**: thử đoạn ngắn hơn, kiểm tra mạng. Không tự coi yêu cầu đã hủy là không phát sinh phí.
+3. Đợi triển khai riêng **functions:synthesizeFreeSpeech**. Chỉ triển khai backend trên project Blaze `mediafbtq-6e1bb`, không liên kết Billing cho project Gemini Free. Hàm nhận HTTP công khai để CORS hoạt động; handler bắt buộc đăng nhập Firebase, profile đã duyệt và vai trò hợp lệ. Hạn mức 20 lượt/ngày/tài khoản và khóa tránh gọi song song, lưu trong Firestore `openaiUsage` với loại `gemini_free_speech` (tái sử dụng bộ hạn mức hiện có).
+4. Cập nhật các tệp giao diện mới lên GitHub Pages; triển khai Functions không tự cập nhật Pages. Khi website đã nhận bản mới, tải lại và vào **Studio Nội Dung → Giọng đọc AI**. Chọn model, giọng và nhập tối đa 1.800 ký tự; nghe/tải WAV.
 
-Đường giọng đọc trên website dùng Firebase AI Logic, không gọi hàm Cloud Functions `synthesizeSpeech` cũ; không cần thêm secret `GEMINI_API_KEY` cho đường này. Các chức năng Gemini văn bản/video vẫn có thể chọn riêng trong website. OpenAI giữ nguyên API key, Functions và IAM.
+## Chi phí và hạn mức
 
-Tài liệu: [Firebase AI Logic TTS](https://firebase.google.com/docs/ai-logic/generate-speech), [Gemini TTS và lựa chọn model](https://ai.google.dev/gemini-api/docs/speech-generation), [App Check reCAPTCHA Enterprise](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider).
+- Chỉ lượt gọi Gemini của project Free Tier được hưởng quota miễn phí theo điều kiện Google; không phải miễn phí không giới hạn. Hết quota thì chờ phục hồi. Không tự tạo project mới, tự gửi lại hoặc chuyển sang project trả phí.
+- Backend Firebase vẫn trên Blaze: Functions, Secret Manager và Firestore có thể phát sinh phí sau mức không tính phí tương ứng. Cấu hình này không hạ Firebase xuống Spark.
+- Các model cho phép: `gemini-3.8-flash-lite-tts` mặc định và `gemini-3.8-flash-tts`. Backend cố định danh sách model, bảo vệ key và trả tệp WAV hoàn chỉnh. Không nhận tùy ý URL, key hay tên model từ website.
+- Key ở Free Tier có các điều khoản xử lý dữ liệu khác tầng trả phí; xem điều khoản Google trước khi gửi nội dung nhạy cảm.
+
+## Nếu gặp lỗi
+
+- **Chưa kích hoạt backend**: chạy trình cài đặt, lưu secret và triển khai `synthesizeFreeSpeech`.
+- **Key yêu cầu thanh toán**: kiểm tra key thuộc đúng project `gen-lang-client-0906214986` ở Free Tier; không nạp tiền hoặc đổi key OpenAI để sửa lỗi này.
+- **429/quota**: kiểm tra quota và đợi phục hồi. Không tự chuyển sang trả phí.
+- **401/403/model không khả dụng**: kiểm tra key, xác minh project nếu Google yêu cầu và quyền dùng TTS Free Tier.
+- **CORS/HTTP 403 trước khi gọi hàm**: kiểm tra HTTP invoker của riêng `synthesizeFreeSpeech`. `invoker:'public'` nằm trong định nghĩa; auth vẫn bắt buộc bên trong. Không sửa IAM của các hàm khác.
+
+## Các chức năng Gemini khác
+
+Tạo nội dung/Trợ lý/phân tích video khi chọn Gemini vẫn dùng Firebase AI Logic của project Blaze, cần App Check và chịu mức phí của project đó. Việc chuyển giọng đọc sang Gemini Free không tự chuyển những chức năng này sang Free Tier.
+
+Tài liệu: [API key và project](https://ai.google.dev/gemini-api/docs/api-key), [Giá Gemini TTS](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.8-flash-lite-tts), [Gemini TTS](https://ai.google.dev/gemini-api/docs/speech-generation).

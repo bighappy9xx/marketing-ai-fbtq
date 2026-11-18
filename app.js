@@ -1,10 +1,10 @@
-import {speechErrorInfo,speechErrorMarkup} from './gemini-speech-errors.js?v=20261117-tts-billing';
-import {synthesizeGeminiSpeech} from './gemini-speech.js?v=20261117-dual-ai';
+import {speechErrorInfo,speechErrorMarkup} from './gemini-speech-errors.js?v=20261118-gemini-free';
+import {synthesizeGeminiSpeech} from './gemini-speech.js?v=20261118-gemini-free';
 import {analyzeOpenAIHighlights} from './studio-openai-highlights.js?v=20261117-openai-blaze';
 import {requestGemini,FAST_GEMINI_MODEL,QUALITY_GEMINI_MODEL} from './firebase-ai-request.js?v=20261113-ai-speed';
 import {initMemberAdminUI} from './member-admin-ui.js?v=20261113-members';
 import {firebaseOpenAISetupMarkup} from './openai-firebase-setup.js?v=20261117-openai-blaze';
-import {geminiSetupMarkup} from './gemini-setup-ui.js?v=20261117-dual-ai';
+import {geminiSetupMarkup} from './gemini-setup-ui.js?v=20261118-gemini-free';
 import {checkFirebaseGemini,transcribeFirebaseAudio} from './firebase-ai-studio.js?v=20261113-ai-speed';
 import {analyzeStudioHighlights} from './studio-highlights-ai.js?v=20261112-wide-studio';
 import {initContentReviewAI,companyIssues} from './content-review-ai.js?v=20261117-precise-review';
@@ -135,7 +135,7 @@ async function saveRecord(collection,data,id=crypto.randomUUID()) {
 async function callFunction(name,data,options) {
   if(!state.firebase?.funcMod)throw new Error('Dịch vụ Functions chưa kết nối. Đăng nhập vẫn dùng được; quản trị viên cần kiểm tra Firebase Functions.');
   const callable=state.firebase.funcMod.httpsCallable(state.firebase.functions,name,options||{timeout:['reviewContentAI','askAssistantOpenai'].includes(name)?110000:['generateStudioImage','transcribeStudioAudio'].includes(name)?220000:75000});
-  try{const result=await callable(data);return result.data}catch(error){if(error.code==='functions/not-found'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name))throw new Error('Chức năng chưa được triển khai. Cần triển khai createWorkflow, reviewWorkflow, disburseAdvance và Firestore Rules.');if(error.code==='functions/not-found'&&['checkOpenAIConnection','reviewContentAI'].includes(name))throw error;if(error.code==='functions/not-found')throw new Error(name==='synthesizeSpeech'?'Chức năng giọng đọc chưa được triển khai. Quản lý cần lưu GEMINI_API_KEY và triển khai hàm synthesizeSpeech.':'Mô hình AI này chưa được khởi tạo. Quản lý cần lưu API Key và triển khai hàm tương ứng.');if(error.code==='functions/internal'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name)){const action=name==='createWorkflow'?'gửi hồ sơ':name==='reviewWorkflow'?'duyệt hồ sơ':'ghi nhận cấp tiền';throw new Error(`Máy chủ gặp lỗi khi ${action}. Form vẫn được giữ nguyên; hãy thử lại một lần. Nếu lỗi tiếp tục, quản trị viên cần kiểm tra nhật ký Cloud Functions (${name}).`)}throw error}
+  try{const result=await callable(data);return result.data}catch(error){if(error.code==='functions/not-found'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name))throw new Error('Chức năng chưa được triển khai. Cần triển khai createWorkflow, reviewWorkflow, disburseAdvance và Firestore Rules.');if(error.code==='functions/not-found'&&['checkOpenAIConnection','reviewContentAI','synthesizeFreeSpeech'].includes(name))throw error;if(error.code==='functions/not-found')throw new Error(name==='synthesizeSpeech'?'Chức năng giọng đọc chưa được triển khai. Quản lý cần lưu GEMINI_API_KEY và triển khai hàm synthesizeSpeech.':'Mô hình AI này chưa được khởi tạo. Quản lý cần lưu API Key và triển khai hàm tương ứng.');if(error.code==='functions/internal'&&['createWorkflow','reviewWorkflow','disburseAdvance'].includes(name)){const action=name==='createWorkflow'?'gửi hồ sơ':name==='reviewWorkflow'?'duyệt hồ sơ':'ghi nhận cấp tiền';throw new Error(`Máy chủ gặp lỗi khi ${action}. Form vẫn được giữ nguyên; hãy thử lại một lần. Nếu lỗi tiếp tục, quản trị viên cần kiểm tra nhật ký Cloud Functions (${name}).`)}throw error}
 }
 function requireFirebaseAI(){
   if(!state.firebase?.aiMod||!state.firebase.ai)throw new Error('Firebase AI Logic chưa khởi tạo. Kiểm tra đã bật Firebase AI Logic với Gemini Developer API trong Firebase Console chưa.');
@@ -308,7 +308,7 @@ async function processFbtqAssistantCommand(raw,{floating=false}={}){
   finally{if(send)send.disabled=false;if(input){input.disabled=false;if(!floating||!$('#fbtqAssistantWindow')?.hidden)input.focus()}}
 }
 async function generateGeminiSpeech(text,voice){
-  return synthesizeGeminiSpeech({firebase:requireFirebaseAI(),text,voice,model:$('#speechModel').value,signal:speechController?.signal});
+  return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
 function signOutToAuth(){clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;state.role='employee';state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
