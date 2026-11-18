@@ -110,3 +110,13 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 #page-inbox .messenger-customer-avatar{background:transparent}
 #page-inbox .messenger-customer-avatar>.avatar{width:64px;height:64px;background:#e7ecfa}
 @media(max-width:760px){#page-inbox .chat-body{padding:12px}.messenger-message-row{gap:5px}#page-inbox .messenger-message-row .message{max-width:85%;padding:9px 12px}#page-inbox .messenger-message-avatar{width:22px;height:22px;flex-basis:22px}}
+#page-inbox .messenger-attach-btn{flex-shrink:0;width:36px;height:36px;border:0;border-radius:50%;background:#eef4ff;color:#1677ff;font-size:24px;cursor:pointer}
+#page-inbox .messenger-image-draft{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid #e5ecf7;background:#f7faff;min-height:74px;flex-shrink:0}
+#page-inbox .messenger-image-draft[hidden]{display:none}
+#page-inbox .messenger-image-draft img{width:58px;height:58px;border-radius:9px;object-fit:cover}
+#page-inbox .messenger-image-draft span{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+#page-inbox .messenger-image-draft button{border:0;border-radius:50%;width:28px;height:28px;background:#e9eef8;color:#506482;font-size:21px;cursor:pointer}
+#page-inbox .message .messenger-attachment-image{display:block;width:auto;max-width:min(100%,340px);max-height:360px;border-radius:10px;object-fit:contain;margin-top:5px}
+#page-inbox .messenger-image-link{font-size:10px;text-decoration:none}
+#page-inbox .chat-body{overflow-anchor:none}
+#page-inbox .chat-body{scroll-behavior:auto}

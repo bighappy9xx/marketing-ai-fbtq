@@ -58,5 +58,6 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
     }catch(e){await job.update({status:'failed',error:e.message});await db.doc(`${pages}/${m.pageId}`).set({lastError:e.message},{merge:true});}
   });
   Object.assign(out,require('./messenger-history').registerMessengerHistory({db,onCall:callable,HttpsError,owner,graph,decryptToken,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET}));
+  out.sendMessengerImage=require('./messenger-image').registerMessengerImage({db,onCall:callable,HttpsError,owner,decryptToken,graphUrl,META_TOKEN_ENCRYPTION_KEY,FieldValue});
   return out;
 };

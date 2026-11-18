@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-messenger-live`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-instant-images`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -169,8 +169,17 @@ Triển khai đồng thời `autoReplyFacebook` có chặn `historical/meta_hist
 
 ### Tự bổ sung tin bị bỏ lỡ
 
-Hộp thư đang mở và tab đang hiển thị tự kiểm tra hội thoại gần đây, tối đa một lượt mỗi phút, luân phiên giữa các Trang thuộc tài khoản. Máy chủ giới hạn tự đồng bộ một lượt mỗi phút cho mỗi Trang kể cả khi mở nhiều tab; khi lỗi sẽ giãn thử lại tối đa 5 phút. Mỗi lượt giữ giới hạn 5 hội thoại × 25 tin; lịch sử xa hơn vẫn tải theo yêu cầu. Khi chuyển mục khác hoặc ẩn tab, không chạy lượt kiểm tra mới. Webhook tiếp tục nhận tin khi không mở website.
+Hộp thư đang mở và tab đang hiển thị tự kiểm tra hội thoại gần đây, tối đa một lượt mỗi 5 giây, luân phiên giữa các Trang thuộc tài khoản. Máy chủ giới hạn tự đồng bộ một lượt mỗi 5 giây cho mỗi Trang kể cả khi mở nhiều tab; khi lỗi sẽ giãn thử lại tối đa 40 giây. Mỗi lượt giữ giới hạn 5 hội thoại × 25 tin; lịch sử xa hơn vẫn tải theo yêu cầu. Khi chuyển mục khác hoặc ẩn tab, không chạy lượt kiểm tra mới. Webhook tiếp tục nhận tin khi không mở website.
 
 Tin lấy qua cơ chế bổ sung vẫn là lịch sử: không tự kích hoạt bot hoặc đặt lại cửa sổ 24 giờ. Để AI tự trả lời mọi tin mới, cần webhook hoạt động và bật AI/kịch bản trong cấu hình Trang. Không tự bật bot cho tất cả Fanpage.
 
 Những cải tiến này không thay thế quyền `pages_messaging`, App Review/Advanced Access và Publish/Live của Meta đối với khách thông thường.
+
+
+## Đồng bộ nhanh và ảnh Messenger
+
+- Webhook + Firestore listener hiển thị tin ngay sau khi máy chủ nhận sự kiện. Không thể đảm bảo độ trễ bằng 0 từ phía Meta; cần xác nhận POST webhook hợp lệ và quyền App đối với khách thật.
+- Kiểm tra bổ sung mỗi 5 giây, luân phiên Fanpage khi tab hộp thư đang hiển thị; máy chủ cũng giới hạn theo Trang. Lượt đồng bộ bỏ qua việc tải lại nội dung hội thoại có `updated_time` không đổi. Đây là dự phòng cho webhook, không phải cam kết nhận mọi hội thoại trong 5 giây.
+- Nút **Đính kèm ảnh** cho phép chọn một JPG/PNG/WebP, tối đa 20 MB; trình duyệt tối ưu JPEG cạnh dài tối đa 2.200 px, tối đa 4 MB để gửi. Có ảnh xem trước và nút bỏ ảnh. Ảnh và nội dung chữ là hai tin Messenger riêng; chỉ gửi chữ sau khi Meta xác nhận ảnh. Khi lỗi giữ ảnh và chữ để kiểm tra trước khi thử lại.
+- `sendMessengerImage` bắt buộc chủ sở hữu Trang, đăng nhập đã duyệt, cửa sổ 24 giờ, chưa STOP và chống trùng request ID. Máy chủ kiểm tra định dạng byte/giới hạn, gửi multipart trực tiếp đến Meta; không công khai ảnh trong Storage. Chỉ ảnh xem trước nhỏ được lưu cùng tin trong Firestore theo quyền hội thoại; ảnh đầy đủ ở Meta.
+- Tin nhận có ảnh hiển thị thumbnail trong bong bóng chat và mở ảnh đầy đủ qua URL Meta khi có. URL có thể hết hạn theo Meta; ảnh gửi có thumbnail dự phòng. Lỗi mạng không kích hoạt gửi lại tự động.

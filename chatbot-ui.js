@@ -1,5 +1,5 @@
-import {messengerAvatar,initAutomaticInbox} from './inbox-realtime.js?v=20261118-messenger-live';
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-messenger-live';
+import {messengerAvatar,initAutomaticInbox} from './inbox-realtime.js?v=20261118-instant-images';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-instant-images';
 import {initInboxTools} from './inbox-workspace.js?v=20261117-inbox';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
