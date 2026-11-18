@@ -186,17 +186,18 @@ function decryptToken(data,secret) {
   return Buffer.concat([decipher.update(Buffer.from(data.encryptedToken,'base64')),decipher.final()]).toString('utf8');
 }
 function graphUrl(path) { return `https://graph.facebook.com/${GRAPH_VERSION()}/${path}`; }
-exports.listMyPages = onCall({timeoutSeconds:20,memory:'256MiB'},async request=>{
-  const auth=await requireSignedIn(request);
+async function requireMessengerAccount(request){const auth=await requireSignedIn(request);requireAIAccount(auth,HttpsError);return auth;}
+exports.listMyPages = onCall({invoker:'public',timeoutSeconds:20,memory:'256MiB'},async request=>{
+  const auth=await requireMessengerAccount(request);
   const snapshot=await db.collection('workspaces/fbtq/pages').where('ownerUid','==',auth.uid).get();
   return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',model:page.model||'gemini',active:page.active===true}})};
 });
 
-exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
-  const auth=await requireSignedIn(request);const {pageId,pageName,pageToken,model='gemini'}=request.data||{};
+exports.connectFacebookPage = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
+  const auth=await requireMessengerAccount(request);const {pageId,pageName,pageToken,model='gemini'}=request.data||{};
   if(typeof pageId!=='string'||!/^\d{5,30}$/.test(pageId)||typeof pageName!=='string'||pageName.length>160||typeof pageToken!=='string'||pageToken.length<20)throw new HttpsError('invalid-argument','Thông tin Fanpage chưa hợp lệ.');
   if(!['gemini','openai'].includes(model))throw new HttpsError('invalid-argument','Mô hình chatbot chưa được hỗ trợ.');
-  const response=await fetch(`${graphUrl(encodeURIComponent(pageId))}?fields=id,name&access_token=${encodeURIComponent(pageToken)}`,{signal:AbortSignal.timeout(15000)}).catch(()=>null);
+  const response=await fetch(`${graphUrl(encodeURIComponent(pageId))}?fields=id,name`,{headers:{Authorization:`Bearer ${pageToken}`},signal:AbortSignal.timeout(15000)}).catch(()=>null);
   const meta=response&&await response.json().catch(()=>({}));
   if(!response?.ok||meta.id!==pageId)throw new HttpsError('failed-precondition','Meta không xác nhận Page ID và Page Access Token.');
   const existing=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(existing.exists&&existing.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Trang đã được kết nối bởi tài khoản khác.');
@@ -206,8 +207,8 @@ exports.connectFacebookPage = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeou
   return {ok:true,pageName:meta.name||pageName,message:'Đã mã hoá và lưu Page Access Token.'};
 });
 
-exports.sendPageReply = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
-  const auth=await requireSignedIn(request);const {pageId,recipientId,message}=request.data||{};
+exports.sendPageReply = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{
+  const auth=await requireMessengerAccount(request);const {pageId,recipientId,message}=request.data||{};
   if(typeof message!=='string'||!message.trim()||message.length>2000||typeof recipientId!=='string'||!/^\d+$/.test(recipientId))throw new HttpsError('invalid-argument','Tin nhắn hoặc khách nhận không hợp lệ.');
   const ref=db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`);const snap=await ref.get();
   if(!snap.exists||snap.data().ownerUid!==auth.uid||snap.data().active!==true)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản của bạn.');
@@ -222,7 +223,7 @@ exports.sendPageReply = onCall({secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSecon
   return {ok:true,messageId:result.message_id||null};
 });
 
-exports.metaWebhook = onRequest({secrets:[META_VERIFY_TOKEN,META_APP_SECRET],timeoutSeconds:30,memory:'256MiB'},async(req,res)=>{
+exports.metaWebhook = onRequest({invoker:'public',secrets:[META_VERIFY_TOKEN,META_APP_SECRET],timeoutSeconds:30,memory:'256MiB'},async(req,res)=>{
   if(req.method==='GET'){
     const mode=req.query['hub.mode'];const token=req.query['hub.verify_token'];const challenge=req.query['hub.challenge'];
     if(mode==='subscribe'&&token===META_VERIFY_TOKEN.value())return res.status(200).send(challenge);
