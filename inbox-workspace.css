@@ -177,3 +177,19 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 #page-inbox [data-page-picker-options] .fanpage-avatar>span{flex:none;min-width:0;line-height:1}
 #page-inbox [data-page-picker-options] .fanpage-avatar-name{flex:1;line-height:1.4;font-size:11px}
 #page-inbox [data-page-picker-options] .fanpage-choice-name{gap:8px;align-items:center}
+/* Page identity colors remain separate from conversation labels. */
+#page-inbox .conversation{position:relative}
+#page-inbox .conversation::before{content:"";position:absolute;left:1px;top:10px;bottom:10px;width:3px;border-radius:4px;background:var(--fanpage-color,transparent)}
+#page-inbox .channel-tag::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:var(--fanpage-color,transparent)}
+#page-inbox .chat-header{border-top:3px solid var(--fanpage-color,transparent)}
+#page-inbox .inbox-fanpage-colors{display:flex;flex-wrap:wrap;gap:7px;padding:0 16px 8px}
+#page-inbox input[type=color][data-page-color]{appearance:none;-webkit-appearance:none;width:24px;height:24px;min-width:24px;max-width:24px;flex:0 0 24px;padding:2px;border:1px solid #dce5f4;border-radius:7px;background:white;cursor:pointer}
+#page-inbox input[data-page-color]::-webkit-color-swatch-wrapper{padding:0}
+#page-inbox input[data-page-color]::-webkit-color-swatch{border:0;border-radius:4px}
+#page-inbox .inbox-fanpage-colors label{display:flex;margin:0}
+#page-inbox .fanpage-picker-row{display:flex;align-items:center;gap:5px;min-width:0}
+#page-inbox .fanpage-picker-row>label{flex:1;min-width:0}
+#page-inbox [data-page-color-reset]{flex:0 0 22px;width:22px;padding:2px;border:0;background:transparent;color:#7183a1;cursor:pointer}
+#page-inbox .inbox-notification-controls{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+#page-inbox [data-inbox-sound]{border:1px solid #dce5f4;border-radius:8px;padding:6px 9px;background:#f5f8ff;color:#355a91;font:inherit;font-size:11px;cursor:pointer}
+#page-inbox [data-inbox-sound-status]{font-size:10px;color:#8494ac}

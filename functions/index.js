@@ -190,7 +190,7 @@ async function requireMessengerAccount(request){const auth=await requireSignedIn
 exports.listMyPages = onCall({invoker:'public',timeoutSeconds:20,memory:'256MiB'},async request=>{
   const auth=await requireMessengerAccount(request);
   const snapshot=await db.collection('workspaces/fbtq/pages').where('ownerUid','==',auth.uid).get();
-  return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',pagePhotoUrl:page.pagePhotoUrl||'',model:page.model||'gemini',active:page.active===true}})};
+  return {pages:snapshot.docs.map(doc=>{const page=doc.data();return {pageId:page.pageId||doc.id,pageName:page.pageName||'',pagePhotoUrl:page.pagePhotoUrl||'',inboxColor:/^#[a-f0-9]{6}$/i.test(page.inboxColor||'')?page.inboxColor:'',model:page.model||'gemini',active:page.active===true}})};
 });
 
 exports.connectFacebookPage = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:35,memory:'256MiB'},async request=>{

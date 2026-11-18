@@ -1,9 +1,10 @@
-import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-broadcast-studio';
-import {prepareScriptImage} from './messenger-images.js?v=20261118-broadcast-studio';
-import {initScriptSearch} from './messenger-script-search.js?v=20261118-broadcast-studio';
-import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261118-broadcast-studio';
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-broadcast-studio';
-import {initInboxTools} from './inbox-workspace.js?v=20261118-broadcast-studio';
+import {initInboxNotifications} from './inbox-notifications.js?v=20261118-inbox-notices';
+import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-inbox-notices';
+import {prepareScriptImage} from './messenger-images.js?v=20261118-inbox-notices';
+import {initScriptSearch} from './messenger-script-search.js?v=20261118-inbox-notices';
+import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261118-inbox-notices';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-inbox-notices';
+import {initInboxTools} from './inbox-workspace.js?v=20261118-inbox-notices';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');
@@ -71,10 +72,11 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
     catch(e){if(state.user?.uid===uid){history.replaceState(null,'',location.pathname+'#inbox');openModal('Chưa hoàn tất kết nối Fanpage',`<p class="chatbot-error">${esc(e.message||'Không lấy được danh sách Trang.')}</p><p>Nhấn + Fanpage để khôi phục danh sách nếu Facebook đã cấp quyền thành công.</p>`,'',null);}}
     finally{callbackBusy=false;}
   },1000);
+  const inboxNotices=initInboxNotifications({page,state,callFunction,showToast});
   const liveStatus=document.createElement('span');liveStatus.className='messenger-live-status';liveStatus.setAttribute('role','status');liveStatus.textContent='Tự cập nhật khi mở hộp thư';page.querySelector('.inbox-list-heading')?.append(liveStatus);
   const autoInbox=initAutomaticInbox({state,callFunction,isVisible:()=>document.visibilityState==='visible'&&page.classList.contains('active')&&!page.classList.contains('broadcast-active')&&!document.querySelector('[data-messenger-sync]'),onStatus:(status,text)=>{liveStatus.dataset.status=status;liveStatus.textContent=text;liveStatus.title=text;}});
   const brokenProfiles=new Map();
   document.addEventListener('error',async e=>{const img=e.target;if(!img?.matches?.('[data-messenger-photo]'))return;const {profileThread:threadId,profilePage:pageId}=img.dataset;img.remove();const uid=state.user?.uid,key=uid+':'+threadId;if(!uid||!state.firebase||!/^[a-f0-9]{64}$/.test(threadId||'')||Date.now()-(brokenProfiles.get(key)||0)<300000||!state.pages.some(p=>p.pageId===pageId))return;brokenProfiles.set(key,Date.now());try{await callFunction('refreshMessengerProfiles',{pageId,threadIds:[threadId]},{timeout:125000});}catch{ /* The fallback remains visible; diagnostics/manual refresh can show the reason. */ }},true);
-  function reset(){bulkWorkspace.reset();scriptSearch.reset();pageScripts.clear();profileChecks.clear();state.currentMessengerScripts=[];autoInbox.reset();clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
+  function reset(){inboxNotices.reset();bulkWorkspace.reset();scriptSearch.reset();pageScripts.clear();profileChecks.clear();state.currentMessengerScripts=[];autoInbox.reset();clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
   return {openSetup,configure,reset,openSync:syncUI.openSync};
 }

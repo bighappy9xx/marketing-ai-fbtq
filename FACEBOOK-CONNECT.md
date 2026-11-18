@@ -238,3 +238,9 @@ Máy chủ kiểm tra lại tài khoản, kết nối Trang và cửa sổ 24 gi
 API mới: `listMessengerBroadcasts`, `getMessengerBroadcast`, `saveMessengerBroadcast`, `previewMessengerBroadcast`, `cancelMessengerBroadcast`, `startMessengerBroadcast` và lịch `runMessengerBroadcasts`. Các bản ghi `messengerBroadcasts`/`messengerBroadcastJobs` không đọc/ghi trực tiếp từ trình duyệt; chỉ callable được bảo vệ và Admin SDK. Chỉ mục theo chủ sở hữu/ngày cập nhật và trạng thái/lịch gửi nằm trong `firestore.indexes.json`.
 
 Thành công nghĩa là Meta đã xác nhận nhận yêu cầu, không đồng nghĩa khách đã nhận/đọc. Cột đọc và click hiển thị **—** do chưa tích hợp sự kiện theo dõi tương ứng. Gửi Marketing/Utility ngoài 24 giờ đang khóa cho đến khi có quyền/mẫu/đồng ý tương ứng; không dùng PSID hoặc message tag để vượt điều kiện gửi thông thường.
+
+### Âm báo tin mới và màu nhận diện Fanpage
+
+Trong **Hội thoại**, bấm **Bật âm báo** một lần để cho trình duyệt phát tiếng. Nút chuyển sang **Âm báo: bật**; bấm lại để tắt. Lựa chọn được nhớ riêng cho tài khoản trên trình duyệt đang dùng. Âm báo chỉ dành cho tin khách mới nhận qua webhook thuộc các Trang đang chọn; tải lịch sử, đồng bộ ban đầu và tin mình gửi không phát tiếng. Các tab cùng trình duyệt phối hợp để hạn chế reo lặp. Trang cần còn mở; đây không phải thông báo hệ điều hành khi đóng trình duyệt.
+
+Các ô màu dưới ô tìm kiếm cho phép chọn màu bất kỳ cho từng Fanpage; rê chuột để xem tên Trang. Trong **Gộp Fanpage** cũng có ô màu cạnh từng Trang và nút **↺** khôi phục màu mặc định. Màu được lưu trên máy chủ theo Fanpage của tài khoản sở hữu, hiện ở vạch cạnh hội thoại, chấm cạnh tên Trang và đầu khung trò chuyện. Các phiên đang mở nhận màu qua chu kỳ đồng bộ tự động. Màu Fanpage độc lập với màu đánh dấu từng hội thoại.
