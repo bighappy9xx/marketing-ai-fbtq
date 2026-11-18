@@ -1,5 +1,5 @@
-import {fanpageColor} from './inbox-notifications.js?v=20261118-liquid-inbox';
-import {pageAvatar} from './inbox-realtime.js?v=20261118-liquid-inbox';
+import {fanpageColor} from './inbox-notifications.js?v=20261118-blue-chatbot-menu';
+import {pageAvatar} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initInboxPagePicker({page,state,onChange,callFunction,showToast}){
  const root=document.createElement('details');root.className='inbox-page-picker';root.innerHTML='<summary><span>Gộp Fanpage</span><b data-page-picker-label>Tất cả Trang</b></summary><div class="inbox-page-picker-body"><p>Tick các Trang muốn hiển thị chung trong hộp thư.</p><div class="inbox-page-picker-actions"><button type="button" data-pages-all>Chọn tất cả</button><button type="button" data-pages-none>Bỏ chọn</button></div><div data-page-picker-options></div><button type="button" class="btn btn-secondary" data-profile-refresh>Cập nhật ảnh đại diện</button><p data-profile-refresh-status role="status"></p></div>';page.querySelector('.inbox-search').after(root);
