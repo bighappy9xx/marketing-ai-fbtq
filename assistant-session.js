@@ -46,7 +46,7 @@ export function createAssistantHistory({getUser,getFirebase,onRestore,onStatus,s
 
 export function initActionApproval({getUser,esc,onLog,onError}){
   const passed=new WeakSet();let cancelPending=null;
-  const fingerprint=form=>JSON.stringify([...new FormData(form)].map(([k,v])=>[k,typeof v==='string'?v:[v.name,v.size,v.lastModified]]) .concat([...form.querySelectorAll('[data-field]')].map(input=>[input.dataset.field,input.value])));
+  const fingerprint=form=>JSON.stringify([...new FormData(form)].map(([k,v])=>[k,typeof v==='string'?v:[v.name,v.size,v.size?v.lastModified:0]]) .concat([...form.querySelectorAll('[data-field]')].map(input=>[input.dataset.field,input.value])));
   function cancel(){cancelPending?.();}
   async function ask(form,submitter){
     cancel();const user=getUser();if(!user)return false;const actor=user.uid,signature=fingerprint(form),started=Date.now();

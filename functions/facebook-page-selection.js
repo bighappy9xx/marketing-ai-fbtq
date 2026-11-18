@@ -1,6 +1,6 @@
 function publicSelection(data,id,uid,now=Date.now()){
  if(!data||data.ownerUid!==uid||data.status!=='ready'||!Number.isFinite(data.expiresAtMs)||data.expiresAtMs<=now)return null;
- return {sessionId:id,expiresAtMs:data.expiresAtMs,pages:(data.candidates||[]).filter(p=>/^\d{5,30}$/.test(p.pageId)).map(p=>({pageId:p.pageId,pageName:String(p.pageName||p.pageId).slice(0,160)}))};
+ return {sessionId:id,expiresAtMs:data.expiresAtMs,pages:(data.candidates||[]).filter(p=>/^\d{5,30}$/.test(p.pageId)).map(p=>({pageId:p.pageId,pageName:String(p.pageName||p.pageId).slice(0,160),pagePhotoUrl:require('./messenger-profile').profileFields({profile_pic:p.pagePhotoUrl}).senderPhotoUrl||''}))};
 }
 async function findPageSelection(db,uid,sessionId,now=Date.now()){
  if(sessionId){const snap=await db.doc('metaOAuthSessions/'+sessionId).get();const result=publicSelection(snap.data(),sessionId,uid,now);if(result)return result;}

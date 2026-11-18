@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-page-groups`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-workspace-upgrade`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -194,3 +194,27 @@ Mở **Hộp thư → Gộp Fanpage** dưới ô tìm kiếm. Tick nhiều Trang
 Nút **Cập nhật ảnh đại diện** trong bảng Gộp Fanpage làm mới tối đa 10 hồ sơ trong nhóm đã chọn, ưu tiên hồ sơ chưa có ảnh. `refreshMessengerProfiles` kiểm tra đăng nhập/chủ sở hữu và từng hội thoại; giới hạn một lượt thử mỗi 60 giây cho mỗi hồ sơ, có khóa chống yêu cầu đồng thời. Không trả Page Token ra trình duyệt.
 
 Hệ thống thử lấy riêng `profile_pic` nếu yêu cầu hồ sơ đầy đủ không trả ảnh. Thành công lưu cache 24 giờ; lỗi quyền lưu 15 phút, thiếu ảnh/lỗi tạm thời lưu 5 phút thay vì bỏ qua 24 giờ. Ảnh hết hạn khi hiển thị sẽ kích hoạt yêu cầu làm mới có giới hạn. Kết quả hiển thị số hồ sơ có ảnh, hồ sơ Meta giới hạn hoặc chưa trả ảnh; không khẳng định ảnh được lấy thành công nếu Meta từ chối quyền. Không dùng ID hoặc URL suy đoán để lấy ảnh ngoài phạm vi API cho phép.
+
+
+## Nâng cấp vùng làm việc, lịch sử và kịch bản
+
+Menu chính chỉ còn **Hội thoại | AI & Kịch Bản & Cấu Hình | Gửi Tin Nhắn Hàng Loạt**. Kết nối Fanpage, kiểm tra/đồng bộ lịch sử và chế độ nhân viên/bot nằm trong mục cấu hình. Mở rộng không gian hoặc tab mở rộng chỉ hiển thị vùng hộp thư và chat; ẩn tiêu đề, vùng thông tin bên phải và các vùng ngoài công việc. Dùng **Thu gọn** hoặc Escape để trở lại.
+
+**AI & Kịch Bản & Cấu Hình → Đồng bộ & tải toàn bộ lịch sử → Tải toàn bộ lịch sử** tự duyệt lần lượt các trang hội thoại và các trang tin cũ của mỗi hội thoại, đến khi Meta hết cursor. Có tiến độ, dừng và lưu mốc theo tài khoản/Trang để tiếp tục; đóng hộp thoại hoặc đổi tài khoản dừng các lượt kế tiếp. Phải giữ tab mở trong lúc tải. Lỗi quyền/Meta trả dữ liệu một phần sẽ dừng và báo lỗi, không báo đã tải toàn bộ. Chỉ tải dữ liệu Meta cấp quyền; không gửi tin, không kích hoạt bot và không đặt lại thời gian 24 giờ.
+
+Ảnh Fanpage lấy từ Meta bằng Page Token trên máy chủ, lưu URL công khai không kèm token và hiển thị ở bộ gộp Trang, chọn kết nối và chọn đồng bộ. Nếu Meta chưa trả ảnh, hiển thị biểu tượng f. Ảnh khách được làm mới khi mở hội thoại hoặc nhận tin mới, có giới hạn tối thiểu 60 giây/hồ sơ để tránh gọi Meta liên tục. Firestore truyền thay đổi đến các trình duyệt đang mở. Meta không có cam kết cập nhật ảnh tức thời cho hồ sơ bị hạn chế quyền.
+
+Chọn màu ở đầu hội thoại để lưu dấu đỏ/cam/vàng/xanh lá/xanh dương/tím hoặc bỏ dấu. `setMessengerThreadColor` kiểm tra chủ sở hữu Trang/hội thoại; màu lưu trên máy chủ, cập nhật qua listener và không bị nhập lịch sử ghi đè.
+
+Kịch bản theo Fanpage có **nội dung chữ + ảnh tùy chọn** hoặc chỉ ảnh. Chọn JPG/PNG/WebP, trình duyệt tối ưu về JPEG trước khi lưu, máy chủ kiểm tra byte/giới hạn và tổng ảnh trong cấu hình. Có thể bỏ ảnh cũ. Kịch bản chung hiện có vẫn dùng được trong gợi ý. Gõ tên kịch bản (có hoặc không có dấu `/`) trong ô tin nhắn để hiện gợi ý; dùng chuột, mũi tên và Enter/Tab để điền. Việc chọn kịch bản chỉ tạo bản nháp, không gửi ngay. Khi bấm Gửi, ảnh và chữ là hai tin Messenger riêng, ảnh được xác nhận trước khi gửi chữ. Bot tự động cũng gửi ảnh/chữ theo kịch bản đã lưu và vẫn kiểm tra STOP/chuyển nhân viên/cửa sổ 24 giờ.
+
+## Người khác gặp “Ứng dụng không hoạt động” trên Facebook
+
+Thông báo này do Meta trả trước callback website. Quản trị App **1679762183550015** mở [Meta App Dashboard](https://developers.facebook.com/apps/1679762183550015/) và kiểm tra:
+
+1. App có đang Development/chưa xuất bản không? Để thử nội bộ, thêm tài khoản thật vào App roles và người được mời phải chấp nhận lời mời. Quyền quản lý Fanpage không thay cho App role.
+2. Hoàn tất các yêu cầu Publish/Live trong dashboard, quyền Messenger/Facebook Login tương ứng, App Review/Advanced Access và Business Verification nếu Meta yêu cầu để phục vụ người ngoài nhóm thử.
+3. Kiểm tra thông báo bắt buộc, Data Use Checkup, mục hành động cần xử lý hoặc hạn chế/vô hiệu hóa App. Nếu bị vô hiệu hóa, xử lý/kháng nghị trong Meta theo thông báo; không chỉ đổi Redirect URI hoặc tạo Firebase user khác.
+4. Bật Facebook Login trên web, giữ đúng tên miền và Redirect URI đã khai báo. Sau khi Meta cho phép, thử lại bằng cả tài khoản có App role và tài khoản ngoài nhóm thử có quyền quản lý Trang.
+
+Website có hướng dẫn cùng liên kết đến đúng App trong màn hình kết nối. Cấu hình App ID hợp lệ trên máy chủ không chứng minh Meta đã bật Live; việc kích hoạt/phê duyệt trên Meta vẫn cần quản trị tài khoản Meta thực hiện.
