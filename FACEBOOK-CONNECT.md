@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-workspace-upgrade`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-broadcast-studio`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -218,3 +218,23 @@ Thông báo này do Meta trả trước callback website. Quản trị App **167
 4. Bật Facebook Login trên web, giữ đúng tên miền và Redirect URI đã khai báo. Sau khi Meta cho phép, thử lại bằng cả tài khoản có App role và tài khoản ngoài nhóm thử có quyền quản lý Trang.
 
 Website có hướng dẫn cùng liên kết đến đúng App trong màn hình kết nối. Cấu hình App ID hợp lệ trên máy chủ không chứng minh Meta đã bật Live; việc kích hoạt/phê duyệt trên Meta vẫn cần quản trị tài khoản Meta thực hiện.
+
+
+## Gửi hàng loạt — bản nháp, luồng nội dung và lịch gửi
+
+Mở tab **Gửi Tin Nhắn Hàng Loạt** để xem ba nhóm **Chưa xuất bản**, **Đã lên lịch / đang gửi**, **Đã xử lý**. Danh sách hiển thị tối đa 100 chiến dịch gần nhất của tài khoản đang đăng nhập. Bản nháp và kết quả lưu trên máy chủ; có sửa, sao chép, xóa bản nháp (lưu trữ ẩn), hủy lịch chưa xử lý và xem kết quả chi tiết. Không tự xóa lịch sử sau 90 ngày.
+
+1. **Tạo mới** hoặc **Chọn luồng tin nhắn** từ một chiến dịch đã lưu. Chọn Fanpage và đặt tên.
+2. Soạn tối đa 8 nội dung theo thứ tự: văn bản, ảnh JPG/PNG/WebP, nhóm tối đa 3 ảnh mỗi lượt, video/audio từ URL HTTPS công khai, bộ sưu tập tối đa 5 thẻ và nút liên kết (tối đa 3 nút). Ảnh được tối ưu trước khi lưu; tổng nội dung/ảnh được giới hạn để lưu trong một bản nháp. Có di chuyển lên/xuống và bỏ nội dung.
+3. Văn bản hỗ trợ `{{ten}}`, `{{fanpage}}`, trả lời nhanh (tối đa 13, trong đó có tùy chọn yêu cầu email/số điện thoại do khách tự chọn). Khung điện thoại xem trước; nút **Xem thử** chỉ mở mô phỏng, không gửi tới khách. Templates tái sử dụng nội dung từ luồng của chính tài khoản.
+4. **Lưu** giữ bản nháp, không gửi. **Tiếp theo** mở phần cấu hình và xem trước đối tượng. Có nhập tối đa 2.000 PSID từ CSV/TXT (tệp tối đa 200 KB); PSID không tạo hội thoại/quyền gửi mới, chỉ lọc trong hội thoại đã có của đúng Trang.
+5. Thêm tối đa 10 điều kiện theo màu, trạng thái trả lời, nội dung gần nhất, số điện thoại hoặc ngày khách tương tác. Chọn thỏa tất cả hoặc một điều kiện. Xem trước quét tối đa 5.000 hội thoại/Trang, chọn tối đa 200 người/chiến dịch; có bỏ chọn từng người.
+6. Chọn gửi ngay hoặc lịch trong 30 ngày tới. Ngày giờ nhập được hiểu là giờ Việt Nam, kể cả khi máy tính dùng múi giờ khác. Lưu lựa chọn thời gian trong bản nháp chưa kích hoạt gửi. **Xem trước & xác nhận** chốt nội dung, đúng Trang, số người và thời gian; bước phê duyệt hệ thống vẫn áp dụng.
+
+`startMessengerBroadcast` chỉ nhận bản nháp đúng phiên bản thuộc tài khoản đã duyệt, đối tượng được chọn vẫn khớp lọc và còn đủ điều kiện. Chốt danh sách ID khi xác nhận, không tự thêm khách mới sau đó. Gửi ngay xử lý lượt đầu; Cloud Scheduler `runMessengerBroadcasts` tiếp tục hàng đợi và lịch mỗi phút khi không mở trình duyệt. Mỗi lượt tối đa 20 người và có giới hạn thời gian. Lịch có thể bắt đầu ở lượt kiểm tra kế tiếp, không cam kết chính xác đến giây.
+
+Máy chủ kiểm tra lại tài khoản, kết nối Trang và cửa sổ 24 giờ/STOP/chuyển nhân viên khi xử lý. Có khóa chiến dịch, dấu xử lý từng người/từng nội dung; lỗi hoặc kết quả chưa xác nhận sẽ dừng ở **Cần kiểm tra**, không tự gửi lại tin có thể đã được Meta nhận. Hủy lịch không thu hồi tin đã gửi. Khách không còn đủ điều kiện được ghi **Bỏ qua**.
+
+API mới: `listMessengerBroadcasts`, `getMessengerBroadcast`, `saveMessengerBroadcast`, `previewMessengerBroadcast`, `cancelMessengerBroadcast`, `startMessengerBroadcast` và lịch `runMessengerBroadcasts`. Các bản ghi `messengerBroadcasts`/`messengerBroadcastJobs` không đọc/ghi trực tiếp từ trình duyệt; chỉ callable được bảo vệ và Admin SDK. Chỉ mục theo chủ sở hữu/ngày cập nhật và trạng thái/lịch gửi nằm trong `firestore.indexes.json`.
+
+Thành công nghĩa là Meta đã xác nhận nhận yêu cầu, không đồng nghĩa khách đã nhận/đọc. Cột đọc và click hiển thị **—** do chưa tích hợp sự kiện theo dõi tương ứng. Gửi Marketing/Utility ngoài 24 giờ đang khóa cho đến khi có quyền/mẫu/đồng ý tương ứng; không dùng PSID hoặc message tag để vượt điều kiện gửi thông thường.

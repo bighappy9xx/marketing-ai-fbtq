@@ -170,3 +170,10 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 #page-inbox.inbox-expanded>.messenger-topbar{border-radius:0;margin:0;padding:9px 12px}
 #page-inbox.messenger-workspace.inbox-expanded .inbox-layout{grid-template-columns:54px 280px minmax(0,1fr);border:0;border-radius:0}
 @media(max-width:760px){#page-inbox .messenger-navigation button{flex:1;font-size:10px;padding:7px 5px}#page-inbox .messenger-topbar{padding:8px}#page-inbox.messenger-workspace.inbox-expanded .inbox-layout{grid-template-columns:48px minmax(0,1fr)}#page-inbox [data-thread-color]{max-width:100px;padding:5px;font-size:9px}.messenger-exit-expanded{font-size:10px;padding:7px 6px}}
+/* Fixed circular avatars: page-picker span rules must not stretch the image slot. */
+#page-inbox .conversation>.avatar{flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px;max-width:42px;aspect-ratio:1;border-radius:50%!important;overflow:hidden}
+#page-inbox .avatar img,.fanpage-avatar img{width:100%!important;height:100%!important;object-fit:cover;border-radius:50%;clip-path:circle(50%)}
+#page-inbox [data-page-picker-options] span.fanpage-avatar{display:inline-grid;flex:0 0 24px!important;width:24px!important;height:24px!important;min-width:24px;max-width:24px;aspect-ratio:1;border-radius:50%;overflow:hidden;font-size:16px}
+#page-inbox [data-page-picker-options] .fanpage-avatar>span{flex:none;min-width:0;line-height:1}
+#page-inbox [data-page-picker-options] .fanpage-avatar-name{flex:1;line-height:1.4;font-size:11px}
+#page-inbox [data-page-picker-options] .fanpage-choice-name{gap:8px;align-items:center}
