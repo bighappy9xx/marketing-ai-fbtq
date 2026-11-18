@@ -120,3 +120,21 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 #page-inbox .messenger-image-link{font-size:10px;text-decoration:none}
 #page-inbox .chat-body{overflow-anchor:none}
 #page-inbox .chat-body{scroll-behavior:auto}
+#page-inbox .inbox-page-picker{margin:0 12px 10px;border:1px solid #dce6f5;border-radius:10px;background:#fff;color:#294666;font-size:11px}
+.inbox-page-picker summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;padding:11px 10px}
+.inbox-page-picker summary::-webkit-details-marker{display:none}
+.inbox-page-picker summary b{color:#246ed3;font-size:10px;text-align:right}
+.inbox-page-picker summary b:after{content:' ▾'}
+.inbox-page-picker[open] summary{border-bottom:1px solid #e6edf7}
+.inbox-page-picker-body{padding:10px}
+.inbox-page-picker-body>p{margin:0 0 10px;color:#71849d;line-height:1.6}
+.inbox-page-picker-actions{display:flex;gap:7px;margin-bottom:10px}
+.inbox-page-picker-actions button{border:0;border-radius:6px;padding:7px 8px;background:#edf4ff;color:#2865b6;font:inherit;cursor:pointer}
+[data-page-picker-options]{max-height:220px;overflow:auto;margin-bottom:8px;overscroll-behavior:contain}
+[data-page-picker-options] label{display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 2px;font-size:11px}
+[data-page-picker-options] input{width:15px;height:15px;accent-color:#1677ff;flex-shrink:0}
+[data-page-picker-options] span{flex:1;min-width:0;overflow-wrap:anywhere}
+[data-page-picker-options] small{color:#6f849e;flex-shrink:0}
+.inbox-page-picker [data-profile-refresh]{width:100%;font-size:10px;margin:4px 0 8px;min-height:32px}
+.inbox-page-picker [data-profile-refresh-status]{margin:0;overflow-wrap:anywhere}
+@media(max-width:760px){#page-inbox .inbox-list:has(.inbox-page-picker[open]){position:relative;z-index:2;background:white;overflow:visible}.inbox-page-picker[open] .inbox-page-picker-body{position:absolute;left:12px;right:12px;z-index:5;border:1px solid #dce6f5;border-radius:0 0 10px 10px;background:white;box-shadow:0 10px 24px #173a6230;max-height:320px;overflow:auto}}

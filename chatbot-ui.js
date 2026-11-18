@@ -1,6 +1,6 @@
-import {messengerAvatar,initAutomaticInbox} from './inbox-realtime.js?v=20261118-instant-images';
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-instant-images';
-import {initInboxTools} from './inbox-workspace.js?v=20261117-inbox';
+import {messengerAvatar,initAutomaticInbox} from './inbox-realtime.js?v=20261118-page-groups';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-page-groups';
+import {initInboxTools} from './inbox-workspace.js?v=20261118-page-groups';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');
@@ -24,7 +24,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   state.chatbotDetails=details;details();
   toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();toolbar.querySelector('[data-bot-handoff]').onclick=()=>handoff();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
-  const inboxTools=initInboxTools({page,state,search,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
+  const inboxTools=initInboxTools({page,state,search,callFunction,showToast,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
   const hint=page?.querySelector('.chat-settings>p');if(hint)hint.textContent='Chọn AI, kịch bản hoặc kết hợp theo từng Trang. Có thể chuyển hội thoại cho nhân viên.';
   const oldToggle=$('#botToggle');if(oldToggle){const next=oldToggle.cloneNode(true);next.className='btn btn-secondary';next.setAttribute('role','button');next.tabIndex=0;next.textContent='Cấu hình';oldToggle.replaceWith(next);next.onclick=()=>configure();next.onkeydown=e=>{if(e.key==='Enter')configure();};}
   async function guarded(work){try{if(!state.firebase||!state.user)throw new Error('Đăng nhập Firebase để sử dụng Chatbot.');return await work();}catch(e){showToast(e.message,'error');}}
@@ -60,7 +60,8 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   },1000);
   const liveStatus=document.createElement('span');liveStatus.className='messenger-live-status';liveStatus.setAttribute('role','status');liveStatus.textContent='Tự cập nhật khi mở hộp thư';page.querySelector('.inbox-list-heading')?.append(liveStatus);
   const autoInbox=initAutomaticInbox({state,callFunction,isVisible:()=>document.visibilityState==='visible'&&page.classList.contains('active'),onStatus:(status,text)=>{liveStatus.dataset.status=status;liveStatus.textContent=text;liveStatus.title=text;}});
-  document.addEventListener('error',e=>{if(e.target?.matches?.('[data-messenger-photo]'))e.target.remove();},true);
+  const brokenProfiles=new Map();
+  document.addEventListener('error',async e=>{const img=e.target;if(!img?.matches?.('[data-messenger-photo]'))return;const {profileThread:threadId,profilePage:pageId}=img.dataset;img.remove();const uid=state.user?.uid,key=uid+':'+threadId;if(!uid||!state.firebase||!/^[a-f0-9]{64}$/.test(threadId||'')||Date.now()-(brokenProfiles.get(key)||0)<300000||!state.pages.some(p=>p.pageId===pageId))return;brokenProfiles.set(key,Date.now());try{await callFunction('refreshMessengerProfiles',{pageId,threadIds:[threadId]},{timeout:125000});}catch{ /* The fallback remains visible; diagnostics/manual refresh can show the reason. */ }},true);
   function reset(){autoInbox.reset();clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
   return {openSetup,configure,reset,openSync:syncUI.openSync};
 }

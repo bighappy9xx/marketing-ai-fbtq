@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-instant-images`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-page-groups`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -165,7 +165,7 @@ Triển khai đồng thời `autoReplyFacebook` có chặn `historical/meta_hist
 - Khi Meta gửi webhook, Firestore cập nhật danh sách hội thoại và nội dung đang xem mà không cần tải lại trang. Tin gửi trên website hiển thị ngay trạng thái đang gửi, sau đó đã gửi hoặc lỗi. Không hiển thị “đã đọc/đã nhận” khi chưa có bằng chứng từ Meta.
 - Bấm **Gửi** hoặc Enter để gửi trực tiếp tin đang soạn; trả lời từ gợi ý AI cũng gửi trực tiếp khi bấm **Gửi trả lời**. Không còn hộp xác nhận riêng cho một tin. Gửi hàng loạt và thay đổi cấu hình bot vẫn giữ bước xác nhận hiện có.
 - Khi có tin đến, giữ nguyên bản nháp, hội thoại đang chọn và vị trí đọc; tải tin cũ hơn giữ vị trí theo nội dung. Không tự gửi lại tin khi lỗi mạng; bản nháp được giữ để kiểm tra trước khi thử lại.
-- Tên và ảnh khách được lấy qua Messenger User Profile API bằng Page Token trên máy chủ, lưu đệm 24 giờ. Nếu Meta không cấp quyền trả ảnh hoặc ảnh hết hạn, dùng chữ viết tắt. Không gắn token vào URL ảnh phía trình duyệt.
+- Tên và ảnh khách được lấy qua Messenger User Profile API bằng Page Token trên máy chủ, lưu đệm 24 giờ khi có ảnh; hồ sơ thiếu ảnh hoặc lỗi được thử lại sau 5 phút, lỗi quyền sau 15 phút. Nếu Meta không cấp quyền trả ảnh hoặc ảnh hết hạn, dùng chữ viết tắt. Không gắn token vào URL ảnh phía trình duyệt.
 
 ### Tự bổ sung tin bị bỏ lỡ
 
@@ -183,3 +183,14 @@ Những cải tiến này không thay thế quyền `pages_messaging`, App Revie
 - Nút **Đính kèm ảnh** cho phép chọn một JPG/PNG/WebP, tối đa 20 MB; trình duyệt tối ưu JPEG cạnh dài tối đa 2.200 px, tối đa 4 MB để gửi. Có ảnh xem trước và nút bỏ ảnh. Ảnh và nội dung chữ là hai tin Messenger riêng; chỉ gửi chữ sau khi Meta xác nhận ảnh. Khi lỗi giữ ảnh và chữ để kiểm tra trước khi thử lại.
 - `sendMessengerImage` bắt buộc chủ sở hữu Trang, đăng nhập đã duyệt, cửa sổ 24 giờ, chưa STOP và chống trùng request ID. Máy chủ kiểm tra định dạng byte/giới hạn, gửi multipart trực tiếp đến Meta; không công khai ảnh trong Storage. Chỉ ảnh xem trước nhỏ được lưu cùng tin trong Firestore theo quyền hội thoại; ảnh đầy đủ ở Meta.
 - Tin nhận có ảnh hiển thị thumbnail trong bong bóng chat và mở ảnh đầy đủ qua URL Meta khi có. URL có thể hết hạn theo Meta; ảnh gửi có thumbnail dự phòng. Lỗi mạng không kích hoạt gửi lại tự động.
+
+
+## Gộp nhiều Fanpage và làm mới ảnh đại diện
+
+Mở **Hộp thư → Gộp Fanpage** dưới ô tìm kiếm. Tick nhiều Trang để xem chung, dùng **Chọn tất cả** để gồm cả Trang kết nối sau này hoặc **Bỏ chọn** để không hiển thị Trang nào. Lựa chọn được lưu riêng theo tài khoản FBTQ trong trình duyệt. Tìm kiếm, bộ lọc và thứ tự hội thoại áp dụng trên nhóm Trang đã chọn; nút Xóa lọc đặt lại cả nhóm Trang về tất cả. Đồng bộ bổ sung chỉ chạy cho các Trang đã chọn; webhook vẫn nhận tin của các Trang đang kết nối.
+
+Đây là gộp cách hiển thị hộp thư: mỗi hội thoại vẫn giữ Page ID và PSID gốc, tin trả lời được gửi từ đúng Trang. Không hợp nhất Fanpage trên Facebook, không gộp hai khách có tên giống nhau, không thay đổi quyền quản lý Trang.
+
+Nút **Cập nhật ảnh đại diện** trong bảng Gộp Fanpage làm mới tối đa 10 hồ sơ trong nhóm đã chọn, ưu tiên hồ sơ chưa có ảnh. `refreshMessengerProfiles` kiểm tra đăng nhập/chủ sở hữu và từng hội thoại; giới hạn một lượt thử mỗi 60 giây cho mỗi hồ sơ, có khóa chống yêu cầu đồng thời. Không trả Page Token ra trình duyệt.
+
+Hệ thống thử lấy riêng `profile_pic` nếu yêu cầu hồ sơ đầy đủ không trả ảnh. Thành công lưu cache 24 giờ; lỗi quyền lưu 15 phút, thiếu ảnh/lỗi tạm thời lưu 5 phút thay vì bỏ qua 24 giờ. Ảnh hết hạn khi hiển thị sẽ kích hoạt yêu cầu làm mới có giới hạn. Kết quả hiển thị số hồ sơ có ảnh, hồ sơ Meta giới hạn hoặc chưa trả ảnh; không khẳng định ảnh được lấy thành công nếu Meta từ chối quyền. Không dùng ID hoặc URL suy đoán để lấy ảnh ngoài phạm vi API cho phép.
