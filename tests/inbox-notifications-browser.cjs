@@ -34,8 +34,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
   const incoming=async(id,extra={})=>page.evaluate(({id,extra})=>{const s=window.__inboxQA.state;s.inboxNotifyMessages([{id,ownerUid:'manager',pageId:'p1',direction:'incoming',source:'meta_webhook',createdAt:Date.now(),...extra}]);},{id,extra});
   await incoming('baseline');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),2);
   await incoming('fresh');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),4);
-  await incoming('fresh');await incoming('old',{historical:true});await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),4);
-  await page.locator('[data-inbox-sound]').click();await incoming('muted');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),4);
+  await incoming('fresh');await incoming('old',{historical:true,createdAt:Date.now()-100000});await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),4);
+  await page.evaluate(()=>{window.__inboxQA.navigate('overview');const s=window.__inboxQA.state;s.inboxSelectedPageIds=[];s.inboxNotifyMessages(['burst1','burst2','burst3'].map((id,i)=>({id,ownerUid:'manager',pageId:i?'p2':'p1',direction:'incoming',source:'meta_webhook',createdAt:Date.now()})));});await page.waitForTimeout(850);assert.equal(await page.evaluate(()=>window.__tones),10);
+  await incoming('synced',{source:'meta_history',historical:true});await page.waitForTimeout(350);assert.equal(await page.evaluate(()=>window.__tones),12);
+  await page.evaluate(()=>window.__inboxQA.navigate('inbox'));await page.locator('[data-inbox-sound]').click();await incoming('muted');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),12);
   assert.equal(await page.evaluate(()=>localStorage.getItem('fbtq_inbox_sound_v1_manager')),'off');
   await page.locator('.inbox-fanpage-colors [data-page-color="p1"]').fill('#12abcd');
   await page.waitForFunction(()=>window.__pageCalls.some(c=>c.name==='setMessengerPageColor'));
@@ -44,9 +46,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
   assert.notEqual(await page.locator('.conversation[data-page-id=p2]').first().evaluate(el=>el.style.getPropertyValue('--fanpage-color')),'#12ABCD');
   const stripe=await page.locator('.conversation[data-page-id=p1]').first().evaluate(el=>getComputedStyle(el,'::before').backgroundColor);assert.equal(stripe,'rgb(18, 171, 205)');
   await page.locator('.inbox-page-picker summary').click();await page.locator('[data-page-color-reset="p1"]').click();await page.waitForFunction(()=>window.__pageCalls.some(c=>c.name==='setMessengerPageColor'&&c.data.color===''));
-  await page.evaluate(()=>{const s=window.__inboxQA.state;s.user={uid:'other'};s.inboxSoundRefresh();s.inboxNotifyMessages([{id:'other-baseline',ownerUid:'other',pageId:'p1',direction:'incoming',source:'meta_webhook',createdAt:Date.now()}]);});await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),4);assert.equal(await page.locator('[data-inbox-sound]').getAttribute('aria-pressed'),'false');await page.evaluate(()=>{const s=window.__inboxQA.state;s.user={uid:'manager'};s.inboxSoundRefresh();});
+  await page.evaluate(()=>{const s=window.__inboxQA.state;s.user={uid:'other'};s.inboxSoundRefresh();s.inboxNotifyMessages([{id:'other-baseline',ownerUid:'other',pageId:'p1',direction:'incoming',source:'meta_webhook',createdAt:Date.now()}]);});await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__tones),12);assert.equal(await page.locator('[data-inbox-sound]').getAttribute('aria-pressed'),'false');await page.evaluate(()=>{const s=window.__inboxQA.state;s.user={uid:'manager'};s.inboxSoundRefresh();});
   await page.screenshot({path:'/private/tmp/fbtq-inbox-notices-desktop.png',animations:'disabled'});
   await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/private/tmp/fbtq-inbox-notices-mobile.png',animations:'disabled'});
-  assert.deepEqual(errors,[]);console.log('PASS sound unlock, fresh-only chime, mute preference, custom Fanpage colors, reset and responsive layout.');
+  assert.deepEqual(errors,[]);console.log('PASS all-Page sound despite filters, each burst message, fresh synced arrivals, sound unlock, fresh-only chime, mute preference, custom Fanpage colors, reset and responsive layout.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

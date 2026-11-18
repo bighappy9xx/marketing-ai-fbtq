@@ -1,10 +1,10 @@
-import {initInboxNotifications} from './inbox-notifications.js?v=20261118-inbox-notices';
-import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-inbox-notices';
-import {prepareScriptImage} from './messenger-images.js?v=20261118-inbox-notices';
-import {initScriptSearch} from './messenger-script-search.js?v=20261118-inbox-notices';
-import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261118-inbox-notices';
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-inbox-notices';
-import {initInboxTools} from './inbox-workspace.js?v=20261118-inbox-notices';
+import {initInboxNotifications} from './inbox-notifications.js?v=20261118-all-incoming-sounds';
+import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-all-incoming-sounds';
+import {prepareScriptImage} from './messenger-images.js?v=20261118-all-incoming-sounds';
+import {initScriptSearch} from './messenger-script-search.js?v=20261118-all-incoming-sounds';
+import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261118-all-incoming-sounds';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-all-incoming-sounds';
+import {initInboxTools} from './inbox-workspace.js?v=20261118-all-incoming-sounds';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');

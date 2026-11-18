@@ -1,5 +1,5 @@
-import {downloadAllHistory} from './messenger-history-loader.js?v=20261118-inbox-notices';
-import {pageAvatar} from './inbox-realtime.js?v=20261118-inbox-notices';
+import {downloadAllHistory} from './messenger-history-loader.js?v=20261118-all-incoming-sounds';
+import {pageAvatar} from './inbox-realtime.js?v=20261118-all-incoming-sounds';
 export function initMessengerSync({state,callFunction,openModal,esc,showToast,refresh}){
  async function openSync(){
   try{
