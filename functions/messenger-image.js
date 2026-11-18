@@ -12,7 +12,7 @@ async function sendPreparedImage({db,page,recipientId,bytes,mimeType,preview='',
    const attachment={type:'image',url:'',...(preview?{preview}:{})},message={pageId:page.pageId,pageName:page.pageName,ownerUid:page.ownerUid,senderId:recipientId,conversationId:thread.id,direction:'outgoing',message:'[Hình ảnh]',attachments:[attachment],source,metaMessageId:data.message_id,createdAt:FieldValue.serverTimestamp()};
    // An echo can arrive first. Preserve the full Meta URL in that case.
    const ref=db.doc(`workspaces/fbtq/messages/${messageKey(thread.id,data.message_id)}`);await db.runTransaction(async tx=>{const old=await tx.get(ref);tx.set(ref,{...message,attachments:old.data()?.attachments?.some(a=>a.url)?old.data().attachments:[attachment]},{merge:true});});
-   await thread.set({message:'[Hình ảnh]',direction:'outgoing',lastMessageAtMs:Date.now(),receivedAt:FieldValue.serverTimestamp()},{merge:true});return {ok:true,messageId:data.message_id};
+   await thread.set({message:'[Hình ảnh]',direction:'outgoing',needsReply:false,lastMessageAtMs:Date.now(),receivedAt:FieldValue.serverTimestamp()},{merge:true});return {ok:true,messageId:data.message_id};
 }
 function registerMessengerImage({db,onCall,HttpsError,owner,decryptToken,graphUrl,META_TOKEN_ENCRYPTION_KEY,FieldValue,fetchImage=fetch}){
  return onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_KEY],timeoutSeconds:90,memory:'512MiB'},async req=>{

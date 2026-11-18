@@ -33,7 +33,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
   const rows=()=>page.locator('#page-inbox .conversation');
   const reset=()=>rail('all').click();
   const choice=async(id,field,value)=>{await rail(id).click();await page.locator(`#inboxFilterPopover input[name="${field}"][value="${value}"]`).click();};
-  assert.equal(await page.locator('.inbox-filter-rail button').count(),10);assert.equal(await rows().count(),5);
+  assert.equal(await page.locator('.inbox-filter-rail button').count(),11);assert.equal(await rows().count(),5);
   await choice('comment','comment','all');assert.equal(await rows().count(),2);
   await choice('comment','comment','no_private');assert.equal(await rows().count(),1);assert.equal(await rows().first().getAttribute('data-thread-id'),'c1');
   await choice('message','ai','processing');assert.equal(await rows().first().getAttribute('data-thread-id'),'m1');
@@ -58,7 +58,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
   async function bounds(){return page.evaluate(()=>{const l=document.querySelector('#page-inbox .inbox-layout'),c=document.querySelector('.conversation-view'),r=l.getBoundingClientRect(),cr=c.getBoundingClientRect();return {overflow:document.documentElement.scrollWidth>innerWidth,layoutOverflow:l.scrollWidth>l.clientWidth+1,inside:cr.right<=r.right+1&&cr.bottom<=r.bottom+1&&cr.left>=r.left};});}
   assert.deepEqual(await bounds(),{overflow:false,layoutOverflow:false,inside:true});
   await rail('message').click();const box=await page.locator('#inboxFilterPopover').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=1640&&box.y>=0&&box.y+box.height<=1000);await page.keyboard.press('Escape');
-  await page.locator('.messenger-exit-expanded').click();const [tab]=await Promise.all([context.waitForEvent('page'),page.locator('#inboxOpenExpandedTab').click()]);await tab.waitForLoadState();assert.equal(new URL(tab.url()).search,'?inbox=expanded');assert.equal(new URL(tab.url()).hash,'#inbox');await seed(tab);await tab.waitForFunction(()=>document.querySelector('#page-inbox').classList.contains('inbox-expanded'));assert.equal(await tab.locator('.inbox-filter-rail button').count(),10);await tab.close();await page.locator('#inboxExpand').click();
+  await page.locator('.messenger-exit-expanded').click();const [tab]=await Promise.all([context.waitForEvent('page'),page.locator('#inboxOpenExpandedTab').click()]);await tab.waitForLoadState();assert.equal(new URL(tab.url()).search,'?inbox=expanded');assert.equal(new URL(tab.url()).hash,'#inbox');await seed(tab);await tab.waitForFunction(()=>document.querySelector('#page-inbox').classList.contains('inbox-expanded'));assert.equal(await tab.locator('.inbox-filter-rail button').count(),11);await tab.close();await page.locator('#inboxExpand').click();
   for(const width of [1024,768,390]){await page.setViewportSize({width,height:900});await page.waitForTimeout(150);assert.deepEqual(await bounds(),{overflow:false,layoutOverflow:false,inside:true});}
   assert.equal(await rows().filter({visible:true}).count(),5);
   await page.screenshot({path:'/private/tmp/fbtq-inbox-mobile.png'});

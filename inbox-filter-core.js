@@ -1,5 +1,5 @@
 const normalized=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').toLowerCase().trim();
-export const defaultInboxFilters=()=>({query:'',kind:'all',comment:'all',ai:'all',rating:'all',phone:'all',reply:'all',from:'',to:'',source:'all',page:'all',assignee:'all',team:'all'});
+export const defaultInboxFilters=()=>({query:'',kind:'all',comment:'all',ai:'all',rating:'all',phone:'all',reply:'all',from:'',to:'',source:'all',page:'all',assignee:'all',team:'all',color:'all',unread:'all',ordered:'all',starred:'all'});
 export function inboxTimestamp(thread){
  const time=thread.receivedAt||thread.updatedAt||thread.createdAt;
  if(time?.toMillis)return time.toMillis();if(Number.isFinite(time?.seconds))return time.seconds*1000;
@@ -10,7 +10,7 @@ export function inboxKind(t){const value=normalized(t.channel||t.type||t.message
 export function inboxSource(t){return String(t.sourceType||t.source||t.channel||'Messenger').trim();}
 export function inboxAssignee(t){return String(t.assignedToUid||t.assigneeUid||t.assignedTo?.uid||(typeof t.assignedTo==='string'?t.assignedTo:'')||'');}
 export function inboxTeam(t){return String(t.assignedTeamId||t.assignedTeam||t.assignedGroupId||t.teamId||'');}
-export function inboxHasPhone(t){const explicit=t.phone||t.phoneNumber||t.customerPhone||t.customer?.phone;if(explicit&&String(explicit).replace(/\D/g,'').length>=8)return true;return /(?:^|[^\d])(?:\+84|0)(?:[\s().-]?\d){8,10}(?!\d)/.test(String(t.message||''));}
+export function inboxHasPhone(t){const explicit=t.phone||t.detectedPhone||t.phoneNumber||t.customerPhone||t.customer?.phone;if(explicit&&String(explicit).replace(/\D/g,'').length>=8)return true;return /(?:^|[^\d])(?:\+84|0)(?:[\s().-]?\d){8,10}(?!\d)/.test(String(t.message||''));}
 export function inboxNeedsReply(t){if(typeof t.needsReply==='boolean')return t.needsReply;if(t.lastOutgoingAtMs&&t.lastIncomingAtMs)return t.lastIncomingAtMs>t.lastOutgoingAtMs;return t.direction==='incoming';}
 export function inboxAIState(t,pages=[]){
  if(t.humanPaused||t.forwardedToHuman||inboxAssignee(t))return 'forwarded';
@@ -24,7 +24,11 @@ export function filterInboxThreads(threads,filters,{uid='',pages=[]}={}){
  const f={...defaultInboxFilters(),...filters},query=normalized(f.query),from=day(f.from),to=day(f.to);
  if(!validInboxDates(f.from,f.to))return [];
  return threads.filter(t=>{
-  if(query&&!normalized([t.senderName,t.senderId,t.pageName,t.message,t.phone,t.customerPhone].join(' ')).includes(query))return false;
+  if(query&&!normalized([t.senderName,t.senderId,t.pageName,t.message,t.messageSearchText,t.phone,t.detectedPhone,t.customerPhone].join(' ')).includes(query))return false;
+  if(f.color!=='all'&&(f.color==='none'?!!t.tagColor:t.tagColor!==f.color))return false;
+  if(f.unread!=='all'&&(f.unread==='yes'?t.unread!==true:t.unread!==false))return false;
+  if(f.ordered!=='all'&&!!(t.orderCreated||t.orderId||t.orderIds?.length)!==(f.ordered==='yes'))return false;
+  if(f.starred!=='all'&&(t.starred===true)!==(f.starred==='yes'))return false;
   if(f.kind!=='all'&&inboxKind(t)!==f.kind)return false;
   if(f.comment!=='all'){
    if(inboxKind(t)!=='comment')return false;
@@ -49,3 +53,5 @@ export function filterInboxThreads(threads,filters,{uid='',pages=[]}={}){
  }).slice().sort((a,b)=>f.reply==='oldest'?inboxTimestamp(a)-inboxTimestamp(b):inboxTimestamp(b)-inboxTimestamp(a));
 }
 export function expandedInboxURL(href){const url=new URL(href);url.search='';url.searchParams.set('inbox','expanded');url.hash='inbox';return url.href;}
+
+export function enrichInboxThreads(threads,messages){const history=new Map();for(const m of messages||[]){if(!m.conversationId)continue;let row=history.get(m.conversationId);if(!row)history.set(m.conversationId,row={text:[],phone:''});row.text.push(m.message||'');if(m.direction==='incoming'){const phone=String(m.message||'').match(/(?:^|[^\d])((?:\+84|0)(?:[\s().-]?\d){8,10})(?!\d)/);if(phone)row.phone=phone[1];}}return threads.map(t=>{const h=history.get(t.conversationId||t.id);return h?{...t,messageSearchText:h.text.join(' '),detectedPhone:h.phone}:t;});}

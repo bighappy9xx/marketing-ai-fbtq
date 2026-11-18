@@ -35,6 +35,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  assert.equal(validInboxDates('2026-02-30',''),false);
  assert.equal(validInboxDates('2026-11-18','2026-11-17'),false);
  assert.deepEqual(ids({from:'bad'}),[]);
+ const enriched=core.enrichInboxThreads([{id:'x',conversationId:'x',message:'Bạn: cảm ơn',direction:'outgoing',unread:true,tagColor:'green',starred:true,orderCreated:true}],[{conversationId:'x',direction:'incoming',message:'Liên hệ 0912 345 678, tìm sản phẩm hoa hồng'}]);
+ assert.equal(filter(enriched,{phone:'yes',query:'hoa hong',unread:'yes',color:'green',ordered:'yes',starred:'yes'}).length,1);assert.equal(filter(enriched,{color:'none'}).length,0);assert.equal(filter(enriched,{unread:'no'}).length,0);assert.equal(filter(enriched,{starred:'no'}).length,0);
  const before=JSON.stringify(rows);filter(rows,{});assert.equal(JSON.stringify(rows),before);
  assert.equal(expandedInboxURL('https://example.test/app/?code=secret&state=token#settings'),'https://example.test/app/?inbox=expanded#inbox');
  console.log('PASS inbox filter combinations, channel/AI metadata, phone, dates, reply order, assignment, search and safe expanded URL.');

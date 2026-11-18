@@ -8,3 +8,8 @@ test('auto sync pauses in hidden panes, limits rate, backs off and ignores stale
  assert.ok(mod.messengerAvatar({senderName:'<Khách>',senderPhotoUrl:'javascript:alert(1)'}).includes('&lt;'));assert.ok(!mod.messengerAvatar({senderPhotoUrl:'javascript:alert(1)'}).includes('<img'));assert.equal(mod.chatTime({seconds:12}),12000);
  }finally{Object.assign(global,old);}
 });
+test('each active Page polls concurrently every five seconds regardless of picker; slow Page does not block others',async()=>{
+ const old={document:global.document,window:global.window,setInterval:global.setInterval,clearInterval:global.clearInterval};global.document={addEventListener(){},removeEventListener(){}};global.window={addEventListener(){},removeEventListener(){}};global.setInterval=()=>0;global.clearInterval=()=>{};
+ try{const mod=await import('data:text/javascript;base64,'+fs.readFileSync(require.resolve('../inbox-realtime.js')).toString('base64'));let now=10000,release;const calls=[],state={user:{uid:'a'},firebase:{},inboxSelectedPageIds:[],pages:[{pageId:'p1'},{pageId:'p2'}]},auto=mod.initAutomaticInbox({state,isVisible:()=>true,now:()=>now,onStatus(){},callFunction:async(_,data)=>{calls.push(data.pageId);if(data.pageId==='p1')return new Promise(r=>release=r);return {};}});
+ const pending=auto.tick();await Promise.resolve();assert.deepEqual(calls,['p1','p2']);now+=4999;await auto.tick();assert.equal(calls.length,2);now++;await auto.tick();assert.deepEqual(calls,['p1','p2','p2']);release({});await pending;auto.stop();}finally{Object.assign(global,old);}
+});
