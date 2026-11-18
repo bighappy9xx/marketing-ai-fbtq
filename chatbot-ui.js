@@ -1,4 +1,5 @@
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-inbox-sync';
+import {messengerAvatar,initAutomaticInbox} from './inbox-realtime.js?v=20261118-messenger-live';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-messenger-live';
 import {initInboxTools} from './inbox-workspace.js?v=20261117-inbox';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
@@ -16,7 +17,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   const customer=document.createElement('section');customer.className='messenger-customer';page?.querySelector('.chat-settings')?.prepend(customer);
   const quick=document.createElement('div');quick.className='messenger-quick-replies';quick.setAttribute('aria-label','Câu trả lời nhanh');page?.querySelector('.chat-compose')?.before(quick);
   function details(){const t=state.activeThread;
-    customer.innerHTML=t?`<div class="messenger-customer-heading">THÔNG TIN KHÁCH HÀNG</div><span class="messenger-customer-avatar">${esc((t.senderName||'KH').split(/\s+/).slice(-2).map(w=>w[0]).join(''))}</span><h3>${esc(t.senderName||'Khách '+String(t.senderId||'').slice(-4))}</h3><p>Messenger · ${esc(t.pageName||'Fanpage')}</p><dl><dt>ID khách hàng</dt><dd>${esc(t.senderId||'—')}</dd><dt>Fanpage</dt><dd>${esc(t.pageName||t.pageId||'—')}</dd><dt>Xử lý hội thoại</dt><dd>${t.humanPaused?'Nhân viên tiếp nhận':'Theo cấu hình Fanpage'}</dd><dt>Cửa sổ phản hồi</dt><dd>${t.optedOut?'Khách đã dừng nhận tin':t.lastIncomingAtMs&&Date.now()-t.lastIncomingAtMs<86400000?'Còn trong 24 giờ':'Chờ tin mới từ khách'}</dd></dl>`:'<div class="messenger-customer-empty"><span>♙</span><b>Thông tin khách hàng</b><p>Chọn một hội thoại để xem thông tin.</p></div>';
+    customer.innerHTML=t?`<div class="messenger-customer-heading">THÔNG TIN KHÁCH HÀNG</div><span class="messenger-customer-avatar">${messengerAvatar(t)}</span><h3>${esc(t.senderName||'Khách '+String(t.senderId||'').slice(-4))}</h3><p>Messenger · ${esc(t.pageName||'Fanpage')}</p><dl><dt>ID khách hàng</dt><dd>${esc(t.senderId||'—')}</dd><dt>Fanpage</dt><dd>${esc(t.pageName||t.pageId||'—')}</dd><dt>Xử lý hội thoại</dt><dd>${t.humanPaused?'Nhân viên tiếp nhận':'Theo cấu hình Fanpage'}</dd><dt>Cửa sổ phản hồi</dt><dd>${t.optedOut?'Khách đã dừng nhận tin':t.lastIncomingAtMs&&Date.now()-t.lastIncomingAtMs<86400000?'Còn trong 24 giờ':'Chờ tin mới từ khách'}</dd></dl>`:'<div class="messenger-customer-empty"><span>♙</span><b>Thông tin khách hàng</b><p>Chọn một hội thoại để xem thông tin.</p></div>';
     quick.innerHTML=(state.scripts||[]).slice(0,6).map((s,i)=>`<button type="button" data-quick-reply="${i}" title="${esc(s.text)}">${esc(s.title||'Trả lời nhanh')}</button>`).join('');
   }
   quick.onclick=e=>{const button=e.target.closest('[data-quick-reply]');if(!button)return;const input=$('#replyInput');input.value=state.scripts[Number(button.dataset.quickReply)]?.text||'';input.focus();};
@@ -57,6 +58,9 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
     catch(e){if(state.user?.uid===uid){history.replaceState(null,'',location.pathname+'#inbox');openModal('Chưa hoàn tất kết nối Fanpage',`<p class="chatbot-error">${esc(e.message||'Không lấy được danh sách Trang.')}</p><p>Nhấn + Fanpage để khôi phục danh sách nếu Facebook đã cấp quyền thành công.</p>`,'',null);}}
     finally{callbackBusy=false;}
   },1000);
-  function reset(){clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
+  const liveStatus=document.createElement('span');liveStatus.className='messenger-live-status';liveStatus.setAttribute('role','status');liveStatus.textContent='Tự cập nhật khi mở hộp thư';page.querySelector('.inbox-list-heading')?.append(liveStatus);
+  const autoInbox=initAutomaticInbox({state,callFunction,isVisible:()=>document.visibilityState==='visible'&&page.classList.contains('active'),onStatus:(status,text)=>{liveStatus.dataset.status=status;liveStatus.textContent=text;liveStatus.title=text;}});
+  document.addEventListener('error',e=>{if(e.target?.matches?.('[data-messenger-photo]'))e.target.remove();},true);
+  function reset(){autoInbox.reset();clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
   return {openSetup,configure,reset,openSync:syncUI.openSync};
 }

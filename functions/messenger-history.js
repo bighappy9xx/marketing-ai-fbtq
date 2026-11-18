@@ -37,8 +37,11 @@ function registerMessengerHistory({db,onCall,HttpsError,owner,graph,decryptToken
  out.syncFacebookInbox=onCall({invoker:'public',secrets,timeoutSeconds:120,memory:'256MiB'},async req=>{
   const {page,ref,auth}=await owner(req,req.data?.pageId),{cursor='',threadId=''}=req.data||{};
   if(typeof cursor!=='string'||cursor.length>4000||typeof threadId!=='string'||threadId&&!/^[a-f0-9]{64}$/.test(threadId))throw new HttpsError('invalid-argument','Yêu cầu đồng bộ không hợp lệ.');
-  const now=Date.now(),jobId=crypto.randomUUID();
-  await db.runTransaction(async tx=>{const snap=await tx.get(ref),data=snap.data();if(!data||data.ownerUid!==auth.uid)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản.');if(data.syncLockUntil>now)throw new HttpsError('resource-exhausted','Fanpage đang đồng bộ. Đợi hoàn tất trước khi thử lại.');tx.update(ref,{syncLockUntil:now+150000,syncJobId:jobId});});
+  const now=Date.now(),jobId=crypto.randomUUID(),automatic=req.data?.automatic===true;
+  if(automatic&&(cursor||threadId))throw new HttpsError('invalid-argument','Đồng bộ tự động chỉ lấy hội thoại gần đây.');
+  let skipped=false;
+  await db.runTransaction(async tx=>{const snap=await tx.get(ref),data=snap.data();if(!data||data.ownerUid!==auth.uid)throw new HttpsError('permission-denied','Fanpage không thuộc tài khoản.');if(automatic&&now-(data.lastAutoSyncAtMs||0)<60000){skipped=true;return;}if(data.syncLockUntil>now)throw new HttpsError('resource-exhausted','Fanpage đang đồng bộ. Đợi hoàn tất trước khi thử lại.');tx.update(ref,{syncLockUntil:now+150000,syncJobId:jobId,...(automatic?{lastAutoSyncAtMs:now}:{})});});
+  if(skipped)return {skipped:true,imported:0,conversations:0};
   try{
    const token=decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),fields='id,message,from,to,created_time,attachments';
    let threads,nextCursor='';
@@ -47,6 +50,7 @@ function registerMessengerHistory({db,onCall,HttpsError,owner,graph,decryptToken
    const fetched=await Promise.allSettled(threads.map(async t=>{if(!t.peer)throw Error('Không xác định được người tham gia.');const data=await graph(`${encodeURIComponent(t.id)}/messages?${new URLSearchParams({fields,limit:'25',...(t.after?{after:t.after}:{})})}`,token);return {t,data};}));
    let imported=0,conversations=0;const errors=[];
    for(const result of fetched){if(result.status==='rejected'){errors.push('Meta chưa cho phép đọc một hội thoại; kiểm tra quyền và phạm vi App.');continue;}const {t,data}=result.value;const saved=await storeHistory({db,page,peer:t.peer,metaConversationId:t.id,rows:data.data,nextCursor:data.paging?.next?data.paging?.cursors?.after||'':'',older:!!threadId});imported+=saved.imported;conversations++;}
+   await Promise.allSettled(fetched.filter(r=>r.status==='fulfilled').map(r=>require('./messenger-profile').enrichProfile({db,page,peerId:r.value.t.peer.id,graph,token})));
    await ref.set({lastHistorySyncAt:new Date(),lastHistorySyncCount:imported},{merge:true});return {conversations,imported,nextCursor,hasMore:!!nextCursor,errors,limitConversations:5,limitMessages:25,note:'Chỉ tải dữ liệu Meta cho phép. Tin lịch sử không kích hoạt bot tự động hoặc làm mới cửa sổ gửi 24 giờ.'};
   }finally{await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(snap.data()?.syncJobId===jobId)tx.update(ref,{syncLockUntil:0});}).catch(()=>{});}
  });

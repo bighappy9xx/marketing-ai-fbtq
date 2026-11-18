@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-inbox-sync`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-messenger-live`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -156,3 +156,21 @@ Nếu phiên đã hết hạn, cần đăng nhập lại Facebook để cấp ph
 6. Để phục vụ khách thông thường, hoàn tất Publish/Live, App Review/Advanced Access cho các quyền Messenger và Business Verification nếu Meta yêu cầu. Không có bản sửa website nào thay thế được phê duyệt của Meta.
 
 Triển khai đồng thời `autoReplyFacebook` có chặn `historical/meta_history` trước khi mở chức năng nhập lịch sử; triển khai webhook và các hàm gửi cùng phiên bản để tránh lặp tin echo. Không tạo tin thử trực tiếp trong Firestore.
+
+
+## Messenger cập nhật tức thời và gửi trực tiếp
+
+### Tin nhắn và giao diện
+
+- Khi Meta gửi webhook, Firestore cập nhật danh sách hội thoại và nội dung đang xem mà không cần tải lại trang. Tin gửi trên website hiển thị ngay trạng thái đang gửi, sau đó đã gửi hoặc lỗi. Không hiển thị “đã đọc/đã nhận” khi chưa có bằng chứng từ Meta.
+- Bấm **Gửi** hoặc Enter để gửi trực tiếp tin đang soạn; trả lời từ gợi ý AI cũng gửi trực tiếp khi bấm **Gửi trả lời**. Không còn hộp xác nhận riêng cho một tin. Gửi hàng loạt và thay đổi cấu hình bot vẫn giữ bước xác nhận hiện có.
+- Khi có tin đến, giữ nguyên bản nháp, hội thoại đang chọn và vị trí đọc; tải tin cũ hơn giữ vị trí theo nội dung. Không tự gửi lại tin khi lỗi mạng; bản nháp được giữ để kiểm tra trước khi thử lại.
+- Tên và ảnh khách được lấy qua Messenger User Profile API bằng Page Token trên máy chủ, lưu đệm 24 giờ. Nếu Meta không cấp quyền trả ảnh hoặc ảnh hết hạn, dùng chữ viết tắt. Không gắn token vào URL ảnh phía trình duyệt.
+
+### Tự bổ sung tin bị bỏ lỡ
+
+Hộp thư đang mở và tab đang hiển thị tự kiểm tra hội thoại gần đây, tối đa một lượt mỗi phút, luân phiên giữa các Trang thuộc tài khoản. Máy chủ giới hạn tự đồng bộ một lượt mỗi phút cho mỗi Trang kể cả khi mở nhiều tab; khi lỗi sẽ giãn thử lại tối đa 5 phút. Mỗi lượt giữ giới hạn 5 hội thoại × 25 tin; lịch sử xa hơn vẫn tải theo yêu cầu. Khi chuyển mục khác hoặc ẩn tab, không chạy lượt kiểm tra mới. Webhook tiếp tục nhận tin khi không mở website.
+
+Tin lấy qua cơ chế bổ sung vẫn là lịch sử: không tự kích hoạt bot hoặc đặt lại cửa sổ 24 giờ. Để AI tự trả lời mọi tin mới, cần webhook hoạt động và bật AI/kịch bản trong cấu hình Trang. Không tự bật bot cho tất cả Fanpage.
+
+Những cải tiến này không thay thế quyền `pages_messaging`, App Review/Advanced Access và Publish/Live của Meta đối với khách thông thường.
