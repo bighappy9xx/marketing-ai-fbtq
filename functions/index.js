@@ -218,38 +218,12 @@ exports.sendPageReply = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_
   if(!response?.ok){logger.warn('Meta send message failed',{pageId,status:response?.status});throw new HttpsError('unavailable','Facebook không gửi được tin nhắn. Kiểm tra quyền pages_messaging và token.');}
   const result=await response.json().catch(()=>({}));
   const conversationId=crypto.createHash('sha256').update(`${pageId}:${recipientId}`).digest('hex');
-  await db.doc(`workspaces/fbtq/inbox/${conversationId}`).set({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),receivedAt:FieldValue.serverTimestamp(),createdBy:auth.uid},{merge:true});
-  await db.collection('workspaces/fbtq/messages').add({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),createdAt:FieldValue.serverTimestamp(),createdBy:auth.uid});
+  await db.doc(`workspaces/fbtq/inbox/${conversationId}`).set({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),receivedAt:FieldValue.serverTimestamp(),lastMessageAtMs:Date.now(),createdBy:auth.uid},{merge:true});
+  await db.collection('workspaces/fbtq/messages').doc(result.message_id?require('./messenger-history').messageKey(conversationId,result.message_id):crypto.randomUUID()).set({pageId,pageName:snap.data().pageName,ownerUid:auth.uid,senderId:recipientId,conversationId,direction:'outgoing',message:message.trim(),metaMessageId:result.message_id||'',createdAt:FieldValue.serverTimestamp(),createdBy:auth.uid},{merge:true});
   return {ok:true,messageId:result.message_id||null};
 });
 
-exports.metaWebhook = onRequest({invoker:'public',secrets:[META_VERIFY_TOKEN,META_APP_SECRET],timeoutSeconds:30,memory:'256MiB'},async(req,res)=>{
-  if(req.method==='GET'){
-    const mode=req.query['hub.mode'];const token=req.query['hub.verify_token'];const challenge=req.query['hub.challenge'];
-    if(mode==='subscribe'&&token===META_VERIFY_TOKEN.value())return res.status(200).send(challenge);
-    return res.sendStatus(403);
-  }
-  if(req.method!=='POST')return res.sendStatus(405);
-  const signature=req.get('x-hub-signature-256')||'';const raw=req.rawBody||Buffer.from(JSON.stringify(req.body||{}));
-  const expected='sha256='+crypto.createHmac('sha256',META_APP_SECRET.value()).update(raw).digest('hex');
-  const supplied=Buffer.from(signature);const target=Buffer.from(expected);
-  if(supplied.length!==target.length||!crypto.timingSafeEqual(supplied,target))return res.sendStatus(401);
-  const body=req.body||{};
-  try{
-    for(const entry of body.entry||[]){
-      const pageId=String(entry.id||'');const pageSnap=await db.doc(`workspaces/fbtq/pages/${pageId}`).get();if(!pageSnap.exists)continue;const page=pageSnap.data();
-      for(const event of entry.messaging||[]){if(!event.message||event.message.is_echo)continue;const sender=String(event.sender?.id||'');if(!sender)continue;const key=crypto.createHash('sha256').update(`${pageId}:${sender}`).digest('hex');
-        const message=event.message.text||'[Đã nhận tệp đính kèm]';
-        const messageId=crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex');
-        const threadRef=db.doc(`workspaces/fbtq/inbox/${key}`);const oldThread=await threadRef.get();if((oldThread.data()?.lastIncomingAtMs||0)>Number(event.timestamp||0))continue;
-        const optedOut=require('./chatbot-core').isOptOut(message)?true:oldThread.data()?.optedOut===true;
-        await db.doc(`workspaces/fbtq/inbox/${key}`).set({lastIncomingAtMs:Math.min(Date.now(),Number(event.timestamp)||Date.now()),lastIncomingMessageId:messageId,optedOut,pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'gemini',conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),receivedAt:FieldValue.serverTimestamp(),unread:true},{merge:true});
-        await db.collection('workspaces/fbtq/messages').doc(crypto.createHash('sha256').update(`${key}:${event.message.mid||event.timestamp||Date.now()}`).digest('hex')).set({pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:key,senderId:sender,message,direction:'incoming',attachments:(event.message.attachments||[]).map(a=>({type:a.type,url:a.payload?.url||''})),createdAt:FieldValue.serverTimestamp()},{merge:true});
-      }
-    }
-    return res.sendStatus(200);
-  }catch(error){logger.error('Meta webhook event processing failed',{error:String(error)});return res.sendStatus(500)}
-});
+exports.metaWebhook=require('./meta-webhook').registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,logger});
 
 Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}));
 

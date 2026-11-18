@@ -3,7 +3,7 @@
 Website: https://bighappy9xx.github.io/marketing-ai-fbtq/
 Firebase backend: `mediafbtq-6e1bb` (Blaze), region `us-central1`.
 
-**Trạng thái:** mã nguồn và trình cài đặt đã chuẩn bị. Chưa có Meta App ID/App Secret nên chưa triển khai hoặc xác minh Fanpage thật. Không cần gửi secret qua cuộc trò chuyện. Các bài kiểm thử dùng API giả lập, không gửi tin thật.
+**Trạng thái:** đã cấu hình Meta App `1679762183550015` và triển khai backend Messenger. Việc kết nối Trang không tự xác nhận quyền đọc hội thoại hoặc nhận tin của khách ngoài nhóm thử. Dùng chức năng kiểm tra kết nối và tài khoản thử hợp lệ để xác minh; không gửi secret qua cuộc trò chuyện. Các bài kiểm thử tự động dùng API giả lập, không gửi tin thật.
 
 ## 1. Bạn tạo Meta App
 
@@ -58,7 +58,7 @@ Trình cài đặt thực hiện:
 - Tạo `META_VERIFY_TOKEN` nếu chưa có. **Sao chép Verify Token hiển thị trong Terminal vào Meta Webhooks ở bước 4, không gửi nó vào chat.** Nếu đã có token, giữ nguyên và chỉ xem trong Terminal riêng khi cần.
 - Tự sinh khóa mã hóa 32 byte `META_TOKEN_ENCRYPTION_KEY` nếu chưa tồn tại. **Không xoay khóa cũ**, tránh làm các Page Token đã lưu không giải mã được.
 - Ghi cấu hình công khai vào `functions/.env.mediafbtq-6e1bb`, giữ nguyên các cấu hình khác. File env đã nằm trong gitignore.
-- Triển khai 14 hàm kết nối/nhận/gửi/cấu hình Messenger và chỉ mục hội thoại. Nếu đã có `OPENAI_API_KEY`, triển khai thêm `autoReplyFacebook` dùng OpenAI; không buộc tạo `GEMINI_API_KEY`.
+- Triển khai nhóm hàm kết nối/nhận/gửi/đồng bộ/kiểm tra/cấu hình Messenger và chỉ mục hội thoại. Nếu đã có `OPENAI_API_KEY`, triển khai thêm `autoReplyFacebook` dùng OpenAI; không buộc tạo `GEMINI_API_KEY`.
 - HTTP của webhook và callable nhận kết nối từ Internet. Webhook kiểm tra HMAC bằng App Secret; các callable bắt buộc Firebase Auth, tài khoản đã duyệt, vai trò hợp lệ và kiểm tra chủ sở hữu Fanpage.
 
 Trình cài đặt không đăng nhập Facebook thay bạn, không tự kết nối Trang, không gửi tin và không bật bot. Chi phí Functions/Secret Manager/Firestore và API OpenAI theo mức sử dụng vẫn áp dụng. Không liên quan tới project Gemini Free dành cho giọng đọc.
@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-fanpage-picker`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-inbox-sync`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -144,3 +144,15 @@ Không cần nhập lại secret hoặc chạy lại toàn bộ trình cài đ�
 Màn hình mới đưa về Hộp thư và mở bảng chọn Trang sau OAuth. Nếu đã đóng bảng hoặc tải lại trang, bấm **+ Fanpage** hoặc **Chọn Fanpage** trên thông báo để khôi phục phiên đã được cấp quyền. Backend `getFacebookPageSelection` chỉ trả ID/tên Trang của phiên sẵn sàng thuộc đúng tài khoản FBTQ, trong hạn 10 phút; không trả token mã hóa. Có thể chọn tối đa 10 Trang mỗi lần và phải phê duyệt trước khi kết nối.
 
 Nếu phiên đã hết hạn, cần đăng nhập lại Facebook để cấp phiên mới. Đây là việc làm mới phiên, không yêu cầu đổi App Secret hoặc tạo lại Meta App. Hộp chọn có tìm kiếm, hiển thị số Trang và nút phê duyệt luôn nằm trong khung trên điện thoại.
+
+
+## Fanpage đã kết nối nhưng chưa có tin nhắn
+
+1. Mở **Hộp thư & Chatbot AI → Đồng bộ tin nhắn**, chọn đúng Fanpage và bấm **Kiểm tra kết nối**. Bảng này kiểm tra token, đăng ký ứng dụng trên Trang, webhook Page/messages và quyền đọc hội thoại; không gửi tin.
+2. Bấm **Tải lịch sử gần đây**. Mỗi lượt đọc tối đa 5 hội thoại, tối đa 25 tin gần nhất mỗi hội thoại. Dùng **Tải thêm hội thoại** để lấy lượt kế tiếp; chọn hội thoại rồi **Tải tin nhắn cũ hơn** nếu còn dữ liệu. Meta chỉ trả dữ liệu trong phạm vi App/token được phép, nên kết quả 0 không khẳng định Trang không có tin trên Facebook.
+3. Tin lịch sử giữ thời gian gốc, không tự gửi trả lời, không kích hoạt bot và không đặt lại cửa sổ gửi 24 giờ. Tin trùng được bỏ qua; đồng bộ không ghi đè tin mới hơn hoặc trạng thái chuyển nhân viên.
+4. Với tin mới, ứng dụng phải có webhook Page/messages và Trang phải đăng ký đúng ứng dụng. Màn hình kiểm tra kết nối hiển thị lần nhận webhook gần nhất nếu có.
+5. Khi App chưa xuất bản, kiểm tra bằng tài khoản có vai trò **Admin/Developer/Tester của chính Meta App**; tài khoản Tester cần chấp nhận lời mời trước. Quyền quản trị Fanpage không thay cho vai trò trong App. Để thử: Meta App → **Role in the application / App roles → Role / Roles** → thêm tài khoản thử, chấp nhận lời mời rồi dùng tài khoản đó chủ động nhắn Fanpage.
+6. Để phục vụ khách thông thường, hoàn tất Publish/Live, App Review/Advanced Access cho các quyền Messenger và Business Verification nếu Meta yêu cầu. Không có bản sửa website nào thay thế được phê duyệt của Meta.
+
+Triển khai đồng thời `autoReplyFacebook` có chặn `historical/meta_history` trước khi mở chức năng nhập lịch sử; triển khai webhook và các hàm gửi cùng phiên bản để tránh lặp tin echo. Không tạo tin thử trực tiếp trong Firestore.

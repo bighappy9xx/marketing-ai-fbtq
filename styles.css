@@ -1232,3 +1232,8 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 [data-fanpage-selection] .chatbot-page-choice small{display:block;margin-top:3px;color:var(--muted);font-size:11px}
 [data-fanpage-selection] .chatbot-page-choice input{width:17px!important;height:17px;flex-shrink:0}
 [data-fanpage-selection]>p,[data-page-count]{font-size:12px;line-height:1.6}
+
+.messenger-sync-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.messenger-checks{list-style:none;padding:0;margin:12px 0}.messenger-checks li{padding:11px 0;border-bottom:1px solid var(--line)}.messenger-checks b{font-size:12px}.messenger-checks p,[data-sync-status]>p{font-size:12px;line-height:1.6;margin:6px 0}
+[data-messenger-sync]>p{font-size:12px;line-height:1.6}
+[data-sync-more][hidden]{display:none!important}
