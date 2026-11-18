@@ -20,13 +20,15 @@ Quyền tài khoản trên Fanpage và vai trò trong Meta App là hai thứ kh�
 | Trường trong Meta | Giá trị |
 | --- | --- |
 | App Domains | `bighappy9xx.github.io` |
+| Privacy policy URL | `https://mediafbtq-6e1bb-meta.web.app/privacy.html` |
+| User data deletion → Data deletion instructions URL | `https://mediafbtq-6e1bb-meta.web.app/data-deletion.html` |
 | Website / Site URL | `https://bighappy9xx.github.io/marketing-ai-fbtq/` |
 | Valid OAuth Redirect URIs | `https://bighappy9xx.github.io/marketing-ai-fbtq/index.html` |
 | Webhook Callback URL | `https://us-central1-mediafbtq-6e1bb.cloudfunctions.net/metaWebhook` |
 
 Redirect URI phải trùng tuyệt đối, kể cả `index.html`, HTTPS và đường dẫn repository. Đây là callback kết nối Fanpage, không phải callback đăng nhập Firebase. Không nhập URL Firebase `__/auth/handler` vào chỗ này.
 
-Trong **App settings → Basic**, bạn cũng cần email liên hệ, URL chính sách riêng tư và URL hướng dẫn/xử lý yêu cầu xóa dữ liệu thật của đơn vị vận hành. Nội dung phải phản ánh thực tế: thu thập tin nhắn, mục đích chăm sóc khách hàng, ai được truy cập, dùng AI nếu bật và cách yêu cầu xóa dữ liệu. Hệ thống hiện chưa có endpoint tự động xử lý Data Deletion Callback; chọn **Data Deletion Instructions URL** nếu dashboard cho phép và cung cấp quy trình/contact thực sự hoạt động. Không khai báo một URL mẫu hoặc URL chưa tồn tại. Việc xét duyệt/publish Meta do bạn hoàn tất trong tài khoản Meta.
+Trong **App settings → Basic**, dùng email liên hệ `bighappy9xx@gmail.com` và hai URL công khai ở bảng trên cho chính sách riêng tư và hướng dẫn yêu cầu xóa dữ liệu. Nội dung phải phản ánh thực tế: thu thập tin nhắn, mục đích chăm sóc khách hàng, ai được truy cập, dùng AI nếu bật và cách yêu cầu xóa dữ liệu. Hệ thống hiện chưa có endpoint tự động xử lý Data Deletion Callback; chọn **Data Deletion Instructions URL** nếu dashboard cho phép và cung cấp quy trình/contact thực sự hoạt động. Không khai báo một URL mẫu hoặc URL chưa tồn tại. Việc xét duyệt/publish Meta do bạn hoàn tất trong tài khoản Meta.
 
 ## 3. Bạn chạy trình cài đặt một lần
 
