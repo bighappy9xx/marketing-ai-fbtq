@@ -85,7 +85,7 @@ Kiểm tra quyền/permissions trong App:
 
 Facebook Login for Business Configuration phải bao gồm quyền/tài sản tương ứng nếu dùng nó. Các quyền cần cấp phải xuất hiện đúng trong màn hình xin quyền thực tế; chỉ thêm scope trong code không tự cấp quyền.
 
-Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js` và `app.js` phiên bản `20261118-messenger-setup`.
+Cập nhật giao diện qua GitHub Pages theo quy trình của repository; triển khai Firebase Functions không tự cập nhật GitHub Pages. Source mới dùng `chatbot-ui.js`, `app.js` và `styles.css` phiên bản `20261118-fanpage-picker`.
 
 Sau khi giao diện đã cập nhật:
 
@@ -137,3 +137,10 @@ firebase deploy --only functions:autoReplyFacebook --project mediafbtq-6e1bb --n
 Không cần nhập lại secret hoặc chạy lại toàn bộ trình cài đặt. Nếu role thực sự thiếu, cần người có quyền IAM khôi phục role này cho đúng Eventarc service agent; không cấp role cho tài khoản người dùng hoặc allUsers, không cấp Owner/Editor để xử lý lỗi này. Sau khi triển khai, cần xác nhận trạng thái function và Eventarc trigger trước khi bật bot. Không tạo tin nhắn giả trong Firestore để kiểm tra vì có thể kích hoạt gửi tin thật.
 
 [Tài liệu Google về lỗi quyền Eventarc](https://docs.cloud.google.com/eventarc/docs/troubleshooting#permission_denied_errors).
+
+
+## Đã đăng nhập Facebook nhưng không thấy hộp chọn Fanpage
+
+Màn hình mới đưa về Hộp thư và mở bảng chọn Trang sau OAuth. Nếu đã đóng bảng hoặc tải lại trang, bấm **+ Fanpage** hoặc **Chọn Fanpage** trên thông báo để khôi phục phiên đã được cấp quyền. Backend `getFacebookPageSelection` chỉ trả ID/tên Trang của phiên sẵn sàng thuộc đúng tài khoản FBTQ, trong hạn 10 phút; không trả token mã hóa. Có thể chọn tối đa 10 Trang mỗi lần và phải phê duyệt trước khi kết nối.
+
+Nếu phiên đã hết hạn, cần đăng nhập lại Facebook để cấp phiên mới. Đây là việc làm mới phiên, không yêu cầu đổi App Secret hoặc tạo lại Meta App. Hộp chọn có tìm kiếm, hiển thị số Trang và nút phê duyệt luôn nằm trong khung trên điện thoại.

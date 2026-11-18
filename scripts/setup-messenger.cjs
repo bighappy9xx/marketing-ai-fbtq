@@ -5,7 +5,7 @@ const {metaConfig}=require('../functions/meta-config');
 const PROJECT='mediafbtq-6e1bb',ROOT=path.resolve(__dirname,'..');
 const SITE='https://bighappy9xx.github.io/marketing-ai-fbtq/';
 const REDIRECT=SITE+'index.html',WEBHOOK=`https://us-central1-${PROJECT}.cloudfunctions.net/metaWebhook`;
-const FUNCTIONS=['getChatbotSetup','beginFacebookLogin','finishFacebookLogin','addFacebookPages','getPageChatbot','savePageChatbot','listMyPages','connectFacebookPage','sendPageReply','sendChatbotMessage','setChatbotHandoff','previewChatbotBroadcast','sendChatbotBroadcast','metaWebhook'];
+const FUNCTIONS=['getChatbotSetup','beginFacebookLogin','finishFacebookLogin','getFacebookPageSelection','addFacebookPages','getPageChatbot','savePageChatbot','listMyPages','connectFacebookPage','sendPageReply','sendChatbotMessage','setChatbotHandoff','previewChatbotBroadcast','sendChatbotBroadcast','metaWebhook'];
 function updateEnv(text,values){let result=text;for(const [key,value] of Object.entries(values)){if(!/^META_[A-Z_]+$/.test(key)||/[\r\n]/.test(value))throw Error('Cấu hình Meta không hợp lệ.');const pattern=new RegExp('^'+key+'=.*$','m'),line=key+'='+value;result=pattern.test(result)?result.replace(pattern,()=>line):result.replace(/\s*$/,'')+'\n'+line+'\n';}return result;}
 function loadTools(){
  const dirs=[path.join(os.homedir(),'.local/bin'),...(process.env.PATH||'').split(path.delimiter)];

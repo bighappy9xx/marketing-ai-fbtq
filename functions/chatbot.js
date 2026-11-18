@@ -18,6 +18,7 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
   }
   out.getChatbotSetup=callable({},async request=>{await signedIn(request);return metaConfig();});
   out.beginFacebookLogin=callable({},async request=>{const auth=await signedIn(request),config=metaConfig();if(!config.configured)fail('Cấu hình Messenger còn thiếu: '+config.missing.join(', '));const nonce=crypto.randomBytes(32).toString('hex');await db.doc(`${sessions}/${nonce}`).set({ownerUid:auth.uid,expiresAtMs:Date.now()+600000,status:'pending'});return {url:loginUrl(config,nonce),state:nonce};});
+  out.getFacebookPageSelection=callable({timeoutSeconds:20},async request=>{const auth=await signedIn(request),id=request.data?.sessionId;if(id!==undefined&&(!/^[a-f0-9]{64}$/.test(id)))fail('Phiên chọn Fanpage không hợp lệ.');return require('./facebook-page-selection').findPageSelection(db,auth.uid,id);});
   out.finishFacebookLogin=callable({secrets:[...secret,META_APP_SECRET],timeoutSeconds:90},async request=>{
     const auth=await signedIn(request),{state,code}=request.data||{};if(!/^[a-f0-9]{64}$/.test(state||'')||typeof code!=='string'||!code.trim()||code.length>4000)fail('Phiên Facebook không hợp lệ.');const ref=db.doc(`${sessions}/${state}`);
     await db.runTransaction(async tx=>{const s=await tx.get(ref),d=s.data();if(!d||d.ownerUid!==auth.uid||d.status!=='pending'||d.expiresAtMs<Date.now())fail('Phiên kết nối hết hạn hoặc đã dùng.');tx.update(ref,{status:'exchanging'});});
@@ -26,7 +27,7 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
     const list=[];let path='me/accounts?fields=id,name,access_token,tasks&limit=100';
     for(let n=0;path&&n<10;n++){const data=await graph(path,tokens.access_token);list.push(...(data.data||[]));path=data.paging?.cursors?.after&&data.paging?.next?`me/accounts?fields=id,name,access_token,tasks&limit=100&after=${encodeURIComponent(data.paging.cursors.after)}`:'';}
     const candidates=list.filter(p=>p.access_token&&p.tasks?.some(t=>['MESSAGING','MODERATE','MANAGE'].includes(t))).map(p=>({pageId:p.id,pageName:p.name,...encryptToken(p.access_token,META_TOKEN_ENCRYPTION_KEY.value())}));
-    await ref.update({status:'ready',candidates,expiresAtMs:Date.now()+600000});return {sessionId:state,pages:candidates.map(({pageId,pageName})=>({pageId,pageName}))};
+    await ref.update({status:'ready',candidates,expiresAtMs:Date.now()+600000});return {sessionId:state,expiresAtMs:Date.now()+600000,pages:candidates.map(({pageId,pageName})=>({pageId,pageName}))};
   });
   out.addFacebookPages=callable({secrets:secret,timeoutSeconds:120},async request=>{const auth=await signedIn(request),{sessionId,pageIds}=request.data||{};if(!/^[a-f0-9]{64}$/.test(sessionId||'')||!Array.isArray(pageIds)||!pageIds.length||pageIds.length>10)fail('Chọn 1–10 Fanpage.');const ref=db.doc(`${sessions}/${sessionId}`);let candidates;
     await db.runTransaction(async tx=>{const snap=await tx.get(ref),d=snap.data();if(!d||d.ownerUid!==auth.uid||d.status!=='ready'||d.expiresAtMs<Date.now())fail('Phiên chọn Trang hết hạn.');candidates=d.candidates.filter(p=>pageIds.includes(p.pageId));if(candidates.length!==new Set(pageIds).size)fail('Trang không có trong phiên đăng nhập.');tx.update(ref,{status:'connecting'});});
