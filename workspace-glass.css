@@ -345,9 +345,14 @@ body.dark {
   #page-content-review .content-review-tabs {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
-/* Keep editable controls at Safari's mobile focus size and allow manual zoom. */
 @media(max-width:760px), (max-width:1024px) and (pointer:coarse){
   :is(input:not([type="button"],[type="checkbox"],[type="color"],[type="file"],[type="image"],[type="radio"],[type="range"],[type="reset"],[type="submit"]),textarea,select,[contenteditable="true"],[contenteditable="plaintext-only"]){
-    font-size:max(1rem,16px)!important;
+    font-size:14px!important;
+  }
+  /* Mobile Safari checks the focused control's font size before zooming. */
+  @supports(-webkit-touch-callout:none){
+    :is(input:not([type="button"],[type="checkbox"],[type="color"],[type="file"],[type="image"],[type="radio"],[type="range"],[type="reset"],[type="submit"]),textarea,select,[contenteditable="true"],[contenteditable="plaintext-only"]):focus{
+      font-size:16px!important;
+    }
   }
 }
