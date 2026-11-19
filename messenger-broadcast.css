@@ -23,3 +23,10 @@
 .broadcast-workspace [hidden]{display:none!important}
 .broadcast-editor-heading>input{width:280px;flex:0 1 280px}
 @media(max-width:700px){.broadcast-editor-heading>input{width:100%;max-width:100%;flex-basis:100%}}
+
+@media(prefers-reduced-motion:no-preference){
+ .broadcast-workspace button:not(:disabled),.inbox-mobile-broadcast-heading button{
+  transition:transform 150ms ease-out,background-color 150ms ease-out,border-color 150ms ease-out,box-shadow 150ms ease-out;
+ }
+ .broadcast-workspace button:not(:disabled):active,.inbox-mobile-broadcast-heading button:active{transform:scale(.97)}
+}

@@ -1,9 +1,9 @@
-import {initMobileInbox} from './inbox-mobile.js?v=20261119-inbox-message-recovery';
+import {initMobileInbox} from './inbox-mobile.js?v=20261119-broadcast-mobile';
 import {faqMarkup, bindFaqEditor} from './chatbot-faq-ui.js?v=20261119-faq-reply-scripts';
 import {initMessengerMenus} from './messenger-menu.js?v=20261119-inbox-expanded-details';
 import {initThreadTools} from './messenger-thread-tools.js?v=20261119-inbox-message-recovery';
 import {initInboxNotifications} from './inbox-notifications.js?v=20261119-desktop-banners';
-import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blue-chatbot-menu';
+import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261119-broadcast-mobile';
 import {initScriptSearch} from './messenger-script-search.js?v=20261119-personal-reply-scripts';
 import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-profile-identity';
 import {initMessengerSync} from './messenger-sync-ui.js?v=20261119-inbox-message-recovery';
@@ -18,7 +18,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   toolbar.classList.add('messenger-topbar');
   toolbar.querySelector('div:first-child').innerHTML='<span class="messenger-brand-icon"><svg class="nav-svg" aria-hidden="true"><use href="icons.svg#message-circle"></use></svg></span><div><b>FBTQ INBOX</b><small>Không gian chăm sóc khách hàng</small></div>';
   const navigation=document.createElement('nav');navigation.className='messenger-navigation';navigation.setAttribute('aria-label','Chức năng hộp thư');navigation.innerHTML='<button type="button" class="selected" data-inbox-tab="conversations">Hội thoại</button><button type="button" data-inbox-tab="bulk">Gửi Tin Nhắn Tối Ưu</button>';toolbar.querySelector('div:first-child').after(navigation);
-  navigation.onclick=e=>{if(e.target.closest('[data-inbox-menu],[data-bot-status]'))return;const tab=e.target.closest('[data-inbox-tab]')?.dataset.inboxTab;if(tab==='bulk'){navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===e.target.closest('button')));broadcast();}else{bulkWorkspace.close();navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b.dataset.inboxTab==='conversations'));search.focus();}};
+  navigation.onclick=e=>{const tab=e.target.closest('[data-inbox-tab]')?.dataset.inboxTab;if(tab==='bulk'){navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b.dataset.inboxTab==='bulk'));broadcast();}else if(tab==='conversations'){closeBroadcast();search.focus();}};
   const selectionNotice=document.createElement('div');selectionNotice.className='chatbot-setup-status';selectionNotice.hidden=true;toolbar.after(selectionNotice);
   toolbar.querySelector('[data-bot-config]').textContent='✦ Cấu hình AI';toolbar.querySelector('[data-bot-bulk]').textContent='Gửi hàng loạt';toolbar.querySelector('[data-bot-setup]').textContent='+ Fanpage';
   const scriptSearch=initScriptSearch({state,showToast}),profileChecks=new Map();
@@ -87,7 +87,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
   const inboxTools=initInboxTools({page,state,search,callFunction,showToast,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
-  const mobileInbox=initMobileInbox({page,state,onConnect:()=>openSetup(),onNavigate});
+  const mobileInbox=initMobileInbox({page,state,onConnect:()=>openSetup(),onNavigate,onCloseBroadcast:closeBroadcast});
   state.openMobileInboxThread=mobileInbox.showThread;
   state.renderMobileInbox=mobileInbox.render;
 
@@ -144,6 +144,10 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   }
   const bulkWorkspace=initBroadcastWorkspace({page,state,callFunction,refreshPages:refresh,openModal,closeModal,showToast});
   function broadcast(){bulkWorkspace.open();}
+  function closeBroadcast(){
+    bulkWorkspace.close();
+    navigation.querySelectorAll('[data-inbox-tab]').forEach(button=>button.classList.toggle('selected',button.dataset.inboxTab==='conversations'));
+  }
 
   const callbackTimer=setInterval(async()=>{
     if(!state.user||!state.firebase){recoveredOwner='';return;}if(callbackBusy)return;

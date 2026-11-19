@@ -14,12 +14,12 @@ const icons={
 const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${icons[name]}"/></svg>`;
 const iconButton=(action,graphic,name)=>`<button type="button" class="inbox-mobile-icon" data-mobile-action="${action}" aria-label="${name}">${icon(graphic)}</button>`;
 
-export function initMobileInbox({page,state,onConnect,onNavigate}){
+export function initMobileInbox({page,state,onConnect,onNavigate,onCloseBroadcast}){
   const media=matchMedia('(max-width:760px)');
   const list=page.querySelector('.inbox-list'),picker=list.querySelector('.inbox-page-picker');
   const header=document.createElement('header');
   header.className='inbox-mobile-header';
-  header.innerHTML=`${iconButton('workspace','menu','Mở menu FBTQ')}<div class="inbox-mobile-title"><small>FBTQ INBOX</small><strong data-mobile-title>Hội thoại</strong></div><button class="inbox-mobile-pages" data-mobile-action="pages" type="button" aria-label="Chọn Fanpage"></button>${iconButton('connect','add','Kết nối Fanpage')}${iconButton('tools','settings','Công cụ hộp thư')}`;
+  header.innerHTML=`${iconButton('workspace','menu','Mở menu FBTQ')}<div class="inbox-mobile-title"><small>FBTQ INBOX</small><strong data-mobile-title>Hội thoại</strong></div><button class="inbox-mobile-pages" data-mobile-action="pages" type="button" aria-label="Chọn Fanpage"></button>${iconButton('connect','add','Kết nối Fanpage')}${iconButton('tools','settings','Công cụ hộp thư')}<div class="inbox-mobile-broadcast-heading">${iconButton('close-broadcast','back','Về danh sách hội thoại')}<strong>Gửi tin nhắn tối ưu</strong></div>`;
   page.querySelector('.messenger-topbar').before(header);
   const search=list.querySelector('.inbox-search');
   const searchInput=search.querySelector('input');
@@ -95,15 +95,13 @@ export function initMobileInbox({page,state,onConnect,onNavigate}){
     const button=event.target.closest('[data-mobile-action]');
     if(!button)return;
     const action=button.dataset.mobileAction;
-    if(action==='list'||action==='pages'){
-      if(page.classList.contains('broadcast-active')){
-        page.querySelector('[data-inbox-tab="conversations"]').click();
-        searchInput.blur();
-      }
-      show(action);
+    if(action==='close-broadcast'){
+      onCloseBroadcast();
+      show('list',true);
+      tools.focus({preventScroll:true});
       return;
     }
-    if(action==='details'||action==='chat'){show(action);return;}
+    if(action==='list'||action==='pages'||action==='details'||action==='chat'){show(action);return;}
     if(action==='filters'||action==='options'||action==='tools'){
       const key={filters:'mobileInboxFilters',options:'mobileChatOptions',tools:'mobileInboxTools'}[action];
       const next=!(key in page.dataset);
@@ -126,7 +124,9 @@ export function initMobileInbox({page,state,onConnect,onNavigate}){
   });
   render();
   return {render,showThread(){
-    if(!media.matches||view==='chat')return false;
+    if(!media.matches)return false;
+    if(page.classList.contains('broadcast-active'))onCloseBroadcast();
+    if(view==='chat')return false;
     show('chat');
     return true;
   },reset(){show('list');}};

@@ -1,4 +1,4 @@
-.inbox-mobile-header,.inbox-mobile-dock,.inbox-mobile-list-controls,.inbox-mobile-chat-actions,.inbox-mobile-chat-back,.inbox-mobile-detail-back,.inbox-mobile-page-search{display:none}
+.inbox-mobile-header,.inbox-mobile-dock,.inbox-mobile-list-controls,.inbox-mobile-chat-actions,.inbox-mobile-chat-back,.inbox-mobile-detail-back,.inbox-mobile-page-search,.inbox-mobile-broadcast-heading{display:none}
 @media(max-width:760px){
  .main-area:has(#page-inbox.active)>.topbar{display:none}
  .page-wrap:has(#page-inbox.active){padding:0}
@@ -77,5 +77,8 @@
  #page-inbox .chat-compose :is(.send-btn,.messenger-image-trigger){min-height:44px;min-width:44px}
  #page-inbox .chat-scroll-latest{bottom:8px;right:10px}
  #page-inbox.broadcast-active .broadcast-workspace{flex:1 1 0;min-height:0;overscroll-behavior:contain}
+ #page-inbox.messenger-workspace.active.broadcast-active :is(.inbox-mobile-dock,.messenger-topbar,.inbox-mobile-header>:not(.inbox-mobile-broadcast-heading)){display:none}
+ #page-inbox.messenger-workspace.active.broadcast-active .inbox-mobile-header{display:flex}
+ #page-inbox.broadcast-active .inbox-mobile-broadcast-heading{display:flex;align-items:center;gap:10px;font-size:17px}
  #page-inbox.inbox-expanded{position:static}
 }
