@@ -4,9 +4,9 @@ import {initThreadTools} from './messenger-thread-tools.js?v=20261118-blue-chatb
 import {initInboxNotifications} from './inbox-notifications.js?v=20261119-desktop-banners';
 import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blue-chatbot-menu';
 import {initScriptSearch} from './messenger-script-search.js?v=20261119-personal-reply-scripts';
-import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-webhook-only';
+import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-profile-identity';
 import {initMessengerSync} from './messenger-sync-ui.js?v=20261119-messenger-webhook-only';
-import {initInboxTools} from './inbox-workspace.js?v=20261118-blue-chatbot-menu';
+import {initInboxTools} from './inbox-workspace.js?v=20261119-messenger-profile-identity';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{},onOpenMessage=onOpenInbox,onOpenSoundSettings=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');

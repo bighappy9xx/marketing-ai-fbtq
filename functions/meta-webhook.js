@@ -28,12 +28,17 @@ async function refreshProfiles(db,page,events,token){
  const peers=[...new Set(events.filter(e=>e.message&&!e.message.is_echo).map(e=>String(e.sender?.id||'')))].filter(id=>/^\d{5,30}$/.test(id)&&id!==page.pageId).slice(0,3);
  const graph=async(path,access)=>{
   const response=await fetch(`https://graph.facebook.com/${process.env.META_GRAPH_VERSION||'v26.0'}/${path}`,{headers:{Authorization:`Bearer ${access}`},signal:AbortSignal.timeout(7000)});
+  const data=await response.json().catch(()=>null);
   if(!response.ok){
    const error=Error('profile-unavailable');
-   if([400,401,403].includes(response.status))error.code='permission-denied';
+   if([401,403].includes(response.status)||[10,200,294,299].includes(Number(data?.error?.code)))error.code='permission-denied';
+   if(Number(data?.error?.code)===100&&Number(data?.error?.error_subcode)===33){
+    error.code='permission-denied';
+    error.details={reason:'messenger-profile-restricted'};
+   }
    throw error;
   }
-  return response.json();
+  return data;
  };
  await Promise.allSettled(peers.map(peerId=>require('./messenger-profile').enrichProfile({db,page,peerId,graph,token,force:true})));
 }
