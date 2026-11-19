@@ -1,0 +1,224 @@
+/* The shell uses tinted glass. Content surfaces keep a denser material for reading. */
+body {
+  --glass-accent: 57 120 246;
+  --glass-accent-fill: 32 77 166;
+  --glass-accent-ink: 32 77 166;
+  --glass-tint: .12;
+  --glass-opacity: .9;
+  --glass-base: 252 253 255;
+  --glass-solid: #f9fbff;
+  --glass-control: #fff;
+  --glass-edge: #c9d5e5;
+  --glass-shine: #fff;
+  --glass-text: #172237;
+  --glass-muted: #4d5e76;
+  --glass-subtle: #eaf0f8;
+  --glass-canvas: #e8eef8;
+  --glass-shadow: 0 10px 30px #23385813;
+  --glass-material: linear-gradient(rgb(var(--glass-accent) / var(--glass-tint)),rgb(var(--glass-accent) / var(--glass-tint))), rgb(var(--glass-base) / var(--glass-opacity));
+  --glass-focus: rgb(var(--glass-accent-ink));
+  --ink: var(--glass-text);
+  --muted: var(--glass-muted);
+  --blue: var(--glass-focus);
+  --blue-dark: rgb(var(--glass-accent-fill));
+  --blue-pale: var(--glass-subtle);
+  color: var(--glass-text);
+  background: radial-gradient(ellipse at 13% 2%,rgb(var(--glass-accent) / .22),transparent 51%),
+              radial-gradient(ellipse at 92% 26%,#e5dcf9,transparent 43%),
+              linear-gradient(150deg,#f7faff,var(--glass-canvas));
+  background-attachment: fixed;
+}
+body.dark {
+  --glass-base: 24 31 43;
+  --glass-solid: #171f2c;
+  --glass-control: #212c3d;
+  --glass-edge: #4a5970;
+  --glass-shine: #ffffff25;
+  --glass-text: #f0f4fa;
+  --glass-muted: #bac7d8;
+  --glass-subtle: #263347;
+  --glass-canvas: #111722;
+  --glass-shadow: 0 12px 32px #0005;
+  --ink: var(--glass-text);
+  --muted: var(--glass-muted);
+  color: var(--glass-text);
+  background: radial-gradient(ellipse at 16% 0%,rgb(var(--glass-accent) / .2),transparent 50%),
+              radial-gradient(ellipse at 92% 24%,#242033,transparent 46%),
+              var(--glass-canvas);
+  background-attachment: fixed;
+}
+
+:is(body,body.dark) .app-shell .sidebar,
+:is(body,body.dark) .app-shell .topbar {
+  background: var(--glass-material);
+  color: var(--glass-text);
+  border-color: var(--glass-edge);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  box-shadow: inset 0 1px 0 var(--glass-shine),var(--glass-shadow);
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item,
+:is(body,body.dark) .app-shell .sidebar .nav-icon,
+:is(body,body.dark) .app-shell .sidebar .icon-button,
+:is(body,body.dark) .app-shell .sidebar .user-meta b,
+:is(body,body.dark) .app-shell .sidebar .sidebar-close,
+:is(body,body.dark) .app-shell .topbar .breadcrumbs b,
+:is(body,body.dark) .app-shell .page-heading h1 {color:var(--glass-text)}
+:is(body,body.dark) .app-shell .sidebar .nav-label,
+:is(body,body.dark) .app-shell .sidebar .user-meta small,
+:is(body,body.dark) .app-shell .topbar .breadcrumbs,
+:is(body,body.dark) .app-shell .muted {color:var(--glass-muted)}
+:is(body,body.dark) .app-shell .sidebar .side-user,
+:is(body,body.dark) .app-shell .sidebar .manage-label {border-color:var(--glass-edge)}
+:is(body,body.dark) .app-shell .sidebar .nav-item:hover {
+  color: var(--glass-text);
+  transform: none;
+  background: var(--glass-control);
+  border-color: var(--glass-shine);
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item.active {
+  color: var(--glass-focus);
+  background: linear-gradient(rgb(var(--glass-accent) / .13),rgb(var(--glass-accent) / .08)),var(--glass-solid);
+  border-color:var(--glass-edge);
+  box-shadow:inset 0 1px var(--glass-shine),0 3px 12px #15274112;
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item.active .nav-icon {color:inherit}
+:is(body,body.dark) .app-shell .sidebar .count-badge:not(.has-pending),
+:is(body,body.dark) .app-shell .sidebar .nav-badge {
+  background:var(--glass-subtle);
+  border-color:var(--glass-edge);
+  color:var(--glass-focus);
+}
+:is(body,body.dark) .app-shell .sidebar .brand-logo {filter:none}
+
+:is(body,body.dark) .app-shell :is(.panel,.stat-card,.task-column,.task-card,.automation-card,.role-card,.settings-nav,.content-review-card):not(.ov-gold-panel):not(.inbox-layout) {
+  background: var(--glass-solid);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-shine),var(--glass-shadow);
+}
+.app-shell .page-heading {color:var(--glass-text)}
+.app-shell .topbar .icon-button,
+.app-shell .topbar .theme-toggle,
+.app-shell .topbar #topProfile {color:var(--glass-text);border-color:var(--glass-edge)}
+:is(body,body.dark) :is(.app-shell,#modalRoot,.messenger-menu-panel) .btn-primary {
+  color:#fff;
+  background:linear-gradient(#ffffff12,transparent 55%),rgb(var(--glass-accent-fill));
+  border-color:#ffffff35;
+  box-shadow:inset 0 1px 0 #ffffff50,0 4px 10px rgb(var(--glass-accent-fill) / .22);
+}
+:is(body,body.dark) :is(.app-shell,#modalRoot,.messenger-menu-panel) .btn-secondary {
+  color:var(--glass-text);
+  background:var(--glass-control);
+  border-color:var(--glass-edge);
+  box-shadow:inset 0 1px 0 var(--glass-shine);
+}
+:is(body,body.dark) .app-shell :is(.filter-tabs,.editor-tabs,.work-section-tabs,.content-review-tabs) {
+  background:var(--glass-material);
+  border-color:var(--glass-edge);
+}
+:is(body,body.dark) .app-shell :is(.settings-nav,.filter-tabs,.editor-tabs,.work-section-tabs,.content-review-tabs) button.selected {
+  background:var(--glass-subtle);
+  border-color:var(--glass-edge);
+  color:var(--glass-focus);
+}
+:is(body,body.dark) :is(.app-shell,#modalRoot) :is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]),select,textarea) {
+  background:var(--glass-control)!important;
+  border-color:var(--glass-edge)!important;
+  color:var(--glass-text)!important;
+}
+:is(body,body.dark) :is(.app-shell,#modalRoot) :is(input,textarea)::placeholder {color:var(--glass-muted);opacity:1}
+:is(body,body.dark) :is(.app-shell,#modalRoot,.messenger-menu-panel) :focus-visible {
+  outline:2px solid var(--glass-focus);
+  outline-offset:2px;
+}
+:is(body,body.dark) :is(.app-shell,#modalRoot) :is(input,select,textarea):focus {
+  border-color:var(--glass-focus)!important;
+  box-shadow:0 0 0 3px rgb(var(--glass-accent) / .22)!important;
+}
+:is(body,body.dark) :is(.modal,.search-box,.messenger-menu-panel,.inbox-filter-popover) {
+  background:var(--glass-solid);
+  color:var(--glass-text);
+  border-color:var(--glass-edge);
+}
+.app-shell :is(input[type=range],input[type=checkbox],input[type=radio]) {accent-color:var(--glass-focus)}
+.app-shell :is(.table-scroll,.daily-history-scroll) :is(th,td) {border-color:var(--glass-edge)}
+.app-shell .table-scroll th {color:var(--glass-muted);background:var(--glass-subtle)}
+
+:is(body,body.dark) #page-inbox.messenger-workspace>.messenger-topbar,
+:is(body,body.dark) #page-inbox .inbox-filter-rail {
+  background:linear-gradient(135deg,rgb(var(--glass-accent-fill)),color-mix(in srgb,rgb(var(--glass-accent-fill)),#111827 25%));
+  border-color:#ffffff45;
+}
+:is(body,body.dark) #page-inbox .messenger-navigation button.selected,
+:is(body,body.dark) #page-inbox .inbox-filter-rail button[aria-pressed=true] {color:rgb(var(--glass-accent-fill))}
+body.dark #page-inbox {--glass-ink:var(--glass-text)}
+body.dark #page-inbox.messenger-workspace .inbox-layout,
+body.dark #page-inbox :is(.inbox-list,.chat-header,.chat-body,.chat-compose,.chat-settings,.inbox-page-picker,.ai-suggestion) {
+  background:var(--glass-solid);
+  color:var(--glass-text);
+  border-color:var(--glass-edge);
+}
+body.dark #page-inbox :is(.conversation.selected,.conversation:hover,.customer-msg) {
+  background:var(--glass-subtle);
+  color:var(--glass-text);
+  border-color:var(--glass-edge);
+}
+body.dark #page-inbox .our-message {background:rgb(var(--glass-accent-fill));color:#fff}
+body.dark #page-inbox :is(.conversation-head b,.chat-header b,.messenger-customer dd,.customer-msg small) {color:var(--glass-text)}
+body.dark #page-inbox :is(.conversation-head small,.conversation p,.chat-header small,.channel-tag,.messenger-live-status,.messenger-customer-heading,.messenger-customer dt,.chat-date,.inbox-list-heading>b) {color:var(--glass-muted)}
+body.dark #page-inbox :is(.inbox-search,.inbox-page-picker-body,.messenger-thread-tools label,.messenger-thread-tools button) {
+  color:var(--glass-text);background:var(--glass-control);border-color:var(--glass-edge);
+}
+body.dark :is(.chatbot-faq,.glass-settings-card) {background:var(--glass-solid);color:var(--glass-text);border-color:var(--glass-edge)}
+body.dark :is(.glass-settings-card h2,.glass-settings-card p,.chatbot-faq :is(th,td)) {color:var(--glass-text)}
+body.dark :is(.chatbot-faq-table,.chatbot-faq th,.chatbot-faq td) {background:var(--glass-control);border-color:var(--glass-edge)}
+body.dark :is(.inbox-filter-options label:hover,.inbox-filter-popover-head button) {background:var(--glass-subtle);color:var(--glass-text)}
+body.dark .inbox-filter-popover-head {border-color:var(--glass-edge)}
+body.dark .inbox-filter-select :is(select,input) {background:var(--glass-control);color:var(--glass-text)}
+
+#setting-appearance .theme-cards {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:660px}
+#setting-appearance .theme-card {min-width:0;background:var(--glass-control);border-color:var(--glass-edge);color:var(--glass-text)}
+#setting-appearance .theme-card.selected {box-shadow:0 0 0 2px var(--glass-focus);color:var(--glass-focus)}
+.system-preview {background:linear-gradient(110deg,#e1ebfb 50%,#24334a 50%)}
+.appearance-controls {display:grid;gap:20px;max-width:660px;padding:18px 0;color:var(--glass-text)}
+.appearance-controls h4 {margin:0 0 10px}
+.appearance-swatches {display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.appearance-swatches button {width:32px;height:32px;border-radius:100%;background:var(--swatch);border:2px solid var(--glass-control);box-shadow:0 0 0 1px var(--glass-edge)}
+.appearance-swatches button[aria-pressed=true] {box-shadow:0 0 0 2px var(--glass-focus)}
+.appearance-custom,.appearance-tint {display:flex;align-items:center;gap:10px}
+.appearance-custom output,.appearance-tint output,.appearance-range-labels {color:var(--glass-muted);font-variant-numeric:tabular-nums}
+.appearance-custom input {width:36px;height:30px;padding:2px;cursor:pointer}
+.appearance-tint,.appearance-range-labels {justify-content:space-between}
+#themeGlassTint {width:100%;box-shadow:none}
+.appearance-range-labels {display:flex;font-size:12px}
+@media(max-width:640px){#setting-appearance .theme-cards{gap:8px}#setting-appearance .theme-card{padding:8px}}
+@media(prefers-reduced-transparency:reduce){
+  body,body.dark{--glass-opacity:1}
+  :is(body,body.dark) .app-shell :is(.sidebar,.topbar,.settings-nav){backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--glass-solid)}
+}
+
+:is(body,body.dark) .app-shell :is(
+  .stat-top,.stat-foot,.ov-section-title p,.ov-action-strip small,.ov-person small,
+  .ov-audit-row small,.ov-audit-row p,.ov-campaign-cell small,.ov-empty,.ov-award small,
+  .chart-legend,.bar-y-axis,.bar-x-axis,.eyebrow
+) {color:var(--glass-muted)}
+:is(body,body.dark) .app-shell .ov-action-strip>button {
+  color:var(--glass-text);background:var(--glass-solid);border-color:var(--glass-edge);
+}
+.app-shell .ov-status-pending {background:#fff0ce;color:#70450b}
+body.dark .app-shell .ov-status-pending {background:#3c3022;color:#f5d293}
+body.dark .app-shell .ov-status:is(.ov-status-approved,.ov-status-disbursed) {
+  background:#213c33;color:#a8e7c7;
+}
+body.dark .app-shell .ov-status:is(.ov-status-rejected,.ov-status-revision_requested) {
+  background:#422b37;color:#ffd0df;
+}
+
+:is(body,body.dark) .app-shell .settings-nav button:not(.selected) {
+  color:var(--glass-muted);
+}
+:is(body,body.dark) .app-shell .settings-nav button:not(.selected):hover {
+  color:var(--glass-text);background:var(--glass-subtle);
+}
+#setting-appearance .theme-card {width:100%}
+#setting-appearance .theme-card .theme-preview {width:100%}

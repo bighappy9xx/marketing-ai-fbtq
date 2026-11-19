@@ -8,7 +8,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
     await page.route('https://fbtq.test/**',route=>{
       const pathname=new URL(route.request().url()).pathname;if(pathname==='/firebase-config.js')return route.fulfill({contentType:'text/javascript',body:'window.FBTQ_FIREBASE_CONFIG={};'});
       const target=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!target.startsWith(root+path.sep)||!fs.existsSync(target)||!fs.statSync(target).isFile())return route.fulfill({status:404,body:''});
-      const body=pathname==='/app.js'?fs.readFileSync(target,'utf8')+'\nwindow.__overviewTest={state,workflows,navigate,renderOverviewDashboard,renderSystemNotifications,renderTasks,renderContentQueuePreview};':fs.readFileSync(target);
+      const body=pathname==='/app.js'?fs.readFileSync(target,'utf8')+'\nwindow.__overviewTest={state,workflows,navigate,renderOverviewDashboard,renderSystemNotifications,renderTasks,renderContentQueuePreview,appearance};':fs.readFileSync(target);
       return route.fulfill({contentType:({'.js':'text/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'})[path.extname(target)]||'application/octet-stream',body});
     });
     await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__overviewTest);
@@ -58,6 +58,30 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
     if(process.env.FBTQ_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.FBTQ_SCREENSHOT_DIR,'overview-mobile-ranking.png'),animations:'disabled'});
     await page.locator('#overviewReviewHistory').scrollIntoViewIfNeeded();assert.ok(await page.locator('#overviewReviewHistory .ov-audit-row').first().isVisible());
     if(process.env.FBTQ_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.FBTQ_SCREENSHOT_DIR,'overview-mobile-history.png'),animations:'disabled'});
+    await page.evaluate(()=>{
+      const app=window.__overviewTest;
+      app.appearance.useAccount('director','light');
+      app.navigate('settings');
+      document.querySelector('[data-setting="appearance"]').click();
+    });
+    await page.locator('[data-theme-choice="dark"]:visible').click();
+    await page.locator('#themeCustomAccent').fill('#f6ff00');
+    await page.locator('#themeGlassTint').fill('95');
+    assert.equal(await page.locator('#themeAccentValue').textContent(),'#F6FF00');
+    const lum=rgb=>rgb.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0);
+    const fill=await page.evaluate(()=>document.body.style.getPropertyValue('--glass-accent-fill').split(' ').map(Number));
+    assert.ok(1.05/(lum(fill)+.05)>=6);
+    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('dark')),true);
+    await page.evaluate(()=>window.__overviewTest.appearance.useAccount('another-user'));
+    assert.equal(await page.locator('#themeAccentValue').textContent(),'#3978F6');
+    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('dark')),false);
+    await page.evaluate(()=>window.__overviewTest.appearance.useAccount('director'));
+    assert.equal(await page.locator('#themeTintValue').textContent(),'95%');
+    assert.equal(await page.locator('#themeAccentValue').textContent(),'#F6FF00');
+    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('dark')),true);
+    await page.locator('#resetAppearance').click();
+    assert.equal(await page.locator('#themeAccentValue').textContent(),'#3978F6');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2),false);
     assert.deepEqual(errors,[]);console.log('PASS: five overview sections, real data, scope filters, published awards only, single subscription, drill-down links and mobile layout.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
