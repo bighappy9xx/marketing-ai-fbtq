@@ -34,6 +34,12 @@ function relevantFaqs(rows, message) {
   }).sort((a, b) => b.score - a.score).slice(0, 3).map(({question, answer}) => ({question, answer}));
 }
 
+function findFaqReply(rows, message) {
+  const question = normalize(message);
+  if (!question) return undefined;
+  return rows.find(row => row?.enabled && normalize(row.question) === question);
+}
+
 function replyInstructions(page, faqs) {
   return [
     'Bạn là nhân viên tư vấn của ' + page.pageName + '. Trả lời ngắn, tự nhiên bằng tiếng Việt, phù hợp với cách xưng hô trong cuộc trò chuyện.',
@@ -43,4 +49,4 @@ function replyInstructions(page, faqs) {
   ].filter(Boolean).join('\n\n');
 }
 
-module.exports = {validateFaqs, relevantFaqs, replyInstructions};
+module.exports = {validateFaqs, relevantFaqs, findFaqReply, replyInstructions};

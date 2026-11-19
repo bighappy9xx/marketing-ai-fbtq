@@ -1,6 +1,6 @@
 const crypto=require('node:crypto');
 const core=require('./chatbot-core');
-const {validateFaqs,relevantFaqs,replyInstructions}=require('./chatbot-faq');
+const {validateFaqs,relevantFaqs,findFaqReply,replyInstructions}=require('./chatbot-faq');
 const {metaConfig,loginUrl}=require('./meta-config');
 const {requireAIAccount}=require('./ai-policy');
 module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}){
@@ -43,8 +43,12 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
   const faqRef=pageId=>db.doc(`${pages}/${pageId}/private/faqs`);
   out.getPageChatbot=callable({},async request=>{
     const {page}=await owner(request,request.data?.pageId);
-    const faq=request.data?.includeFaqs===true?(await faqRef(page.pageId).get()).data():undefined;
-    return {pageId:page.pageId,pageName:page.pageName,active:page.active,mode:page.mode||'off',model:page.model||'gemini',instructions:page.instructions||'',scripts:(page.scripts||[]).map(s=>({...s,keywords:s.keywords.join(', ')})),lastError:page.lastError||'',availableModels:metaConfig().availableModels,...(request.data?.includeFaqs===true?{faqs:faq?.rows||[],faqRevision:faq?.revision||0}:{})};
+    const includeFaqs=request.data?.includeFaqs===true;
+    const includeFaqReplies=request.data?.includeFaqReplies===true;
+    const faq=includeFaqs||includeFaqReplies&&page.hasChatbotFaqs?(await faqRef(page.pageId).get()).data():undefined;
+    const rows=faq?.rows||[];
+    const faqReplies=includeFaqReplies?rows.filter(row=>row.enabled).map(row=>({title:row.question,text:row.answer})):[];
+    return {pageId:page.pageId,pageName:page.pageName,active:page.active,mode:page.mode||'off',model:page.model||'gemini',instructions:page.instructions||'',scripts:(page.scripts||[]).map(s=>({...s,keywords:s.keywords.join(', ')})),lastError:page.lastError||'',availableModels:metaConfig().availableModels,...(includeFaqs?{faqs:rows,faqRevision:faq?.revision||0}:{}),...(includeFaqReplies?{faqReplies}:{})};
   });
   out.savePageChatbot=callable({},async request=>{
     const {ref,page,auth}=await owner(request,request.data?.pageId);
@@ -54,6 +58,7 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
       if(request.data.faqs!==undefined)rows=validateFaqs(request.data.faqs);
     }catch(e){throw new HttpsError('invalid-argument',e.message);}
     if(['ai','hybrid'].includes(config.mode)&&!metaConfig().availableModels.includes(config.model))fail('Mô hình chatbot chưa bật trên máy chủ. Hãy chọn mô hình đang hỗ trợ.');
+    if(request.data.scripts===undefined)delete config.scripts;
     const update={...config,updatedAt:FieldValue.serverTimestamp()};
     if(rows===undefined){await ref.update(update);return {ok:true};}
     const faqDocument=faqRef(page.pageId);
@@ -78,8 +83,11 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
   out.autoReplyFacebook=onDocumentCreated({document:'workspaces/fbtq/messages/{messageId}',secrets:[...secret,OPENAI_API_KEY,...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?[GEMINI_API_KEY]:[])],timeoutSeconds:120,retry:false},async event=>{
     const m=event.data?.data();if(!m||m.direction!=='incoming'||m.historical===true||m.source==='meta_history')return;const job=db.doc(`chatbotJobs/auto_${event.params.messageId}`);try{await job.create({status:'processing',createdAt:FieldValue.serverTimestamp()});}catch{return;}
     try{const snap=await db.doc(`${pages}/${m.pageId}`).get(),page=snap.data();if(!page?.active||!page.mode||page.mode==='off')return;const thread=(await db.doc(`${inbox}/${m.conversationId}`).get()).data();if(!core.eligible(thread)||thread.lastIncomingMessageId!==event.params.messageId)return;
-      const script=page.mode==='ai'?null:core.pickScript(m.message,page.scripts);let text=script?.text;
-      if(!text&&!script?.image&&['ai','hybrid'].includes(page.mode)){if(!metaConfig().availableModels.includes(page.model||'gemini'))fail('Mô hình chatbot này chưa bật trên máy chủ. Chọn OpenAI và lưu lại cấu hình.');const history=await db.collection('workspaces/fbtq/messages').where('conversationId','==',m.conversationId).orderBy('createdAt','desc').limit(6).get();const prompt=history.docs.reverse().map(d=>{const r=d.data();return `${r.direction==='incoming'?'Khách':'Trang'}: ${String(r.message||'').slice(0,1200)}`;}).join('\n');const faqs=page.hasChatbotFaqs?relevantFaqs((await faqRef(page.pageId).get()).data()?.rows||[],m.message):[];text=await generateWithProvider(page.model||'gemini',prompt,replyInstructions(page,faqs),{...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?{gemini:GEMINI_API_KEY.value()}:{}),openai:OPENAI_API_KEY.value()},{...(page.model==='openai'?require('./ai-policy').textPolicy('reply'):{}),task:'reply',maxTokens:300});}
+      const faqRows=page.hasChatbotFaqs?(await faqRef(page.pageId).get()).data()?.rows||[]:[];
+      const faqReply=page.mode==='ai'?undefined:findFaqReply(faqRows,m.message);
+      const script=page.mode==='ai'||faqReply?undefined:core.pickScript(m.message,page.scripts);
+      let text=faqReply?.answer||script?.text;
+      if(!text&&!script?.image&&['ai','hybrid'].includes(page.mode)){if(!metaConfig().availableModels.includes(page.model||'gemini'))fail('Mô hình chatbot này chưa bật trên máy chủ. Chọn OpenAI và lưu lại cấu hình.');const history=await db.collection('workspaces/fbtq/messages').where('conversationId','==',m.conversationId).orderBy('createdAt','desc').limit(6).get();const prompt=history.docs.reverse().map(d=>{const r=d.data();return `${r.direction==='incoming'?'Khách':'Trang'}: ${String(r.message||'').slice(0,1200)}`;}).join('\n');const faqs=relevantFaqs(faqRows,m.message);text=await generateWithProvider(page.model||'gemini',prompt,replyInstructions(page,faqs),{...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?{gemini:GEMINI_API_KEY.value()}:{}),openai:OPENAI_API_KEY.value()},{...(page.model==='openai'?require('./ai-policy').textPolicy('reply'):{}),task:'reply',maxTokens:300});}
       const current=(await db.doc(`${inbox}/${m.conversationId}`).get()).data();if((text||script?.image)&&current.lastIncomingMessageId===event.params.messageId){if(script?.image){const media=require('./messenger-image');await media.sendPreparedImage({db,page,recipientId:m.senderId,bytes:media.decodeImage(script.image.slice(23),'image/jpeg',150000),mimeType:'image/jpeg',preview:script.imagePreview||'',source:'auto',token:decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),graphUrl,HttpsError,FieldValue});}if(text)await send(page,m.senderId,text.slice(0,2000),'auto');await job.update({status:'sent'});}else await job.update({status:'skipped'});
     }catch(e){await job.update({status:'failed',error:e.message});await db.doc(`${pages}/${m.pageId}`).set({lastError:e.message},{merge:true});}
   });

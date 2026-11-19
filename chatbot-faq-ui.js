@@ -3,8 +3,8 @@ const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').
 
 export const faqMarkup = `
 <section class="chatbot-faq" aria-labelledby="chatbotFaqHeading">
-  <h4 id="chatbotFaqHeading">Dữ liệu huấn luyện · FAQ</h4>
-  <p>AI tham khảo các FAQ đang bật để trả lời tự nhiên hơn. Thay đổi có hiệu lực sau khi bấm Lưu &amp; áp dụng.</p>
+  <h4 id="chatbotFaqHeading">Kịch bản trả lời · FAQ</h4>
+  <p>Mỗi FAQ đang bật là một kịch bản. Khi câu hỏi khớp, chế độ Kịch bản hoặc Kết hợp dùng câu trả lời đã lưu. Chế độ AI tham khảo FAQ phù hợp để diễn đạt tự nhiên. Bấm Lưu &amp; áp dụng để cập nhật.</p>
   <div class="chatbot-faq-toolbar">
     <input type="search" data-faq-search placeholder="Tìm câu hỏi hoặc câu trả lời" aria-label="Tìm FAQ">
     <select data-faq-sort aria-label="Sắp xếp FAQ"><option value="new">Mới nhất</option><option value="old">Cũ nhất</option></select>
