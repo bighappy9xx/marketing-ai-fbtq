@@ -15,7 +15,7 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-faq-reply-scripts';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-bot-status-switch';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
 import { initOverviewHub } from './overview-hub.js?v=20261108-overview-hub';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';

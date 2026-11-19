@@ -12,18 +12,66 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   const page=$('#page-inbox');
   page?.classList.add('messenger-workspace');
   const toolbar=document.createElement('section');toolbar.className='chatbot-toolbar';
-  toolbar.innerHTML='<div><b>Trung tâm Chatbot & Fanpage</b><small>Facebook → Fanpage → Webhook → Kịch bản / AI → Hội thoại</small></div><div><button class="btn btn-primary" data-bot-setup>Kết nối Facebook</button><button type="button" class="btn btn-secondary" data-bot-sync>↻ Đồng bộ tin nhắn</button><button class="btn btn-secondary" data-bot-config>AI & Kịch bản</button><button class="btn btn-secondary" data-bot-bulk>Nhắn tin hàng loạt</button><button class="btn btn-secondary" data-bot-handoff>Chuyển / bật lại bot</button></div>';
+  toolbar.innerHTML='<div><b>Trung tâm Chatbot & Fanpage</b><small>Facebook → Fanpage → Webhook → Kịch bản / AI → Hội thoại</small></div><div><button class="btn btn-primary" data-bot-setup>Kết nối Facebook</button><button type="button" class="btn btn-secondary" data-bot-sync>↻ Đồng bộ tin nhắn</button><button class="btn btn-secondary" data-bot-config>AI & Kịch bản</button><button class="btn btn-secondary" data-bot-bulk>Nhắn tin hàng loạt</button></div>';
   page?.querySelector('.page-heading')?.after(toolbar);
   toolbar.classList.add('messenger-topbar');
   toolbar.querySelector('div:first-child').innerHTML='<span class="messenger-brand-icon"><svg class="nav-svg" aria-hidden="true"><use href="icons.svg#message-circle"></use></svg></span><div><b>FBTQ INBOX</b><small>Không gian chăm sóc khách hàng</small></div>';
   const navigation=document.createElement('nav');navigation.className='messenger-navigation';navigation.setAttribute('aria-label','Chức năng hộp thư');navigation.innerHTML='<button type="button" class="selected" data-inbox-tab="conversations">Hội thoại</button><button type="button" data-inbox-tab="bulk">Gửi Tin Nhắn Hàng Loạt</button>';toolbar.querySelector('div:first-child').after(navigation);
-  navigation.onclick=e=>{if(e.target.closest('[data-inbox-menu]'))return;const tab=e.target.closest('[data-inbox-tab]')?.dataset.inboxTab;if(tab==='bulk'){navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===e.target.closest('button')));broadcast();}else{bulkWorkspace.close();navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b.dataset.inboxTab==='conversations'));search.focus();}};
+  navigation.onclick=e=>{if(e.target.closest('[data-inbox-menu],[data-bot-status]'))return;const tab=e.target.closest('[data-inbox-tab]')?.dataset.inboxTab;if(tab==='bulk'){navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===e.target.closest('button')));broadcast();}else{bulkWorkspace.close();navigation.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b.dataset.inboxTab==='conversations'));search.focus();}};
   const selectionNotice=document.createElement('div');selectionNotice.className='chatbot-setup-status';selectionNotice.hidden=true;toolbar.after(selectionNotice);
-  toolbar.querySelector('[data-bot-config]').textContent='✦ Cấu hình AI';toolbar.querySelector('[data-bot-bulk]').textContent='Gửi hàng loạt';toolbar.querySelector('[data-bot-handoff]').textContent='Chuyển nhân viên';toolbar.querySelector('[data-bot-setup]').textContent='+ Fanpage';
+  toolbar.querySelector('[data-bot-config]').textContent='✦ Cấu hình AI';toolbar.querySelector('[data-bot-bulk]').textContent='Gửi hàng loạt';toolbar.querySelector('[data-bot-setup]').textContent='+ Fanpage';
   const scriptSearch=initScriptSearch({state,showToast}),pageScripts=new Map(),profileChecks=new Map();
   const customer=document.createElement('section');customer.className='messenger-customer';page?.querySelector('.chat-settings')?.prepend(customer);
   const quick=document.createElement('div');quick.className='messenger-quick-replies';quick.setAttribute('aria-label','Câu trả lời nhanh');page?.querySelector('.chat-compose')?.before(quick);
+  const botSwitch=document.createElement('button');
+  botSwitch.type='button';
+  botSwitch.dataset.botStatus='';
+  botSwitch.setAttribute('role','switch');
+  botSwitch.setAttribute('aria-label','Trạng Thái BOT');
+  botSwitch.innerHTML='<span>Trạng Thái BOT</span><span class="bot-status-track" aria-hidden="true"></span><span data-bot-state aria-hidden="true"></span>';
+  navigation.append(botSwitch);
+  const pendingBotUpdates=new Set();
+  const botThreadKey=thread=>JSON.stringify([state.user?.uid,thread?.pageId,thread?.senderId]);
+
+  function renderBotSwitch(thread){
+    const ready=Boolean(state.firebase&&state.user&&thread?.pageId&&thread.senderId);
+    const enabled=ready&&thread.humanPaused!==true;
+    const pending=ready&&pendingBotUpdates.has(botThreadKey(thread));
+    botSwitch.disabled=!ready||pending;
+    botSwitch.setAttribute('aria-checked',String(enabled));
+    botSwitch.setAttribute('aria-busy',String(pending));
+    botSwitch.querySelector('[data-bot-state]').textContent=pending?'Đang lưu…':!ready?'Chọn hội thoại':enabled?'Bật':'Tắt';
+    botSwitch.title=ready?'Bật bot theo cấu hình Fanpage hoặc chuyển hội thoại cho nhân viên.':'Chọn hội thoại để bật hoặc tắt bot.';
+  }
+
+  botSwitch.onclick=async()=>{
+    const thread=state.activeThread;
+    const uid=state.user?.uid;
+    if(botSwitch.disabled||!uid||!thread)return;
+    const key=botThreadKey(thread);
+    const paused=thread.humanPaused!==true;
+    pendingBotUpdates.add(key);
+    renderBotSwitch(thread);
+    try{
+      await callFunction('setChatbotHandoff',{pageId:thread.pageId,recipientId:thread.senderId,paused});
+      if(state.user?.uid!==uid)return;
+      const latestThread=state.inboxThreads.find(row=>botThreadKey(row)===key);
+      if(latestThread)latestThread.humanPaused=paused;
+      if(state.activeThread&&botThreadKey(state.activeThread)===key){
+        state.activeThread.humanPaused=paused;
+        details();
+      }
+      showToast(paused?'Đã tắt bot cho hội thoại.':'Đã bật bot theo cấu hình Fanpage.');
+    }catch(error){
+      if(state.user?.uid===uid)showToast(error.message||'Chưa cập nhật được trạng thái bot.','error');
+    }finally{
+      pendingBotUpdates.delete(key);
+      renderBotSwitch(state.activeThread);
+    }
+  };
+
   function details(){const t=state.activeThread;
+    renderBotSwitch(t);
     state.currentMessengerScripts=[...(pageScripts.get(state.user?.uid+':'+t?.pageId)?.scripts||[]),...(state.scripts||[])];
     if(t&&state.firebase&&state.user){const uid=state.user.uid,key=uid+':'+t.pageId,cached=pageScripts.get(key);if(!cached||Date.now()-cached.at>30000){pageScripts.set(key,{at:Date.now(),scripts:cached?.scripts||[]});callFunction('getPageChatbot',{pageId:t.pageId,includeFaqReplies:true}).then(config=>{if(state.user?.uid!==uid)return;const replies=[...(config.faqReplies||[]),...(config.scripts||[])];pageScripts.set(key,{at:Date.now(),scripts:replies});if(state.activeThread?.pageId===t.pageId){state.currentMessengerScripts=[...replies,...(state.scripts||[])];renderQuick();scriptSearch.refresh();}}).catch(()=>{});}
      if(/^[a-f0-9]{64}$/.test(t.id)&&Date.now()-(profileChecks.get(uid+':'+t.id)||0)>60000&&state.pages.some(p=>p.pageId===t.pageId)){profileChecks.set(uid+':'+t.id,Date.now());callFunction('refreshMessengerProfiles',{pageId:t.pageId,threadIds:[t.id]},{timeout:125000}).catch(()=>{});}}
@@ -34,7 +82,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   function renderQuick(){quick.innerHTML=(state.currentMessengerScripts||[]).slice(0,6).map((s,i)=>`<button type="button" data-quick-reply="${i}" title="${esc(s.text)}">${esc(s.title||'Trả lời nhanh')}${s.image?' ▧':''}</button>`).join('');}
   quick.onclick=async e=>{const button=e.target.closest('[data-quick-reply]');if(!button)return;try{await state.applyMessengerScript?.(state.currentMessengerScripts[Number(button.dataset.quickReply)]);}catch(error){showToast(error.message,'error');}};
   state.chatbotDetails=details;details();
-  toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();toolbar.querySelector('[data-bot-handoff]').onclick=()=>handoff();
+  toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
   const inboxTools=initInboxTools({page,state,search,callFunction,showToast,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
   const hint=page?.querySelector('.chat-settings>p');if(hint)hint.textContent='Chọn AI, kịch bản hoặc kết hợp theo từng Trang. Có thể chuyển hội thoại cho nhân viên.';
@@ -44,9 +92,10 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   const syncUI=initMessengerSync({state,callFunction,openModal,esc,showToast,refresh});toolbar.querySelector('[data-bot-sync]').onclick=()=>syncUI.openSync();
   state.chatbotPagesChanged=()=>{renderConnectedPages();onFilterChange?.();};
   const settings=document.querySelector('#page-chatbot-settings');
-  settings.querySelector('[data-hub-ai]').onclick=configure;settings.querySelector('[data-hub-connect]').onclick=()=>openSetup();settings.querySelector('[data-hub-sync]').onclick=()=>syncUI.openSync();settings.querySelector('[data-hub-handoff]').onclick=handoff;settings.querySelector('[data-settings-scripts]').onclick=()=>document.querySelector('#manageScripts').click();settings.querySelector('[data-settings-banned]').onclick=()=>document.querySelector('#manageBanned').click();
+  settings.querySelector('[data-hub-ai]').onclick=configure;settings.querySelector('[data-hub-connect]').onclick=()=>openSetup();settings.querySelector('[data-hub-sync]').onclick=()=>syncUI.openSync();settings.querySelector('[data-settings-scripts]').onclick=()=>document.querySelector('#manageScripts').click();settings.querySelector('[data-settings-banned]').onclick=()=>document.querySelector('#manageBanned').click();
   settings.querySelector('[data-hub-sound]').onclick=onOpenSoundSettings;
   const menus=initMessengerMenus({page,navigation,cards:[...settings.querySelectorAll('.glass-settings-card')].slice(0,2)});
+  botSwitch.addEventListener('click',()=>menus.close());
   initThreadTools({page,state,callFunction,openModal,closeModal,showToast,onChange:onFilterChange});
 
   const exitExpanded=document.createElement('button');exitExpanded.type='button';exitExpanded.className='messenger-exit-expanded';exitExpanded.textContent='Thu gọn ⛶';exitExpanded.onclick=()=>document.querySelector('#inboxExpand')?.click();toolbar.append(exitExpanded);
@@ -90,7 +139,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   }
   const bulkWorkspace=initBroadcastWorkspace({page,state,callFunction,refreshPages:refresh,openModal,closeModal,showToast});
   function broadcast(){bulkWorkspace.open();}
-  async function handoff(){await guarded(async()=>{const t=state.activeThread;if(!t)throw new Error('Chọn hội thoại trước.');openModal('Chế độ xử lý hội thoại','<div class="modal-fields"><label>Chế độ<select name="paused"><option value="true">Nhân viên tiếp nhận — dừng bot</option><option value="false">Bật lại bot theo cấu hình Trang</option></select></label></div>','Áp dụng',async f=>{await callFunction('setChatbotHandoff',{pageId:t.pageId,recipientId:t.senderId,paused:f.get('paused')==='true'});closeModal();showToast('Đã cập nhật chế độ hội thoại.');});});}
+
   const callbackTimer=setInterval(async()=>{
     if(!state.user||!state.firebase){recoveredOwner='';return;}if(callbackBusy)return;
     const uid=state.user.uid,params=new URLSearchParams(location.search),code=params.get('code'),nonce=params.get('state');

@@ -94,3 +94,17 @@
 .chatbot-faq input[type=checkbox]{width:auto;margin:0;accent-color:#2563d3}
 .chatbot-faq-editor{display:grid;gap:8px}
 .chatbot-faq-editor[hidden],.chatbot-faq [data-faq-file][hidden]{display:none}
+
+#page-inbox .messenger-navigation{flex-wrap:wrap}
+#page-inbox .messenger-navigation [data-bot-status]{
+  margin-inline-start:auto;border-color:#ffffff45;background:#123a7d40;gap:8px
+}
+#page-inbox .messenger-navigation [data-bot-status]:hover:not(:disabled){background:#123a7d80}
+#page-inbox .messenger-navigation [data-bot-status]:disabled{opacity:.75;cursor:default}
+.bot-status-track{display:inline-flex;align-items:center;flex:0 0 28px;height:16px;padding:2px;border-radius:12px;background:#647b9d}
+.bot-status-track::before{content:"";width:12px;height:12px;border-radius:50%;background:white;transform:translateX(0)}
+[data-bot-status][aria-checked=true] .bot-status-track{background:#00845f}
+[data-bot-status][aria-checked=true] .bot-status-track::before{transform:translateX(12px)}
+@media(max-width:760px){
+  #page-inbox .messenger-navigation [data-bot-status]{grid-column:1/-1;margin-inline-start:0}
+}
