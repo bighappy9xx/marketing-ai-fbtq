@@ -5,11 +5,13 @@ export function initMessengerPush({state,callFunction,showToast}){
   const button=document.querySelector('[data-messenger-push-toggle]');
   const previews=document.querySelector('[data-messenger-push-preview]');
   const status=document.querySelector('[data-messenger-push-status]');
-  if(!button||!previews||!status)return {refresh(){},disable(){},notifyBackground(){}};
+  const testButton=document.querySelector('[data-messenger-push-test]');
+  const testStatus=document.querySelector('[data-messenger-push-test-status]');
+  if(!button||!previews||!status||!testButton||!testStatus)return {refresh(){},disable(){},notifyBackground(){}};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
   const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
   const supported=window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&'caches' in window;
-  let owner='',ready,binding=null,busy=false;
+  let owner='',ready,binding=null,busy=false,testing;
   const worker=()=>navigator.serviceWorker.register(new URL('./messenger-push-worker.js',import.meta.url),{updateViaCache:'none'});
   const readBinding=async()=>{
     const cache=await caches.open(cacheName);
@@ -28,6 +30,7 @@ export function initMessengerPush({state,callFunction,showToast}){
     button.disabled=busy||!owner||!supported||ios&&!standalone;
     previews.checked=active&&binding.showPreview===true;
     previews.disabled=busy||!active;
+    testButton.disabled=busy||!active||Boolean(testing);
     status.textContent=ios&&!standalone?'Trên iPhone hoặc iPad, thêm website vào Màn hình chính rồi mở từ biểu tượng.':!supported?'Trình duyệt này chưa hỗ trợ thông báo nền.':Notification.permission==='denied'?'Thông báo đang bị chặn. Hãy cho phép trong cài đặt của trình duyệt hoặc thiết bị.':active?'Đang bật trên thiết bị này.':'Bật trên từng máy tính hoặc điện thoại bạn muốn nhận thông báo.';
   }
   async function prepare(){
@@ -41,10 +44,16 @@ export function initMessengerPush({state,callFunction,showToast}){
     const uid=state.user?.uid||'';
     if(owner===uid)return;
     owner=uid;
+    clearTimeout(testing?.timeout);
+    testing=undefined;
+    testStatus.textContent='';
     ready=undefined;
     binding=null;
     render();
     if(!uid||!supported||ios&&!standalone)return;
+    readBinding().then(current=>{
+      if(current?.owner===uid&&owner===uid&&state.user?.uid===uid&&!binding){binding=current;render();}
+    }).catch(()=>{});
     ready=prepare();
     ready.then(async({registration})=>{
       const current=await readBinding();
@@ -120,6 +129,33 @@ export function initMessengerPush({state,callFunction,showToast}){
       await writeBinding(binding);
     }catch(error){showToast(error.message||'Chưa lưu được tùy chọn xem trước.','error');}
     finally{busy=false;render();}
+  });
+  function finishTest(message){
+    clearTimeout(testing?.timeout);
+    testing=undefined;
+    testStatus.textContent=message;
+    render();
+  }
+  if(supported)navigator.serviceWorker.addEventListener('message',event=>{
+    if(event.data?.type==='fbtq-messenger-test-displayed'&&testing?.device===event.data.device){
+      finishTest('Trình duyệt đã gửi pop-up thử tới hệ điều hành. Nếu chưa thấy, kiểm tra chế độ Biểu ngữ và Không làm phiền.');
+    }
+  });
+  testButton.addEventListener('click',async()=>{
+    if(testing||binding?.owner!==owner||!owner)return;
+    const run={device:binding.device};
+    testing=run;
+    testStatus.textContent='Đang gửi thông báo thử…';
+    render();
+    try{
+      await callFunction('testMessengerPushDevice',{id:run.device},{timeout:20000});
+      if(testing!==run)return;
+      run.timeout=setTimeout(()=>{
+        if(testing===run)finishTest('Dịch vụ đã nhận yêu cầu nhưng trình duyệt chưa xác nhận. Hãy tải lại trang và kiểm tra quyền thông báo.');
+      },12000);
+    }catch(error){
+      if(testing===run)finishTest(error.message||'Chưa gửi được thông báo thử.');
+    }
   });
   async function notifyBackground(rows){
     if(!supported||!document.hidden||Notification.permission!=='granted')return;

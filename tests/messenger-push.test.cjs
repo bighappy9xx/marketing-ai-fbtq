@@ -96,3 +96,38 @@ test('delivery only targets the approved Fanpage owner and leaves customer detai
  await notifyMessengerIncoming.run(event);
  assert.deepEqual(sent[1],{owner:'owner',device,id,preview:{title:'Fanpage Thử',body:'Nội dung riêng tư'}});
 });
+
+test('popup waits for server confirmation and recognizes promoted live messages',async()=>{
+ const source=fs.readFileSync(require.resolve('../inbox-notifications.js'),'utf8');
+ const {createIncomingPopupGate}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+ const now=Date.now(),gate=createIncomingPopupGate({now:()=>now}),message=(id,patch={})=>({id,ownerUid:'a',direction:'incoming',source:'meta_webhook',createdAt:{toMillis:()=>now-100},...patch});
+ const baseline=message('baseline'),history=message('history',{historical:true,source:'meta_history'}),live=message('live');
+ assert.deepEqual(gate.inspect('a',[baseline,history]),[]);
+ assert.deepEqual(gate.inspect('a',[baseline,history,live],{fromCache:true}),[]);
+ assert.deepEqual(gate.inspect('a',[baseline,history,live]),[live]);
+ assert.deepEqual(gate.inspect('a',[baseline,history,live]),[]);
+ const promoted=message('history'),outgoing=message('echo',{direction:'outgoing'}),old=message('old',{createdAt:{toMillis:()=>now-130000}});
+ assert.deepEqual(gate.inspect('a',[baseline,promoted,live,outgoing,old]),[promoted]);
+ assert.deepEqual(gate.inspect('b',[live]),[]);
+});
+
+test('test push checks device ownership and rate limit before sending',async t=>{
+ const webPush=require('../functions/node_modules/web-push');
+ const {registerMessengerPush}=require('../functions/messenger-push');
+ const id='a'.repeat(64),owner='owner',keys={p256dh:Buffer.concat([Buffer.from([4]),Buffer.alloc(64)]).toString('base64url'),auth:Buffer.alloc(16).toString('base64url')};
+ const device={ownerUid:owner,subscription:{endpoint:'https://fcm.googleapis.com/push/example',keys}};
+ const send=t.mock.method(webPush,'sendNotification',async(_,body)=>{
+  const payload=JSON.parse(body);
+  assert.equal(payload.test,true);
+  assert.equal(payload.device,id);
+  assert.equal(payload.owner,owner);
+  assert.match(payload.id,/^[a-f0-9]{64}$/);
+ });
+ const db={collection:()=>({doc:()=>({})}),runTransaction:fn=>fn({get:async()=>({data:()=>device}),update:(_,patch)=>Object.assign(device,patch)})};
+ class HttpsError extends Error{constructor(code,message){super(message);this.code=code;}}
+ const {testMessengerPushDevice}=registerMessengerPush({db,onCall:(_,handler)=>handler,HttpsError,requireSignedIn:async request=>({uid:request.auth.uid}),MESSENGER_WEB_PUSH_VAPID:{value:()=>JSON.stringify({})},logger:{warn(){}}});
+ await assert.rejects(testMessengerPushDevice({auth:{uid:'other'},data:{id}}),{code:'failed-precondition'});
+ assert.deepEqual(await testMessengerPushDevice({auth:{uid:owner},data:{id}}),{accepted:true});
+ await assert.rejects(testMessengerPushDevice({auth:{uid:owner},data:{id}}),{code:'resource-exhausted'});
+ assert.equal(send.mock.callCount(),1);
+});

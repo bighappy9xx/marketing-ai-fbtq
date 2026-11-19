@@ -13,8 +13,8 @@ async function showIncoming(payload,fromTab=false){
     const tag='fbtq-message-'+payload.id;
     if(fromTab&&pendingLocal.has(tag))return;
     const preview=binding.showPreview===true?payload.preview:null;
-    const title=typeof preview?.title==='string'&&preview.title.trim()?preview.title.slice(0,100):'Tin Nhắn Messenger Mới';
-    const body=typeof preview?.body==='string'&&preview.body.trim()?preview.body.slice(0,240):'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.';
+    const title=payload.test===true?'Thông Báo Thử FBTQ':typeof preview?.title==='string'&&preview.title.trim()?preview.title.slice(0,100):'Tin Nhắn Messenger Mới';
+    const body=payload.test===true?'Thiết bị này đã nhận thông báo từ Chatbot AI.':typeof preview?.body==='string'&&preview.body.trim()?preview.body.slice(0,240):'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.';
     if(fromTab)pendingLocal.add(tag);
     try{
       if(fromTab&&(await self.registration.getNotifications?.({tag}))?.length)return;
@@ -24,6 +24,10 @@ async function showIncoming(payload,fromTab=false){
         tag,
         renotify:false,
       });
+      if(payload.test===true&&!fromTab){
+        const clients=await self.clients.matchAll({type:'window'});
+        clients.forEach(client=>client.postMessage({type:'fbtq-messenger-test-displayed',device:payload.device}));
+      }
     }finally{
       if(fromTab)pendingLocal.delete(tag);
     }

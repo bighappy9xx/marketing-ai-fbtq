@@ -1,4 +1,4 @@
-const {createHash}=require('node:crypto');
+const {createHash,randomBytes}=require('node:crypto');
 const {onDocumentWritten}=require('firebase-functions/v2/firestore');
 const webPush=require('web-push');
 
@@ -56,7 +56,7 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
       if(existing.size>=maxDevices&&current.data()?.ownerUid!==uid)throw new HttpsError('resource-exhausted','Tài khoản đã đạt giới hạn thiết bị nhận thông báo.');
       const previous=current.data();
       const preference=typeof request.data?.showPreview==='boolean'?request.data.showPreview:previous?.ownerUid===uid&&previous.showPreview===true;
-      tx.set(ref,{ownerUid:uid,subscription,showPreview:preference,updatedAtMs:Date.now()});
+      tx.set(ref,{ownerUid:uid,subscription,showPreview:preference,updatedAtMs:Date.now(),lastTestAtMs:previous?.ownerUid===uid?previous.lastTestAtMs||0:0});
       return preference;
     });
     return {id,showPreview};
@@ -71,6 +71,30 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     });
     return {ok:true};
   });
+  const sendPush=(subscription,payload)=>webPush.sendNotification(normalizeSubscription(subscription),JSON.stringify(payload),{
+    vapidDetails:{subject:'https://mediafbtq-6e1bb.web.app/',...vapid()},TTL:120,urgency:'high',timeout:8000
+  });
+  const testDevice=callable({secrets:[MESSENGER_WEB_PUSH_VAPID],timeoutSeconds:20},async request=>{
+    const {uid}=await requireSignedIn(request),id=request.data?.id;
+    if(typeof id!=='string'||!/^[a-f0-9]{64}$/.test(id))throw new HttpsError('invalid-argument','Thiết bị không hợp lệ.');
+    const ref=db.collection(devices).doc(id),now=Date.now();
+    const saved=await db.runTransaction(async tx=>{
+      const device=(await tx.get(ref)).data();
+      if(device?.ownerUid!==uid)throw new HttpsError('failed-precondition','Hãy bật lại thông báo trên thiết bị này.');
+      if(now-(device.lastTestAtMs||0)<10000)throw new HttpsError('resource-exhausted','Vui lòng chờ 10 giây trước khi thử lại.');
+      tx.update(ref,{lastTestAtMs:now});
+      return device;
+    });
+    try{
+      await sendPush(saved.subscription,{owner:uid,device:id,id:randomBytes(32).toString('hex'),test:true});
+    }catch(error){
+      const status=Number(error.statusCode)||0;
+      logger.warn('Messenger web push test failed',{status});
+      if([404,410].includes(status))throw new HttpsError('failed-precondition','Đăng ký trên trình duyệt đã hết hạn. Hãy tắt và bật lại thông báo.');
+      throw new HttpsError('unavailable','Dịch vụ thông báo chưa nhận được yêu cầu thử.');
+    }
+    return {accepted:true};
+  });
   const deliver=onDocumentWritten({document:'workspaces/fbtq/messages/{messageId}',secrets:[MESSENGER_WEB_PUSH_VAPID],retry:false,timeoutSeconds:30},async event=>{
     const before=event.data?.before.data(),message=event.data?.after.data();
     if(!shouldNotify(before,message))return;
@@ -79,7 +103,6 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     if(subscriptions.empty)return;
     const owner=await db.doc(`users/${uid}`).get();
     if(owner.data()?.approved!==true)return;
-    const vapidDetails={subject:'https://mediafbtq-6e1bb.web.app/',...vapid()};
     async function removeIfUnchanged(doc){
       await db.runTransaction(async tx=>{
         const current=await tx.get(doc.ref);
@@ -90,15 +113,15 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
       const saved=doc.data();
       if(saved.updatedAtMs<Date.now()-subscriptionLifetime)return removeIfUnchanged(doc);
       try{
-        const subscription=normalizeSubscription(saved.subscription);
-        const payload=JSON.stringify({owner:uid,device:doc.id,id:event.params.messageId,...(saved.showPreview===true?{preview:notificationPreview(message)}:{})});
-        await webPush.sendNotification(subscription,payload,{vapidDetails,TTL:120,urgency:'high',timeout:8000});
+        const payload={owner:uid,device:doc.id,id:event.params.messageId,...(saved.showPreview===true?{preview:notificationPreview(message)}:{})};
+        const result=await sendPush(saved.subscription,payload);
+        logger.info?.('Messenger web push accepted',{status:result?.statusCode||0});
       }catch(error){
         if([404,410].includes(error.statusCode))return removeIfUnchanged(doc);
         logger.warn('Messenger web push failed',{status:Number(error.statusCode)||0});
       }
     }));
   });
-  return {getMessengerPushConfig:config,registerMessengerPushDevice:register,unregisterMessengerPushDevice:unregister,notifyMessengerIncoming:deliver};
+  return {getMessengerPushConfig:config,registerMessengerPushDevice:register,unregisterMessengerPushDevice:unregister,notifyMessengerIncoming:deliver,testMessengerPushDevice:testDevice};
 }
 module.exports={normalizeSubscription,shouldNotify,registerMessengerPush};
