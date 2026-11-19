@@ -9,8 +9,8 @@ export function overviewHubModel({user,role,users=[],revenue=[],awards=[],review
   const director=role==='director',manager=['director','branch_manager','department_manager'].includes(role),profiles=new Map(users.map(p=>[p.uid,p]));if(user)profiles.set(user.uid,user);
   const profile=row=>profiles.get(row.createdBy||row.uid)||row;
   const withinRange=value=>{const date=dateKey(value);return !!date&&(!range.start||date>=range.start)&&(!range.end||date<=range.end);};
-  const allowed=(row,publicBoard=false,finance=false)=>{
-    const uid=row.createdBy||row.uid,p=profile(row),unit=branchKey(row.branch||p.branch||p.branchName||p.branchId);
+  const allowed=(row,publicBoard=false,finance=false,uid=row.createdBy||row.uid)=>{
+    const p=profiles.get(uid)||row,unit=branchKey(row.branch||p.branch||p.branchName||p.branchId);
     if(!user)return false;
     if(selectedUser!=='all'&&uid!==selectedUser)return false;
     if(role==='accountant'&&finance)return true;
@@ -30,7 +30,16 @@ export function overviewHubModel({user,role,users=[],revenue=[],awards=[],review
     if(history.length)history.forEach((event,index)=>{if(withinRange(event.at))events.push({...event,id:row.id+'-'+index,title:row.title||'Bài viết',author:row.createdByName||profile(row).name||'Nhân viên',name:event.actorName||'Người kiểm duyệt',photoData:event.actorPhoto||profiles.get(event.actorUid)?.photoData||'',at:event.at});});
     else if(row.reviewedAt&&['approved','rejected','revision_requested'].includes(row.status)&&withinRange(row.reviewedAt))events.push({id:row.id,title:row.title||'Bài viết',author:row.createdByName||'Nhân viên',action:row.status,name:row.reviewedByName||'Người kiểm duyệt',photoData:row.reviewedByPhoto||'',at:row.reviewedAt,note:row.reviewNote||''});
   }
-  return {ranking,awards:awards.filter(r=>allowed(r,true)).map(avatar).sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999)),leaves:sortRecords(eligibleRequests.filter(r=>r.status==='pending'||withinRange(r.date))),advances:sortRecords(eligibleAdvances.filter(r=>r.status==='pending'||withinRange(r.date))),events:events.sort((a,b)=>time(b.at)-time(a.at)),pending:{reviews:eligibleReviews.filter(r=>r.status==='pending').length,leaves:eligibleRequests.filter(r=>r.status==='pending').length,advances:eligibleAdvances.filter(r=>r.status==='pending').length},approvedFunds:eligibleAdvances.filter(r=>r.status==='approved').reduce((n,r)=>n+(Number(r.amount)||0),0),publicBoards:!manager};
+  const publishedAwards=awards.filter(row=>row.uid&&allowed(row,true,false,row.uid)).map(row=>{
+    // The publisher and the recipient are different people.
+    const recipient=profiles.get(row.uid);
+    return {
+      ...row,
+      name:row.name||recipient?.name||recipient?.email||'Thành viên',
+      photoData:recipient?.photoData??row.photoData??''
+    };
+  }).sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999));
+  return {ranking,awards:publishedAwards,leaves:sortRecords(eligibleRequests.filter(r=>r.status==='pending'||withinRange(r.date))),advances:sortRecords(eligibleAdvances.filter(r=>r.status==='pending'||withinRange(r.date))),events:events.sort((a,b)=>time(b.at)-time(a.at)),pending:{reviews:eligibleReviews.filter(r=>r.status==='pending').length,leaves:eligibleRequests.filter(r=>r.status==='pending').length,advances:eligibleAdvances.filter(r=>r.status==='pending').length},approvedFunds:eligibleAdvances.filter(r=>r.status==='approved').reduce((n,r)=>n+(Number(r.amount)||0),0),publicBoards:!manager};
 }
 
 export function initOverviewHub({state,$,esc,money,avatarMarkup,navigate,getWorkflow}){
@@ -56,7 +65,7 @@ export function initOverviewHub({state,$,esc,money,avatarMarkup,navigate,getWork
     $('#overviewRankingCaption').textContent=(model.publicBoards?'Xếp hạng doanh thu công ty':'Xếp hạng doanh thu trong phạm vi đã chọn')+' · '+(context.periodLabel||'Kỳ hiện tại');
     $('#overviewRankingList').innerHTML=model.ranking.length?model.ranking.slice(0,5).map(r=>`<div class="ov-rank-row"><span class="ov-rank ov-rank-${r.rank}">${r.rank<=3?['🥇','🥈','🥉'][r.rank-1]:'#'+r.rank}</span>${person(r)}<strong>${money(r.revenue)}</strong></div>`).join(''):empty('Chưa có báo cáo doanh thu trong kỳ này.');
     $('#overviewAwardsCaption').textContent='Điểm đã công bố · '+(awardMonth?awardMonth.slice(5)+'/'+awardMonth.slice(0,4):'Tháng hiện tại');
-    $('#overviewAwardPodium').innerHTML=awardStatus==='ready'?(model.awards.length?model.awards.slice(0,3).map(r=>`<article class="ov-award ov-award-${Number(r.rank)||4}"><span class="ov-award-medal">${['🥇','🥈','🥉'][Number(r.rank)-1]||'#'+r.rank}</span>${avatarMarkup(r.photoData||'',String(r.name||'NV').slice(0,2),'avatar avatar-blue')}<b>${esc(r.name)}</b><strong>${number(r.score)}<small> / 10 điểm</small></strong></article>`).join(''):empty('Chưa có bảng điểm đã công bố cho tháng này.')):empty(awardStatus==='error'?'Không tải được điểm đã công bố. Kiểm tra kết nối hoặc quyền Firestore.':awardStatus==='loading'?'Đang tải điểm đã công bố…':'Đăng nhập để xem bảng vàng đã công bố.');
+    $('#overviewAwardPodium').innerHTML=awardStatus==='ready'?(model.awards.length?model.awards.slice(0,3).map(r=>`<article class="ov-award ov-award-${Number(r.rank)||4}"><span class="ov-award-medal">${['🥇','🥈','🥉'][Number(r.rank)-1]||'#'+r.rank}</span>${avatarMarkup(r.photoData||'',r.initials||String(r.name||'NV').trim().split(/\s+/).slice(-2).map(part=>part[0]).join('').toLocaleUpperCase('vi-VN'),'avatar avatar-blue')}<b>${esc(r.name)}</b><strong>${number(r.score)}<small> / 10 điểm</small></strong></article>`).join(''):empty('Chưa có bảng điểm đã công bố cho tháng này.')):empty(awardStatus==='error'?'Không tải được điểm đã công bố. Kiểm tra kết nối hoặc quyền Firestore.':awardStatus==='loading'?'Đang tải điểm đã công bố…':'Đăng nhập để xem bảng vàng đã công bố.');
     const workflowMessage=kind=>workflow.errors?.[kind]|| (workflow.loading?.[kind]?'Đang tải hồ sơ…':'');
     $('#overviewLeaveList').innerHTML=workflowMessage('request')?empty(workflowMessage('request')):model.leaves.length?model.leaves.slice(0,5).map(r=>`<div class="ov-record-row">${person({name:r.createdByName,photoData:r.photoData||state.users.find(p=>p.uid===r.createdBy)?.photoData,detail:date(r.date)+' · '+(r.sessions?.length===2?'Cả ngày':r.sessions?.includes('morning')?'Nghỉ sáng':r.sessions?.includes('afternoon')?'Nghỉ chiều':'Xem chi tiết')})}${badge(r.status)}</div>`).join(''):empty('Chưa có đơn xin nghỉ trong kỳ hoặc đang chờ duyệt.');
     $('#overviewAdvanceList').innerHTML=workflowMessage('advance')?empty(workflowMessage('advance')):model.advances.length?model.advances.slice(0,5).map(r=>`<div class="ov-record-row">${person({name:r.createdByName,photoData:r.photoData||state.users.find(p=>p.uid===r.createdBy)?.photoData,detail:date(r.date)+' · '+money(r.amount)})}${badge(r.status)}</div>`).join(''):empty('Chưa có hóa đơn tạm ứng trong kỳ hoặc đang chờ duyệt.');

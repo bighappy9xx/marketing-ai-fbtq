@@ -18,3 +18,21 @@ test('director filters and accountant finance access are applied without leaking
   const accountant=overviewHubModel({...base,user:{uid:'acc'},role:'accountant'});assert.equal(accountant.approvedFunds,100);assert.equal(accountant.pending.advances,1);assert.equal(accountant.leaves.length,0);
   assert.equal(overviewHubModel({...base,user:null,role:'employee'}).ranking.length,0);
 });
+
+test('published awards use the recipient profile, never the common publisher profile',async()=>{
+  const {overviewHubModel}=await import('../overview-hub.js');
+  const publisher={uid:'publisher',photoData:'publisher-photo',branch:'HQ'};
+  const first={uid:'first',photoData:'first-photo',branch:'A'};
+  const second={uid:'second',photoData:'',branch:'B'};
+  const awards=[
+    {uid:'first',createdBy:'publisher',name:'Nguyễn An',rank:1,photoData:'old-first-photo'},
+    {uid:'second',createdBy:'publisher',name:'Trần Bình',rank:2,photoData:'removed-second-photo'},
+    {uid:'third',createdBy:'publisher',name:'Lê Chi',rank:3,photoData:'third-published-photo'}
+  ];
+  const director=overviewHubModel({user:publisher,role:'director',users:[first,second],awards});
+  assert.deepEqual(director.awards.map(a=>a.photoData),['first-photo','','third-published-photo']);
+  const filtered=overviewHubModel({user:publisher,role:'director',users:[first,second],awards,selectedBranch:'b',selectedUser:'second'});
+  assert.deepEqual(filtered.awards.map(a=>a.uid),['second']);
+  const employee=overviewHubModel({user:first,role:'employee',awards});
+  assert.deepEqual(employee.awards.map(a=>a.photoData),['first-photo','removed-second-photo','third-published-photo']);
+});

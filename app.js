@@ -17,7 +17,7 @@ import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timelin
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-bot-status-switch';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
-import { initOverviewHub } from './overview-hub.js?v=20261108-overview-hub';
+import { initOverviewHub } from './overview-hub.js?v=20261119-award-recipient-avatar';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);
