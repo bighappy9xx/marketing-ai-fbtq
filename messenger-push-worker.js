@@ -1,3 +1,5 @@
+importScripts('./messenger-notification-format.js?v=20261119-native-push-banner');
+
 const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',self.registration.scope).href;
 const inboxUrl=new URL('./#inbox',self.registration.scope).href;
@@ -10,20 +12,16 @@ async function showIncoming(payload,fromTab=false){
     const cache=await caches.open(cacheName);
     const binding=await (await cache.match(bindingKey))?.json();
     if(binding?.owner!==payload.owner||binding.device!==payload.device)return;
-    const tag='fbtq-message-'+payload.id;
+    const {title,options}=globalThis.fbtqMessengerNotification(self.registration.scope,{
+      id:payload.id,preview:binding.showPreview===true?payload.preview:null,
+      test:payload.test===true,timestamp:Number.isFinite(payload.timestamp)?payload.timestamp:undefined,
+    });
+    const {tag}=options;
     if(fromTab&&pendingLocal.has(tag))return;
-    const preview=binding.showPreview===true?payload.preview:null;
-    const title=payload.test===true?'Thông Báo Thử FBTQ':typeof preview?.title==='string'&&preview.title.trim()?preview.title.slice(0,100):'Tin Nhắn Messenger Mới';
-    const body=payload.test===true?'Thiết bị này đã nhận thông báo từ Chatbot AI.':typeof preview?.body==='string'&&preview.body.trim()?preview.body.slice(0,240):'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.';
     if(fromTab)pendingLocal.add(tag);
     try{
       if(fromTab&&(await self.registration.getNotifications?.({tag}))?.length)return;
-      await self.registration.showNotification(title,{
-        body,
-        icon:new URL('./apple-touch-icon.png',self.registration.scope).href,
-        tag,
-        renotify:false,
-      });
+      await self.registration.showNotification(title,options);
       if(payload.test===true&&!fromTab){
         const clients=await self.clients.matchAll({type:'window'});
         clients.forEach(client=>client.postMessage({type:'fbtq-messenger-test-displayed',device:payload.device,id:payload.id}));

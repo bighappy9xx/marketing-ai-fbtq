@@ -1,4 +1,4 @@
-import {initMessengerPush} from './messenger-push-ui.js?v=20261119-messenger-webhook-only';
+import {initMessengerPush} from './messenger-push-ui.js?v=20261119-native-push-banner';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bright-navigation';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-messenger-webhook-only';
 import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';

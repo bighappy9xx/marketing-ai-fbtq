@@ -133,7 +133,8 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
       const saved=doc.data();
       if(saved.updatedAtMs<Date.now()-subscriptionLifetime)return removeIfUnchanged(doc);
       try{
-        const payload={owner:uid,device:doc.id,id:event.params.messageId,...(saved.showPreview===true?{preview:notificationPreview(message)}:{})};
+        const timestamp=message.createdAt?.toMillis?.()??message.createdAt.getTime();
+        const payload={owner:uid,device:doc.id,id:event.params.messageId,timestamp,...(saved.showPreview===true?{preview:notificationPreview(message)}:{})};
         const result=await sendPush(saved.subscription,payload);
         logger.info?.('Messenger web push accepted',{status:result?.statusCode||0});
       }catch(error){

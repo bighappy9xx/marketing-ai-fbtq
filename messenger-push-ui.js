@@ -1,7 +1,7 @@
+import './messenger-notification-format.js?v=20261119-native-push-banner';
+
 const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',import.meta.url).href;
-const notificationIcon=new URL('./apple-touch-icon.png',import.meta.url).href;
-const notificationTag=id=>'fbtq-message-'+id;
 
 export function initMessengerPush({state,callFunction,showToast}){
   const button=document.querySelector('[data-messenger-push-toggle]');
@@ -10,6 +10,12 @@ export function initMessengerPush({state,callFunction,showToast}){
   const testButton=document.querySelector('[data-messenger-push-test]');
   const testStatus=document.querySelector('[data-messenger-push-test-status]');
   const reconnectButton=document.querySelector('[data-messenger-push-reconnect]');
+  const sample=document.querySelector('[data-messenger-push-sample]');
+  if(sample){
+    const {title,options}=globalThis.fbtqMessengerNotification(import.meta.url,{id:'sample',test:true});
+    sample.querySelector('strong').textContent=title;
+    sample.querySelector('span').textContent=options.body;
+  }
   if(!button||!previews||!status||!testButton||!testStatus||!reconnectButton)return {refresh(){},disable(){},notifyBackground(){}};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
   const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -189,12 +195,8 @@ export function initMessengerPush({state,callFunction,showToast}){
     const local=(async()=>{
       const registration=await navigator.serviceWorker.getRegistration();
       if(!registration?.active||testing!==run||state.user?.uid!==run.owner)return false;
-      await registration.showNotification('Thông Báo Thử FBTQ',{
-        body:'Thiết bị này đã nhận thông báo từ Chatbot AI.',
-        icon:notificationIcon,
-        tag:notificationTag(run.id),
-        renotify:false,
-      });
+      const {title,options}=globalThis.fbtqMessengerNotification(registration.scope,{id:run.id,test:true});
+      await registration.showNotification(title,options);
       return true;
     })().catch(()=>false);
     try{
@@ -247,15 +249,10 @@ export function initMessengerPush({state,callFunction,showToast}){
         const attachment=row.attachments?.some(item=>item.type==='image')?'Đã gửi một hình ảnh':'Đã gửi tệp đính kèm';
         const preview=current.showPreview===true?{title:row.pageName,body:!body||/^\[(?:Đã nhận tệp đính kèm|Tệp đính kèm)\]$/i.test(body)?attachment:body}:undefined;
         if(!/^[a-f0-9]{64}$/.test(row.id||''))continue;
-        const tag=notificationTag(row.id);
-        if((await registration.getNotifications?.({tag}))?.length)continue;
+        const {title,options}=globalThis.fbtqMessengerNotification(registration.scope,{id:row.id,preview,timestamp:at});
+        if((await registration.getNotifications?.({tag:options.tag}))?.length)continue;
         if(state.user?.uid!==uid||!away())return;
-        await registration.showNotification(String(preview?.title||'Tin Nhắn Messenger Mới').trim().slice(0,100)||'Tin Nhắn Messenger Mới',{
-          body:preview?.body.slice(0,240)||'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.',
-          icon:notificationIcon,
-          tag,
-          renotify:false,
-        });
+        await registration.showNotification(title,options);
       }
     }catch{/* Web Push can still deliver the notification. */}
   }

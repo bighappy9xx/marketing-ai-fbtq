@@ -32,16 +32,26 @@ test('service worker only shows notifications for the currently bound device and
  let binding={owner:'active',device},closed=false;
  const self={addEventListener:(name,fn)=>{handlers[name]=fn;},registration:{scope:'https://example.test/workspace/',showNotification:(...args)=>shown.push(args),getNotifications:async({tag})=>shown.filter(([,options])=>options.tag===tag)},clients:{matchAll:async()=>[],openWindow:url=>opened.push(url)}};
  const caches={open:async()=>({match:async()=>binding&&{json:async()=>binding}})};
- vm.runInNewContext(fs.readFileSync(require.resolve('../messenger-push-worker.js'),'utf8'),{self,caches,URL});
+ const context=vm.createContext({self,caches,URL,Notification:{maxActions:1}});
+ context.importScripts=url=>{
+  assert.match(url,/messenger-notification-format\.js/);
+  vm.runInContext(fs.readFileSync(require.resolve('../messenger-notification-format.js'),'utf8'),context);
+ };
+ vm.runInContext(fs.readFileSync(require.resolve('../messenger-push-worker.js'),'utf8'),context);
  const run=(name,args)=>new Promise((resolve,reject)=>handlers[name]({...args,waitUntil:promise=>Promise.resolve(promise).then(resolve,reject)}));
  const preview={title:'Fanpage Thử',body:'Nội dung riêng tư'};
- const notify=owner=>run('push',{data:{json:()=>({owner,device,id,preview})}});
+ const timestamp=Date.now()-500;
+ const notify=owner=>run('push',{data:{json:()=>({owner,device,id,preview,timestamp})}});
  await notify('previous');
  assert.equal(shown.length,0);
  await notify('active');
  assert.equal(shown.length,1);
  assert.doesNotMatch(shown[0][1].body,/riêng tư/);
  assert.equal(shown[0][1].tag,'fbtq-message-'+id);
+ assert.equal(shown[0][1].timestamp,timestamp);
+ assert.equal(shown[0][1].icon,'https://example.test/workspace/assets/fbtq-app-192.png');
+ assert.equal(shown[0][1].badge,'https://example.test/workspace/assets/fbtq-notification-badge.png');
+ assert.equal(shown[0][1].actions[0].action,'open-inbox');
  binding.showPreview=true;
  await notify('active');
  assert.equal(shown[1][0],preview.title);
@@ -90,11 +100,11 @@ test('delivery only targets the approved Fanpage owner and leaves customer detai
  await notifyMessengerIncoming.run(event);
  approved=false;
  await notifyMessengerIncoming.run(event);
- assert.deepEqual(sent,[{owner:'owner',device,id}]);
+ assert.deepEqual(sent,[{owner:'owner',device,id,timestamp:message.createdAt.getTime()}]);
  approved=true;
  showPreview=true;
  await notifyMessengerIncoming.run(event);
- assert.deepEqual(sent[1],{owner:'owner',device,id,preview:{title:'Fanpage Thử',body:'Nội dung riêng tư'}});
+ assert.deepEqual(sent[1],{owner:'owner',device,id,timestamp:message.createdAt.getTime(),preview:{title:'Fanpage Thử',body:'Nội dung riêng tư'}});
 });
 
 test('popup waits for server confirmation and recognizes promoted live messages',async()=>{
