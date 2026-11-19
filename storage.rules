@@ -5,7 +5,7 @@ service firebase.storage {
       return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
     }
     function active() {
-      return request.auth != null && (!('approved' in profile()) || profile().approved == true);
+      return request.auth != null && profile().get('approved', false) == true;
     }
     function manager() {
       return profile().role in ['director', 'branch_manager', 'department_manager'];

@@ -1,0 +1,27 @@
+# Protect branch-based Pages while switching publishing to GitHub Actions.
+exclude:
+  - functions
+  - openai-worker
+  - delivery-full
+  - scripts
+  - tests
+  - node_modules
+  - web-dist
+  - firebase.json
+  - firestore.rules
+  - firestore.indexes.json
+  - storage.rules
+  - storage-cors.json
+  - package.json
+  - package-lock.json
+  - "*.command"
+  - "FBTQ-*.zip"
+  - "*.cjs"
+  - "*.log"
+  - "*.map"
+  - "* 2.js"
+  - "* 3.js"
+  - "* 4.js"
+  - "* 2.css"
+  - "* 3.css"
+  - "* 4.css"

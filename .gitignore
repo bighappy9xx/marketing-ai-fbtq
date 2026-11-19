@@ -7,3 +7,14 @@ firebase-debug*.log
 openai-worker/.dev.vars*
 openai-worker/.env*
 openai-worker/.wrangler/
+
+# Private credentials and generated web releases
+/web-dist/
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+service-account*.json
+*-firebase-adminsdk-*.json

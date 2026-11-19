@@ -1,27 +1,9 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "web-dist",
     "ignore": [
-      "firebase.json",
-      "firestore.rules",
-      "firestore.indexes.json",
-      "README.md",
-      "functions/**",
-      "extension/**",
-      ".*",
-      "**/.*",
-      "**/node_modules/**",
-      "tests/**",
-      "*.zip",
-      "WORKFLOWS.md",
-      "storage.rules",
-      "storage-cors.json",
-      "scripts/**",
-      "functions */**",
-      "*.bak",
-      "install-*.cjs",
-      "openai-worker/**",
-      "Cai-dat-OpenAI.command"
+      "**/*.map",
+      "**/node_modules/**"
     ],
     "cleanUrls": true,
     "headers": [
@@ -47,13 +29,22 @@
           },
           {
             "key": "X-Frame-Options",
-            "value": "SAMEORIGIN"
+            "value": "DENY"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "geolocation=(), payment=(), usb=()"
           }
         ]
       }
     ],
     "predeploy": [
-      "node scripts/check-source.cjs"
+      "npm run check:source",
+      "npm run build:web"
     ]
   },
   "functions": [

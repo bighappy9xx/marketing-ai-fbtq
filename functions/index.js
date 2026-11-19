@@ -20,6 +20,7 @@ async function requireSignedIn(request) {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Vui lòng đăng nhập để tiếp tục.');
   const snap = await db.doc(`users/${request.auth.uid}`).get();
   const profile = snap.exists ? snap.data() : {};
+  if(profile.approved!==true)throw new HttpsError('permission-denied','Tài khoản đang chờ duyệt quyền truy cập.');
   return {...request.auth, profile};
 }
 async function requireManager(request) {
@@ -147,6 +148,7 @@ exports.personalReplyScripts=registerPersonalScripts({db,onCall,HttpsError,requi
 
 async function suggestReplyFor(request,provider,keys){
   const auth=await requireSignedIn(request);const {pageId,message}=request.data||{},model=provider;
+  if(typeof pageId!=='string'||!/^\d{5,30}$/.test(pageId))throw new HttpsError('invalid-argument','Mã Fanpage không hợp lệ.');
   if(typeof message!=='string'||message.trim().length<1||message.length>3000)throw new HttpsError('invalid-argument','Tin nhắn không hợp lệ.');
   const page=await db.doc(`workspaces/fbtq/pages/${String(pageId||'')}`).get();
   if(!page.exists||page.data().ownerUid!==auth.uid)throw new HttpsError('permission-denied','Bạn chưa kết nối Fanpage này.');

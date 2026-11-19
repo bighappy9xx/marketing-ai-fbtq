@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "esbuild": "0.27.2"
+  },
+  "name": "marketing-ai-fbtq-web",
+  "scripts": {
+    "build:web": "node scripts/build-web.cjs",
+    "check:source": "node scripts/check-source.cjs"
+  },
+  "private": true
+}

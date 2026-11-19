@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Refuse to deploy unresolved merges, invalid JS/JSON or a duplicated HTML app.
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
-const root=path.resolve(__dirname,'..'),skip=new Set(['.git','node_modules','upload']),issues=[];let checked=0;
+const root=path.resolve(__dirname,'..'),skip=new Set(['.git','node_modules','upload','web-dist']),issues=[];let checked=0;
 const marker=/^(?:<{7}(?: |$)|>{7}(?: |$)|\|{7}(?: |$)|={7}\s*$)/m;
 function walk(dir){for(const ent of fs.readdirSync(dir,{withFileTypes:true})){if(skip.has(ent.name))continue;const file=path.join(dir,ent.name),relative=path.relative(root,file).split(path.sep).join('/');if(relative.startsWith('tests/artifacts/')||relative.startsWith('tests/fixtures/'))continue;if(ent.isDirectory()){walk(file);continue;}if(!ent.isFile()||!['.js','.cjs','.mjs','.css','.html','.json','.rules'].includes(path.extname(file)))continue;const code=fs.readFileSync(file,'utf8');checked++;if(marker.test(code))issues.push(relative+': unresolved Git conflict');
  const ext=path.extname(file);if(['.js','.cjs','.mjs'].includes(ext)){const common=ext==='.cjs'||relative.startsWith('functions/');const result=spawnSync(process.execPath,common?['--check',file]:['--input-type=module','--check'],{input:common?undefined:code,encoding:'utf8'});if(result.status!==0)issues.push(relative+': '+(result.stderr||result.error?.message||'JavaScript syntax error').trim().slice(0,600));}

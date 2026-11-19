@@ -3,7 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function role() { return signedIn() ? profile().role : ''; }
+    function approvedMember() { return signedIn() && profile().get('approved', false) == true; }
+    function role() { return approvedMember() ? profile().role : ''; }
     function director() { return role() == 'director'; }
     function branch() {
       return profile().get('branch', '') != '' ? profile().branch
@@ -18,7 +19,7 @@ service cloud.firestore {
       allow create: if self(uid)
         && request.resource.data.keys().hasOnly(['name','email','role','approved','createdAt'])
         && request.resource.data.role == 'employee'
-        && request.resource.data.approved == true
+        && request.resource.data.approved == false
         && request.resource.data.email == request.auth.token.email;
       allow get: if self(uid) || manager();
       allow list: if manager();
@@ -220,7 +221,7 @@ service cloud.firestore {
             || role() == 'department_manager' && branch() != '' && department() != ''
               && branch() == get(parentPath).data.branch && department() == get(parentPath).data.department);
       }
-      function workflowUser() { return signedIn() && profile().get('approved', true) != false; }
+      function workflowUser() { return approvedMember(); }
       function workflowName() { return profile().get('name', profile().get('email', 'Nhân viên')); }
       function validWorkflowBase(d) {
         return workflowUser()
@@ -437,7 +438,7 @@ service cloud.firestore {
           && event.actorName == workflowName() && event.actorRole == 'accountant'
           && event.at == payout.at && event.note == payout.reference;
       }
-      allow read: if signedIn() && inWorkspace() && collection != 'pages' && (
+      allow read: if approvedMember() && inWorkspace() && collection != 'pages' && (
         collection == 'advanceInvoices' && (director() || role() == 'accountant' || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
         || collection == 'staffRequests' && (director() || owns() || branch() != '' && resource.data.branch == branch() && (role() == 'branch_manager' || role() == 'department_manager' && department() != '' && resource.data.department == department()))
         || collection == 'campaigns' && (manager() || owns())
@@ -455,12 +456,12 @@ service cloud.firestore {
         || collection == 'invoices' && (manager() || owns())
         || collection == 'invoiceFiles' && ((resource.data.get('fileScope', '') == 'advance' && canReadAdvanceFile()) || (!resource.data.keys().hasAny(['fileScope']) && (manager() || resource.data.ownerUid == request.auth.uid)))
       );
-      allow get: if signedIn() && inWorkspace()
+      allow get: if approvedMember() && inWorkspace()
         && collection in ['advanceInvoices','staffRequests']
         && documentId.matches('^' + request.auth.uid + '_[A-Za-z0-9-]{16,60}$')
         && !exists(/databases/$(database)/documents/workspaces/$(workspaceId)/$(collection)/$(documentId));
 
-      allow create: if signedIn() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
+      allow create: if approvedMember() && inWorkspace() && collection != 'pages' && request.resource.data.createdBy == request.auth.uid && (
         collection == 'drafts'
         || collection == 'contentReviews' && validContentReviewCreate()
         || collection == 'dailyReports' && validDailyReport() && dailyReportMatchesRevenueEntryAfter()
@@ -476,7 +477,7 @@ service cloud.firestore {
         || collection in ['settings', 'invitations'] && manager()
       );
 
-      allow update: if signedIn() && inWorkspace() && collection != 'pages' && (
+      allow update: if approvedMember() && inWorkspace() && collection != 'pages' && (
         collection == 'tasks' && (
           manager() || taskAssignee()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy','completedAt'])
@@ -501,7 +502,7 @@ service cloud.firestore {
           && request.resource.data.status in ['approved','rejected']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
       );
-      allow delete: if signedIn() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
+      allow delete: if approvedMember() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
     }
 
     match /workspaces/{workspaceId}/leaveSlots/{slotId} {
@@ -542,9 +543,9 @@ service cloud.firestore {
       function validSlotDate(value) {
         return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
       }
-      allow get: if signedIn() && workspaceId == 'fbtq' && slotReadAllowed();
+      allow get: if approvedMember() && workspaceId == 'fbtq' && slotReadAllowed();
       allow list: if false;
-      allow create: if signedIn() && workspaceId == 'fbtq'
+      allow create: if approvedMember() && workspaceId == 'fbtq'
         && request.resource.data.keys().hasAll(['requestId','createdBy','date','session','branch','department'])
         && request.resource.data.keys().hasOnly(['requestId','createdBy','date','session','branch','department'])
         && request.resource.data.createdBy == request.auth.uid
@@ -553,7 +554,7 @@ service cloud.firestore {
         && slotId == request.auth.uid + '_' + request.resource.data.date + '_' + request.resource.data.session
         && matchingRequestAfter();
       allow update: if false;
-      allow delete: if signedIn() && workspaceId == 'fbtq' && validRejectedSlotDelete();
+      allow delete: if approvedMember() && workspaceId == 'fbtq' && validRejectedSlotDelete();
     }
 
     // Page access tokens are encrypted and accessed only by the Admin SDK in Cloud Functions.
@@ -563,15 +564,15 @@ service cloud.firestore {
 
     // Chat history belongs to its author. Restored text grants no action privileges.
     match /workspaces/fbtq/assistantChatMessages/{messageId} {
-      allow read: if signedIn() && resource.data.createdBy == request.auth.uid;
-      allow create: if signedIn()
+      allow read: if approvedMember() && resource.data.createdBy == request.auth.uid;
+      allow create: if approvedMember()
         && request.resource.data.keys().hasOnly(['id','createdBy','role','text','createdAt'])
         && request.resource.data.id == messageId
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.role in ['user','assistant']
         && request.resource.data.text is string && request.resource.data.text.size() <= 12000
         && request.resource.data.createdAt is string && request.resource.data.createdAt.size() <= 35;
-      allow update: if signedIn() && resource.data.createdBy == request.auth.uid && request.resource.data == resource.data;
+      allow update: if approvedMember() && resource.data.createdBy == request.auth.uid && request.resource.data == resource.data;
       allow delete: if false;
     }
 
