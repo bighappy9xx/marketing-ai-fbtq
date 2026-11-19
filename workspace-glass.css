@@ -356,3 +356,6 @@ body.dark {
     }
   }
 }
+
+#page-settings [data-system-admin][hidden],#page-settings[data-settings-limited] .settings-nav{display:none!important}
+#page-settings[data-settings-limited] .settings-layout{grid-template-columns:minmax(0,1fr)}

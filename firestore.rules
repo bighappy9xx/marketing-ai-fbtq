@@ -6,6 +6,7 @@ service cloud.firestore {
     function approvedMember() { return signedIn() && profile().get('approved', false) == true; }
     function role() { return approvedMember() ? profile().role : ''; }
     function director() { return role() == 'director'; }
+    function systemAdmin() { return role() in ['director', 'branch_manager']; }
     function branch() {
       return profile().get('branch', '') != '' ? profile().branch
         : profile().get('branchName', '') != '' ? profile().branchName
@@ -14,6 +15,38 @@ service cloud.firestore {
     function department() { return profile().get('department', ''); }
     function manager() { return role() in ['director', 'branch_manager', 'department_manager']; }
     function self(uid) { return signedIn() && request.auth.uid == uid; }
+    function memberBranch(data) {
+      return data.get('branch', '') != '' ? data.branch
+        : data.get('branchName', '') != '' ? data.branchName : data.get('branchId', '');
+    }
+    function managedRole(value) { return value in ['employee', 'accountant', 'department_manager']; }
+    function branchAdmin() { return role() == 'branch_manager' && branch() != ''; }
+    function invitationPath(id) {
+      return /databases/$(database)/documents/workspaces/fbtq/invitations/$(id);
+    }
+    function appliesBranchInvitation(uid, before, after) {
+      let id = after.get('approvedFromInvitation', '');
+      let oldInvite = get(invitationPath(id)).data;
+      let invite = getAfter(invitationPath(id)).data;
+      return before.get('approved', false) == false && after.approved == true
+        && id is string && id.size() > 0 && oldInvite.status == 'invited'
+        && invite.status == 'applied' && invite.memberUid == uid
+        && invite.createdBy == request.auth.uid && invite.branch == branch()
+        && invite.email == before.email.lower() && invite.role == after.role && invite.department == after.department;
+    }
+    function branchMemberUpdate(uid) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let changed = after.diff(before).affectedKeys();
+      return branchAdmin() && uid != request.auth.uid && managedRole(before.role) && managedRole(after.role)
+        && after.branch == branch() && after.department is string && after.department.size() <= 100
+        && after.updatedBy == request.auth.uid && after.updatedAt == request.time
+        && changed.hasOnly(['role','branch','department','updatedBy','updatedAt','approved','approvedFromInvitation'])
+        && (
+          memberBranch(before) == branch() && !changed.hasAny(['approved','approvedFromInvitation'])
+          || (memberBranch(before) in ['', branch()] && appliesBranchInvitation(uid,before,after))
+        );
+    }
 
     match /users/{uid} {
       allow create: if self(uid)
@@ -23,7 +56,7 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email;
       allow get: if self(uid) || manager();
       allow list: if manager();
-      allow update: if director() || (
+      allow update: if director() || branchMemberUpdate(uid) || (
         self(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData'])
         && request.resource.data.photoData is string
@@ -445,7 +478,7 @@ service cloud.firestore {
         || collection == 'settings'
         || collection == 'revenueEntries'
         || collection == 'workAwardScores'
-        || collection == 'invitations' && manager()
+        || collection == 'invitations' && (director() || branchAdmin() && resource.data.createdBy == request.auth.uid && resource.data.branch == branch())
         || collection == 'requests' && (manager() || owns())
         || collection == 'tasks' && (manager() || taskAssignee() || owns())
         || collection in ['drafts', 'dailyReports'] && (manager() || owns())
@@ -474,7 +507,14 @@ service cloud.firestore {
         || collection == 'invoiceFiles' && (validInvoiceFileChunk() || validAdvanceFileChunk())
         || collection == 'advanceInvoices' && validAdvanceCreate()
         || collection == 'staffRequests' && validStaffRequestCreate()
-        || collection in ['settings', 'invitations'] && manager()
+        || collection == 'settings' && systemAdmin()
+        || collection == 'invitations' && (director() || branchAdmin()
+          && request.resource.data.keys().hasOnly(['email','role','department','branch','id','status','createdBy','createdAt'])
+          && request.resource.data.id == documentId && request.resource.data.branch == branch()
+          && managedRole(request.resource.data.role) && request.resource.data.status == 'invited'
+          && request.resource.data.email is string && request.resource.data.email.size() <= 254
+          && request.resource.data.department is string && request.resource.data.department.size() <= 100
+          && request.resource.data.createdAt == request.time)
       );
 
       allow update: if approvedMember() && inWorkspace() && collection != 'pages' && (
@@ -497,12 +537,23 @@ service cloud.firestore {
         || collection == 'workAwardScores' && manager()
         || collection == 'staffRequests' && validRequestReview()
         || collection == 'advanceInvoices' && (validAdvanceReview() || validDisbursement())
-        || collection in ['settings','invitations'] && manager()
+        || collection == 'settings' && systemAdmin()
+        || collection == 'invitations' && (director() || branchAdmin()
+          && resource.data.createdBy == request.auth.uid && resource.data.branch == branch()
+          && resource.data.status == 'invited'
+          && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','memberUid','updatedBy','updatedAt'])
+          && (request.resource.data.status == 'revoked'
+            || request.resource.data.status == 'applied'
+              && getAfter(/databases/$(database)/documents/users/$(request.resource.data.memberUid)).data.approvedFromInvitation == documentId))
         || collection == 'invoices' && manager() && resource.data.status == 'pending'
           && request.resource.data.status in ['approved','rejected']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedByName','reviewedAt','updatedAt','updatedBy'])
       );
-      allow delete: if approvedMember() && inWorkspace() && !(collection in ['pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager();
+      allow delete: if approvedMember() && inWorkspace() && (
+        collection == 'settings' && systemAdmin()
+        || collection == 'invitations' && director()
+        || !(collection in ['settings','invitations','pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager());
     }
 
     match /workspaces/{workspaceId}/leaveSlots/{slotId} {
