@@ -8,10 +8,12 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
     await page.route('https://fbtq.test/**',route=>{
       const pathname=new URL(route.request().url()).pathname;if(pathname==='/firebase-config.js')return route.fulfill({contentType:'text/javascript',body:'window.FBTQ_FIREBASE_CONFIG={};'});
       const target=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!target.startsWith(root+path.sep)||!fs.existsSync(target)||!fs.statSync(target).isFile())return route.fulfill({status:404,body:''});
-      const body=pathname==='/app.js'?fs.readFileSync(target,'utf8')+'\nwindow.__overviewTest={state,workflows,navigate,renderOverviewDashboard,renderSystemNotifications};':fs.readFileSync(target);
+      const body=pathname==='/app.js'?fs.readFileSync(target,'utf8')+'\nwindow.__overviewTest={state,workflows,navigate,renderOverviewDashboard,renderSystemNotifications,renderTasks,renderContentQueuePreview};':fs.readFileSync(target);
       return route.fulfill({contentType:({'.js':'text/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml','.png':'image/png'})[path.extname(target)]||'application/octet-stream',body});
     });
     await page.goto('https://fbtq.test/');await page.waitForFunction(()=>window.__overviewTest);
+    const badges=page.locator('#contentReviewNavCount,#taskNavCount,#invoiceNavCount,#requestNavCount');
+    assert.deepEqual(await badges.allTextContents(),['0','0','0','0']);
     await page.evaluate(()=>{
       const {state,workflows,renderOverviewDashboard}=window.__overviewTest;
       state.user={uid:'director',name:'Giám đốc',branch:'HQ',department:'Điều hành',role:'director'};state.role='director';
@@ -29,6 +31,21 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
     await page.waitForSelector('#overviewRankingList .ov-rank-row');await page.waitForSelector('#overviewAwardPodium .ov-award');await page.waitForFunction(()=>document.querySelector('#overviewPendingLeaves').textContent==='1');
     assert.equal(await page.locator('#overviewRankingList .ov-rank-row').count(),2);assert.equal(await page.locator('#overviewRankingList .ov-person b').first().textContent(),'Trần Bình');assert.equal(await page.locator('#overviewPendingReviews').textContent(),'1');
     assert.ok((await page.locator('#overviewLeaveList').textContent()).includes('Nghỉ sáng'));assert.ok((await page.locator('#overviewApprovedFunds').textContent()).includes('2.000.000'));assert.ok((await page.locator('#overviewReviewHistory').textContent()).includes('Trưởng phòng'));assert.ok(!(await page.locator('#overviewAwardPodium').textContent()).includes('Điểm chưa công bố'));
+    await page.evaluate(()=>{
+      const app=window.__overviewTest;
+      app.state.tasks=[{id:'task-a',title:'Cập nhật báo cáo',status:'todo',assignee:'Nguyễn An'}];
+      app.state.invoices=[{id:'invoice-pending',status:'pending',supplier:'Nhà cung cấp thử',createdAt:new Date().toISOString()}];
+      app.renderTasks();app.renderContentQueuePreview();app.renderSystemNotifications();
+    });
+    assert.deepEqual(await badges.allTextContents(),['1','1','2','1']);
+    assert.equal(await page.locator('.sidebar .count-badge.has-pending').count(),4);
+    assert.match(await page.locator('#systemNotificationList').textContent(),/Hóa đơn đang chờ duyệt/);
+    await page.evaluate(()=>{
+      const app=window.__overviewTest;
+      app.state.invoices[0].status='approved';
+      app.renderSystemNotifications();
+    });
+    assert.equal(await page.locator('#invoiceNavCount').textContent(),'1');
     await page.selectOption('#overviewBranchFilter','a');assert.equal(await page.locator('#overviewRankingList .ov-rank-row').count(),1);assert.ok(!(await page.locator('#overviewAdvanceList').textContent()).includes('Trần Bình'));assert.ok((await page.locator('#overviewAwardPodium').textContent()).includes('Nguyễn An'));assert.equal(await page.locator('#overviewPendingReviews').textContent(),'0');assert.ok((await page.locator('#campaignTable').textContent()).includes('Chiến dịch A'));
     await page.selectOption('#overviewBranchFilter','all');await page.selectOption('#overviewUserFilter','all');assert.equal(await page.locator('#overviewRankingList .ov-rank-row').count(),2);assert.equal(await page.evaluate(()=>window.__awardWatchCount),1);
     await page.locator('[data-overview-go="requests"]').first().click();assert.ok(await page.locator('#page-requests.active').count());await page.evaluate(()=>window.__overviewTest.navigate('overview'));

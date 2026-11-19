@@ -78,6 +78,12 @@ export function initWorkflows(api) {
     } else renderLeave();
     onDataChange?.();
   }
+  function pendingCounts(){
+    const advances=records.advance.filter(row=>row.status==='pending'||(
+      row.status==='approved'&&!row.disbursement&&state.role==='accountant'&&row.createdBy!==state.user?.uid
+    )).length;
+    return {advances,requests:records.request.filter(row=>row.status==='pending').length};
+  }
   function notifications(){
     const labels={pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối',disbursed:'Đã cấp tiền'};
     return [...records.advance,...records.request].map(row=>{
@@ -320,5 +326,5 @@ export function initWorkflows(api) {
     }
   }
   buildPages();render('advance');render('request');
-  return {start,stop,render,notifications,openAssistantFunding:id=>{const row=records.advance.find(r=>r.id===id);if(!row||row.status!=='approved'||state.role!=='accountant'||row.createdBy===state.user?.uid)throw new Error('Không có quyền cấp tiền cho hồ sơ này.');disburse(row);},assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
+  return {start,stop,render,notifications,pendingCounts,openAssistantFunding:id=>{const row=records.advance.find(r=>r.id===id);if(!row||row.status!=='approved'||state.role!=='accountant'||row.createdBy===state.user?.uid)throw new Error('Không có quyền cấp tiền cho hồ sơ này.');disburse(row);},assistantData:()=>({requests:assistantRows('request'),advances:assistantRows('advance'),loading:{...loading},errors:{...errors},warnings:{...warnings}}),assistantReview};
 }

@@ -1237,3 +1237,8 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 .messenger-checks{list-style:none;padding:0;margin:12px 0}.messenger-checks li{padding:11px 0;border-bottom:1px solid var(--line)}.messenger-checks b{font-size:12px}.messenger-checks p,[data-sync-status]>p{font-size:12px;line-height:1.6;margin:6px 0}
 [data-messenger-sync]>p{font-size:12px;line-height:1.6}
 [data-sync-more][hidden]{display:none!important}
+
+.sidebar .main-nav .count-badge.has-pending,
+body.dark .sidebar .main-nav .count-badge.has-pending{
+  background:#be123c;color:#fff;border-color:#fecdd366;flex-shrink:0;
+}
