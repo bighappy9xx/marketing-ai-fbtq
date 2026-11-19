@@ -7,11 +7,17 @@ async function recordMessage(db,page,event,now=Date.now()){
  const threadRef=db.doc(`workspaces/fbtq/inbox/${threadId}`),messageRef=db.doc(`workspaces/fbtq/messages/${id}`),direction=echo?'outgoing':'incoming';
  const attachments=(event.message.attachments||[]).slice(0,10).map(a=>({type:String(a.type||'attachment').slice(0,80),url:typeof a.payload?.url==='string'&&a.payload.url.startsWith('https://')?a.payload.url:''}));
  return db.runTransaction(async tx=>{
-  const thread=await tx.get(threadRef),message=await tx.get(messageRef);if(message.exists){if(echo&&attachments.some(a=>a.url))tx.update(messageRef,{attachments:attachments.map((a,i)=>({...a,...(message.data().attachments?.[i]?.preview?{preview:message.data().attachments[i].preview}:{})}))});return false;}const old=thread.data()||{};
+  const thread=await tx.get(threadRef),message=await tx.get(messageRef);
+  const previous=message.data();
+  const promote=message.exists&&!echo&&previous?.source==='meta_history'&&previous.historical===true&&at>now-30000;
+  if(message.exists&&!promote){if(echo&&attachments.some(a=>a.url))tx.update(messageRef,{attachments:attachments.map((a,i)=>({...a,...(message.data().attachments?.[i]?.preview?{preview:message.data().attachments[i].preview}:{})}))});return false;}const old=thread.data()||{};
   const patch={pageId:page.pageId,pageName:page.pageName,ownerUid:page.ownerUid,model:page.model||'openai',conversationId:threadId,senderId:peer};
   if(at>=Math.max(Number(old.lastMessageAtMs)||0,stamp(old.receivedAt)))Object.assign(patch,{message:text,direction,attachments,receivedAt:new Date(at),lastMessageAtMs:at,needsReply:!echo});
   if(!echo){patch.lastIncomingAtMs=Math.max(Number(old.lastIncomingAtMs)||0,at);patch.optedOut=old.optedOut===true||core.isOptOut(text);patch.unread=true;if(at>=(Number(old.lastIncomingAtMs)||0))patch.lastIncomingMessageId=id;}
-  tx.set(threadRef,patch,{merge:true});tx.create(messageRef,{pageId:page.pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:threadId,senderId:peer,message:text,direction,attachments,metaMessageId:mid,source:echo?'meta_echo':'meta_webhook',createdAt:new Date(at)});return true;
+  tx.set(threadRef,patch,{merge:true});
+  if(promote)tx.update(messageRef,{source:'meta_webhook',historical:false});
+  else tx.create(messageRef,{pageId:page.pageId,pageName:page.pageName,ownerUid:page.ownerUid,conversationId:threadId,senderId:peer,message:text,direction,attachments,metaMessageId:mid,source:echo?'meta_echo':'meta_webhook',createdAt:new Date(at)});
+  return true;
  });
 }
 function registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,META_TOKEN_ENCRYPTION_KEY,decryptToken,logger}){

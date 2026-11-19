@@ -50,8 +50,8 @@ async function main(){
  console.log('Webhook fields: messages, messaging_postbacks');
  if(auto){
   console.log('Đang triển khai riêng bot tự động autoReplyFacebook…');
-  try{await run(tools.binary,['deploy','--project',PROJECT,'--only','functions:autoReplyFacebook','--non-interactive'],{env});}
-  catch{throw Error('Phần kết nối Messenger/webhook đã triển khai; riêng bot tự động chưa hoàn tất. Nếu log báo Permission denied while using the Eventarc Service Agent, đợi vài phút rồi chạy: firebase deploy --only functions:autoReplyFacebook --project '+PROJECT+' --non-interactive. Không cần nhập lại App Secret hoặc chạy lại toàn bộ trình cài đặt. Nếu vẫn lỗi, kiểm tra roles/eventarc.serviceAgent cho đúng service agent theo FACEBOOK-CONNECT.md.');}
+  try{await run(tools.binary,['deploy','--project',PROJECT,'--only','functions:autoReplyFacebook,functions:autoReplyFacebookPromoted','--non-interactive'],{env});}
+  catch{throw Error('Phần kết nối Messenger/webhook đã triển khai; riêng bot tự động chưa hoàn tất. Nếu log báo Permission denied while using the Eventarc Service Agent, đợi vài phút rồi chạy: firebase deploy --only functions:autoReplyFacebook,functions:autoReplyFacebookPromoted --project '+PROJECT+' --non-interactive. Không cần nhập lại App Secret hoặc chạy lại toàn bộ trình cài đặt. Nếu vẫn lỗi, kiểm tra roles/eventarc.serviceAgent cho đúng service agent theo FACEBOOK-CONNECT.md.');}
  }
  console.log((auto?'Đã triển khai autoReplyFacebook với OpenAI; Trang mới vẫn tắt tự động.':'Chưa có OPENAI_API_KEY: phần nhận/gửi thủ công đã triển khai, chưa triển khai autoReplyFacebook.')+'\nSau Verify & Save trên Meta: cập nhật giao diện GitHub Pages, mở Hộp thư → + Fanpage → đăng nhập → chọn Trang → phê duyệt.\nĐây chưa phải xác nhận Meta App Review hoặc kết nối Fanpage thật đã thành công.\n');
 

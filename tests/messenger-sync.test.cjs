@@ -28,3 +28,31 @@ test('filter reply state follows new messages while unchanged history preserves 
  await recordMessage(q.db,page,{...event,timestamp:at+1000,message:{mid:'filter-new2',text:'Tin tiếp theo'}});assert.equal(q.data.get('workspaces/fbtq/inbox/'+threadId).needsReply,true);
  await recordMessage(q.db,page,{sender:{id:page.pageId},recipient:{id:peer.id},timestamp:at+2000,message:{mid:'filter-echo',is_echo:true,text:'Đã trả lời'}});assert.equal(q.data.get('workspaces/fbtq/inbox/'+threadId).needsReply,false);
 });
+
+test('fallback only exposes a new latest incoming message and a later webhook does not create it twice',async()=>{
+ const {db,data}=database();
+ const now=Date.now(),previousSync=now-6000,at=now-1200;
+ const history={db,page,peer,metaConversationId:'fallback',rows:[
+   msg('archive',peer.id,now-60000),msg('fresh',peer.id,at,'Tôi muốn')
+ ],now};
+ await storeHistory({...history,automaticSince:previousSync});
+ const path=id=>'workspaces/fbtq/messages/'+messageKey(threadId,id);
+ assert.equal(data.get(path('archive')).historical,true);
+ assert.equal(data.get(path('fresh')).source,'meta_sync_live');
+ assert.equal(data.get(path('fresh')).historical,false);
+ assert.equal(data.get('workspaces/fbtq/inbox/'+threadId).lastIncomingMessageId,messageKey(threadId,'fresh'));
+ assert.equal(await recordMessage(db,page,{sender:{id:peer.id},timestamp:at,message:{mid:'fresh',text:'Tôi muốn'}},now),false);
+ assert.equal((await storeHistory({...history,automaticSince:previousSync})).imported,0);
+});
+
+test('manual history stays silent unless a recent signed webhook confirms the same incoming message',async()=>{
+ const {db,data}=database(),now=Date.now(),at=now-1200;
+ const path='workspaces/fbtq/messages/'+messageKey(threadId,'confirmed');
+ await storeHistory({db,page,peer,metaConversationId:'manual',rows:[msg('confirmed',peer.id,at)],now});
+ assert.equal(data.get(path).historical,true);
+ const event={sender:{id:peer.id},timestamp:at,message:{mid:'confirmed',text:'Xin chào'}};
+ assert.equal(await recordMessage(db,page,event,now),true);
+ assert.equal(data.get(path).source,'meta_webhook');
+ assert.equal(data.get(path).historical,false);
+ assert.equal(await recordMessage(db,page,event,now),false);
+});

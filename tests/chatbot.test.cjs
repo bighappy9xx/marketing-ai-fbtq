@@ -9,7 +9,7 @@ test('server checks owner, window, once-only sending, and refuses an expired OAu
  const page={pageId,ownerUid:uid,pageName:'Test',active:true,mode:'script',scripts:[{keywords:['gia'],text:'Nhân viên sẽ tư vấn'}]};records.set(`workspaces/fbtq/pages/${pageId}`,page);records.set(`workspaces/fbtq/inbox/${core.key(pageId,recipient)}`,{lastIncomingAtMs:now});
  const ref=path=>({id:path.split('/').at(-1),get:async()=>({exists:records.has(path),data:()=>records.get(path)}),create:async data=>{if(records.has(path))throw Error('exists');records.set(path,data);},set:async data=>records.set(path,{...records.get(path),...data}),update:async data=>records.set(path,{...records.get(path),...data}),delete:async()=>records.delete(path)});
  const db={doc:ref,collection:path=>({doc:id=>ref(path+'/'+id)}),runTransaction:async fn=>fn({get:r=>r.get(),update:(r,d)=>r.update(d),set:(r,d)=>r.set(d)})};
- const load=Module._load;Module._load=function(id,...args){if(id==='firebase-functions/v2/scheduler')return {onSchedule:(_,fn)=>fn};if(id==='firebase-functions/v2/firestore')return {onDocumentCreated:(_,fn)=>fn};return load.call(this,id,...args);};
+ const load=Module._load;Module._load=function(id,...args){if(id==='firebase-functions/v2/scheduler')return {onSchedule:(_,fn)=>fn};if(id==='firebase-functions/v2/firestore')return {onDocumentCreated:(_,fn)=>fn,onDocumentUpdated:(_,fn)=>fn};return load.call(this,id,...args);};
  let api;try{api=require('../functions/chatbot').registerChatbot({db,onCall:(_,fn)=>fn,HttpsError:class extends Error{constructor(c,m){super(m);this.code=c;}},FieldValue:{serverTimestamp:()=>now},requireSignedIn:async r=>({uid:r.auth.uid,profile:{approved:r.approved!==false,role:'employee'}}),encryptToken:()=>({}),decryptToken:()=>'',graphUrl:p=>'https://graph.test/'+p,META_TOKEN_ENCRYPTION_KEY:{value:()=>''},META_APP_SECRET:{value:()=>''}});}finally{Module._load=load;}
  const previous=global.fetch;global.fetch=async(_,options)=>{sends++;if(typeof options?.body==='string')lastSentText=JSON.parse(options.body).message?.text;return {ok:true,json:async()=>({message_id:'sent'})};};
  const request=(extra={})=>({auth:{uid},data:{pageId,recipientId:recipient,message:'Xin chào',requestId:'1234567890abcdef',...extra}});
@@ -36,13 +36,21 @@ test('server checks owner, window, once-only sending, and refuses an expired OAu
  assert.deepEqual(records.get(`workspaces/fbtq/pages/${pageId}`).scripts,legacy);
  await api.savePageChatbot(request({mode:'script'}));
  const deliver=async(id,message)=>{
-   records.get(`workspaces/fbtq/inbox/${threadId}`).lastIncomingMessageId=id;
+   Object.assign(records.get(`workspaces/fbtq/inbox/${threadId}`),{lastIncomingMessageId:id,direction:'incoming'});
    await api.autoReplyFacebook({params:{messageId:id},data:{data:()=>({...incoming.data.data(),message})}});
  };
  await deliver('faq-match','  CUA HANG MO CUA LUC MAY GIO !! ');
  assert.equal(sends,5);assert.equal(lastSentText,faqs[0].answer);
  await deliver('faq-disabled',faqs[1].question);assert.equal(sends,5);
  await deliver('faq-unrelated','Cảm ơn bạn');assert.equal(sends,5);
+ Object.assign(records.get(`workspaces/fbtq/inbox/${threadId}`),{lastIncomingMessageId:'promoted',direction:'incoming'});
+ const promotion={params:{messageId:'promoted'},data:{
+   before:{data:()=>({source:'meta_history',historical:true})},
+   after:{data:()=>({...incoming.data.data(),source:'meta_webhook',historical:false,message:faqs[0].question})}
+ }};
+ await api.autoReplyFacebookPromoted(promotion);assert.equal(sends,6);
+ await api.autoReplyFacebookPromoted(promotion);assert.equal(sends,6);
+
 
  await assert.rejects(api.finishFacebookLogin({auth:{uid},data:{state:'a'.repeat(64),code:'x'}}),/hết hạn/);}finally{global.fetch=previous;}
 });
