@@ -18,22 +18,43 @@ export function createIncomingPopupGate({now=Date.now}={}){
   return received;
  }};
 }
-export function initInboxNotifications({page,state,callFunction,showToast}){
+export function initInboxNotifications({page,state,callFunction,showToast,onOpenMessage=()=>{}}){
  const incomingGate=createIncomingPopupGate(),controls=document.createElement('div');controls.className='inbox-notification-controls';controls.innerHTML='<button type="button" data-inbox-sound aria-pressed="false">🔔 Bật âm báo</button><small data-inbox-sound-status></small>';document.querySelector('.chatbot-sound-settings').append(controls);const button=controls.querySelector('button'),status=controls.querySelector('small');
+ const banners=document.createElement('div');banners.className='messenger-browser-banners';banners.setAttribute('aria-live','polite');banners.setAttribute('aria-relevant','additions');document.body.append(banners);
  let uid='',enabled=true,context=null,unlocking=null,generation=0,nextToneAt=0;const tabId=globalThis.crypto?.randomUUID?.()||Math.random().toString(36),colorRequests=new Map();
  const preferenceKey=()=> 'fbtq_inbox_sound_v1_'+uid;
  function render(){const running=context?.state==='running';button.textContent=!enabled?'🔕 Âm báo: tắt':running?'🔔 Âm báo: bật':'🔔 Bật âm báo';button.setAttribute('aria-pressed',String(enabled&&running));button.title='Âm báo mọi tin khách mới từ tất cả Fanpage; không reo khi tải lịch sử cũ. Nhấn để bật/tắt.';status.textContent=enabled&&!running?'Chạm để cho phép phát âm thanh':'';}
- function sync(){const next=state.user?.uid||'';if(next!==uid){generation++;nextToneAt=0;uid=next;incomingGate.reset();enabled=true;try{enabled=localStorage.getItem(preferenceKey())!=='off';}catch{}const old=context;context=null;unlocking=null;old?.close?.().catch?.(()=>{});}render();}
+ function sync(){const next=state.user?.uid||'';if(next!==uid){generation++;nextToneAt=0;uid=next;incomingGate.reset();banners.replaceChildren();enabled=true;try{enabled=localStorage.getItem(preferenceKey())!=='off';}catch{}const old=context;context=null;unlocking=null;old?.close?.().catch?.(()=>{});}render();}
  async function unlock(){sync();if(!uid||!enabled)return false;if(context?.state==='running')return true;if(unlocking)return unlocking;const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio){status.textContent='Trình duyệt chưa hỗ trợ âm báo.';return false;}const run=generation,owner=uid;try{context||=new Audio();const current=context;unlocking=Promise.resolve(current.resume()).then(()=>{if(run!==generation||owner!==uid)return false;render();return current.state==='running';}).catch(()=>{if(run===generation)status.textContent='Bấm Bật âm báo để cho phép phát tiếng.';return false;}).finally(()=>{if(run===generation)unlocking=null;});return await unlocking;}catch{status.textContent='Chưa bật được âm thanh. Bấm để thử lại.';return false;}}
  function tone(){if(!enabled||context?.state!=='running')return;const time=context.currentTime;for(const [i,freq]of [880,1174.66].entries()){const oscillator=context.createOscillator(),gain=context.createGain(),at=time+i*.115;oscillator.type='sine';oscillator.frequency.setValueAtTime(freq,at);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.075,at+.012);gain.gain.exponentialRampToValueAtTime(.0001,at+.11);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(at);oscillator.stop(at+.12);}}
  async function gesture(e){if(e.target?.closest?.('[data-inbox-sound]'))return;sync();if(enabled&&uid&&context?.state!=='running')await unlock();}
  document.addEventListener('pointerdown',gesture);document.addEventListener('keydown',gesture);
  button.onclick=async()=>{sync();if(!uid)return showToast('Đăng nhập để dùng âm báo.','error');if(enabled&&context?.state==='running'){enabled=false;try{localStorage.setItem(preferenceKey(),'off');}catch{}render();return;}enabled=true;try{localStorage.setItem(preferenceKey(),'on');}catch{}if(await unlock())tone();render();};
  window.addEventListener('storage',e=>{if(uid&&e.key===preferenceKey()){enabled=e.newValue!=='off';render();}});
+ function showIncomingBanner(row){
+  const owner=uid,card=document.createElement('article');
+  card.className='messenger-browser-banner';
+  card.innerHTML='<button type="button" class="messenger-browser-banner-open"><img src="assets/fbtq-app-192.png" alt="" width="42" height="42"><span><strong></strong><small></small></span></button><button type="button" class="messenger-browser-banner-close" aria-label="Đóng thông báo">×</button>';
+  card.querySelector('strong').textContent=row.pageName||'Tin Nhắn Messenger Mới';
+  const text=String(row.message||'').replace(/\s+/gu,' ').trim();
+  const attachment=row.attachments?.some(item=>item.type==='image')?'Đã gửi một hình ảnh':'Đã gửi tệp đính kèm';
+  card.querySelector('small').textContent=(!text||/^\[(?:Đã nhận tệp đính kèm|Tệp đính kèm)\]$/i.test(text)?attachment:text).slice(0,180);
+  card.querySelector('.messenger-browser-banner-open').onclick=()=>{
+   card.remove();
+   if(state.user?.uid===owner)onOpenMessage(row);
+  };
+  card.querySelector('.messenger-browser-banner-close').onclick=()=>card.remove();
+  banners.prepend(card);
+  if(banners.childElementCount>3)banners.lastElementChild.remove();
+  setTimeout(()=>card.remove(),8000);
+ }
  function notify(rows,info={}){
   sync();
   const arrivals=incomingGate.inspect(uid,rows,info);
-  if(arrivals.length&&(document.hidden||!page.classList.contains('active')))state.inboxNotifyBackground?.(arrivals);
+  if(arrivals.length){
+   if(document.hidden)state.inboxNotifyBackground?.(arrivals);
+   else arrivals.slice(-3).forEach(showIncomingBanner);
+  }
   const ids=arrivals.map(row=>row.id);if(!ids.length)return;
   if(!enabled||context?.state!=='running')return;const owner=uid,run=generation,key='fbtq_inbox_sound_claims_'+uid;let shared=true;
   try{const previous=JSON.parse(localStorage.getItem(key)||'[]'),claims=Array.isArray(previous)?previous:[];for(const messageId of ids)if(!claims.some(c=>c.messageId===messageId))claims.push({messageId,tabId});localStorage.setItem(key,JSON.stringify(claims.slice(-500)));}catch{shared=false;}
@@ -47,5 +68,5 @@ export function initInboxNotifications({page,state,callFunction,showToast}){
   catch(e){if(run===generation&&uid===owner&&colorRequests.get(pageId)===request){p.inboxColor=previous;paintColors();state.chatbotPagesChanged?.();showToast(e.message,'error');}}finally{if(colorRequests.get(pageId)===request)colorRequests.delete(pageId);}
  }
  state.inboxPageColorPending=id=>colorRequests.has(id);state.inboxNotifyMessages=notify;state.inboxSoundRefresh=sync;state.inboxSetPageColor=setColor;state.repaintPageColors=paintColors;sync();
- return {reset(){generation++;nextToneAt=0;uid='';incomingGate.reset();colorRequests.clear();const old=context;context=null;unlocking=null;old?.close?.().catch?.(()=>{});enabled=true;render();},paintColors};
+ return {reset(){generation++;nextToneAt=0;uid='';incomingGate.reset();banners.replaceChildren();colorRequests.clear();const old=context;context=null;unlocking=null;old?.close?.().catch?.(()=>{});enabled=true;render();},paintColors};
 }
