@@ -20,7 +20,13 @@ export function initInboxNotifications({page,state,callFunction,showToast}){
  document.addEventListener('pointerdown',gesture);document.addEventListener('keydown',gesture);
  button.onclick=async()=>{sync();if(!uid)return showToast('Đăng nhập để dùng âm báo.','error');if(enabled&&context?.state==='running'){enabled=false;try{localStorage.setItem(preferenceKey(),'off');}catch{}render();return;}enabled=true;try{localStorage.setItem(preferenceKey(),'on');}catch{}if(await unlock())tone();render();};
  window.addEventListener('storage',e=>{if(uid&&e.key===preferenceKey()){enabled=e.newValue!=='off';render();}});
- function notify(rows,info={}){sync();const ids=gate.inspect(uid,rows,info);if(!ids.length||!enabled||context?.state!=='running')return;const owner=uid,run=generation,key='fbtq_inbox_sound_claims_'+uid;let shared=true;
+ function notify(rows,info={}){
+  sync();const ids=gate.inspect(uid,rows,info);if(!ids.length)return;
+  if(!info.fromCache&&document.hidden){
+   const incoming=new Set(ids);
+   state.inboxNotifyBackground?.(rows.filter(row=>incoming.has(row.id)));
+  }
+  if(!enabled||context?.state!=='running')return;const owner=uid,run=generation,key='fbtq_inbox_sound_claims_'+uid;let shared=true;
   try{const previous=JSON.parse(localStorage.getItem(key)||'[]'),claims=Array.isArray(previous)?previous:[];for(const messageId of ids)if(!claims.some(c=>c.messageId===messageId))claims.push({messageId,tabId});localStorage.setItem(key,JSON.stringify(claims.slice(-500)));}catch{shared=false;}
   setTimeout(()=>{if(uid!==owner||run!==generation||!enabled)return;let claims=[];if(shared){try{claims=JSON.parse(localStorage.getItem(key)||'[]');}catch{shared=false;}}
    for(const messageId of ids){if(shared&&!claims.some(c=>c.messageId===messageId&&c.tabId===tabId))continue;const delay=Math.max(0,nextToneAt-Date.now());nextToneAt=Date.now()+delay+300;setTimeout(()=>{if(uid===owner&&run===generation)tone();},delay);}

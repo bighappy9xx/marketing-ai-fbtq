@@ -1,6 +1,6 @@
-import {initMessengerPush} from './messenger-push-ui.js?v=20261119-messenger-push';
+import {initMessengerPush} from './messenger-push-ui.js?v=20261119-messenger-hidden-tab';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bright-navigation';
-import {fanpageColor} from './inbox-notifications.js?v=20261118-blue-chatbot-menu';
+import {fanpageColor} from './inbox-notifications.js?v=20261119-messenger-hidden-tab';
 import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';
 import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261119-inbox-status';
 import {speechErrorInfo,speechErrorMarkup} from './gemini-speech-errors.js?v=20261118-gemini-free';
@@ -17,7 +17,7 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-optimized-messaging-label';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-messenger-hidden-tab';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
 import { initOverviewHub } from './overview-hub.js?v=20261119-award-recipient-avatar';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
@@ -1165,6 +1165,7 @@ reviewBridge=createFinalReviewBridge({state,navigate,toast:showToast,onPreviewCh
 const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>{const session={getFirebase:requireFirebaseAI,getUserId:()=>state.user?.uid||null};if(name==='analyzeStudioHighlights')return $('#defaultModel').value==='openai'?analyzeOpenAIHighlights({...data,call:callFunction,getUserId:session.getUserId}):analyzeStudioHighlights({...data,...session});if(['transcribeStudioAudio','getStudioAISetup','generateStudioImage'].includes(name))return $('#defaultModel').value==='openai'||name==='generateStudioImage'?callFunction(name,data):name==='getStudioAISetup'?checkFirebaseGemini(session):transcribeFirebaseAudio({...data,...session});throw Error('Chức năng Studio AI chưa hỗ trợ.');},onFinal:artifact=>reviewBridge.stage(artifact)});
 messengerImages=initMessengerImages({state,callFunction,selectThread,sendText:sendChatReply,showToast});state.applyMessengerScript=async script=>{const input=$('#replyInput');input.value=script.text||'';await messengerImages.applyScript(script);input.focus();};
 const messengerPush=initMessengerPush({state,callFunction,showToast});
+state.inboxNotifyBackground=messengerPush.notifyBackground;
 const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange:renderInbox,onOpenInbox:()=>navigate('inbox'),onOpenSoundSettings:()=>navigate('chatbot-settings')});
 
 for(const container of [$('#fbtqAssistantWindow .fbtq-dock-head'),$('#page-assistant .page-heading')].filter(Boolean)){

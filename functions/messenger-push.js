@@ -27,6 +27,15 @@ function shouldNotify(before,after,now=Date.now()){
   return at>now-120000&&at<=now+5000;
 }
 
+function notificationPreview(message){
+  const compact=(value,max)=>typeof value==='string'?value.replace(/\s+/gu,' ').trim().slice(0,max):'';
+  const title=compact(message.pageName,100)||'Tin Nhắn Messenger Mới';
+  const attachment = message.attachments?.some(item=>item.type==='image')?'Đã gửi một hình ảnh':'Đã gửi tệp đính kèm';
+  const text=compact(message.message,240);
+  const body=!text||/^\[(?:Đã nhận tệp đính kèm|Tệp đính kèm)\]$/i.test(text)?attachment:text;
+  return {title,body};
+}
+
 function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_WEB_PUSH_VAPID,logger}){
   const vapid=()=>JSON.parse(MESSENGER_WEB_PUSH_VAPID.value());
   const callable=(options,handler)=>onCall({invoker:'public',...options},handler);
@@ -41,13 +50,16 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     catch(error){throw new HttpsError('invalid-argument',error.message);}
     const id=createHash('sha256').update(subscription.endpoint).digest('hex');
     const ref=db.collection(devices).doc(id);
-    await db.runTransaction(async tx=>{
+    const showPreview=await db.runTransaction(async tx=>{
       const current=await tx.get(ref);
       const existing=await tx.get(db.collection(devices).where('ownerUid','==',uid).limit(maxDevices));
       if(existing.size>=maxDevices&&current.data()?.ownerUid!==uid)throw new HttpsError('resource-exhausted','Tài khoản đã đạt giới hạn thiết bị nhận thông báo.');
-      tx.set(ref,{ownerUid:uid,subscription,updatedAtMs:Date.now()});
+      const previous=current.data();
+      const preference=typeof request.data?.showPreview==='boolean'?request.data.showPreview:previous?.ownerUid===uid&&previous.showPreview===true;
+      tx.set(ref,{ownerUid:uid,subscription,showPreview:preference,updatedAtMs:Date.now()});
+      return preference;
     });
-    return {id};
+    return {id,showPreview};
   });
   const unregister=callable({},async request=>{
     const uid=request.auth?.uid,id=request.data?.id;
@@ -79,7 +91,7 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
       if(saved.updatedAtMs<Date.now()-subscriptionLifetime)return removeIfUnchanged(doc);
       try{
         const subscription=normalizeSubscription(saved.subscription);
-        const payload=JSON.stringify({owner:uid,device:doc.id,id:event.params.messageId});
+        const payload=JSON.stringify({owner:uid,device:doc.id,id:event.params.messageId,...(saved.showPreview===true?{preview:notificationPreview(message)}:{})});
         await webPush.sendNotification(subscription,payload,{vapidDetails,TTL:120,urgency:'high',timeout:8000});
       }catch(error){
         if([404,410].includes(error.statusCode))return removeIfUnchanged(doc);

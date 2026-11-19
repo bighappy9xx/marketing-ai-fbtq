@@ -53,6 +53,8 @@
 #page-chatbot-settings [data-inbox-sound]{border:1px solid #d6e2f3;border-radius:11px;background:#edf4ff;color:#3c6394;padding:10px 14px;cursor:pointer}
 #page-chatbot-settings .inbox-notification-controls{display:grid;gap:10px;justify-items:start}
 #page-chatbot-settings [data-inbox-sound-status]{color:#8798b2;font-size:11px}
+#page-chatbot-settings .messenger-push-preview{display:flex;align-items:center;gap:8px;margin-top:12px}
+#page-chatbot-settings .messenger-push-preview input{width:auto;accent-color:#2563d3}
 #page-inbox [data-inbox-sound],#page-inbox .inbox-fanpage-colors{display:none!important}
 @media(max-width:1100px){#page-inbox .chat-header{padding:10px 12px}.chatbot-settings-grid{grid-template-columns:1fr}}
 @media(max-width:760px){#page-inbox .messenger-navigation{flex:1}#page-inbox .messenger-navigation button{padding:7px 9px}#page-inbox .chat-header{padding:10px;min-height:95px}#page-inbox .messenger-thread-tools{gap:4px}#page-inbox .messenger-thread-tools label,#page-inbox .messenger-thread-tools button{font-size:9px;padding:4px 5px}#page-inbox .chat-body{padding:12px}#page-inbox .chat-compose{padding:10px}.glass-settings-card{padding:20px}}
