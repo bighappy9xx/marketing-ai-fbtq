@@ -123,7 +123,7 @@ body.dark #page-inbox :is(.conversation.selected,.conversation:hover,.customer-m
 }
 body.dark #page-inbox .our-message {background:rgb(var(--glass-accent-fill));color:#fff}
 body.dark #page-inbox :is(.conversation-head b,.chat-header b,.messenger-customer dd,.customer-msg small) {color:var(--glass-text)}
-body.dark #page-inbox :is(.conversation-head small,.conversation p,.chat-header small,.channel-tag,.messenger-live-status,.messenger-customer-heading,.messenger-customer dt,.chat-date,.inbox-list-heading>b) {color:var(--glass-muted)}
+body.dark #page-inbox :is(.conversation-head small,.conversation p,.chat-header small,.channel-tag,.messenger-customer-heading,.messenger-customer dt,.chat-date,.inbox-list-heading>b) {color:var(--glass-muted)}
 body.dark #page-inbox :is(.inbox-search,.inbox-page-picker-body,.messenger-thread-tools label,.messenger-thread-tools button) {
   color:var(--glass-text);background:var(--glass-control);border-color:var(--glass-edge);
 }

@@ -81,11 +81,6 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 }
 /* Messenger conversation layout and live delivery feedback. */
 #page-inbox .inbox-list-heading{display:grid;gap:8px;padding:16px}
-.messenger-live-status{font-size:10px;line-height:1.5;letter-spacing:0;font-weight:400;color:#53718c;overflow-wrap:anywhere}
-.messenger-live-status::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#438bc4}
-.messenger-live-status[data-status=live]::before{background:#22a476}
-.messenger-live-status[data-status=error]{color:#b45322}
-.messenger-live-status[data-status=error]::before{background:#d88936}
 #page-inbox .conversation{width:calc(100% - 16px);margin:3px 8px;padding:12px 10px;border:0;border-radius:12px;background:transparent;text-align:left;font:inherit;cursor:pointer;gap:12px}
 #page-inbox .conversation:hover{background:#f1f5fb}
 #page-inbox .conversation.selected{background:#e7f0ff}

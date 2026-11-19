@@ -14,15 +14,15 @@ export function initAutomaticInbox({state,callFunction,isVisible,onStatus,now=Da
   if(!uid||!state.firebase||!isVisible())return;
   const run=generation,pages=(state.pages||[]).filter(p=>p.active!==false&&(!p.ownerUid||p.ownerUid===uid)&&p.pageId!==state.messengerFullSyncPage);
   const due=pages.filter(p=>{const job=jobs.get(p.pageId);return !job||!job.busy&&now()-job.last>=Math.min(300000,5000*2**job.failures);});if(!due.length)return;
-  onStatus('syncing','Realtime đang bật · Kiểm tra dự phòng 5 giây');
+  onStatus?.('syncing','Realtime đang bật · Kiểm tra dự phòng 5 giây');
   const results=await Promise.all(due.map(async page=>{const job=jobs.get(page.pageId)||{failures:0};Object.assign(job,{busy:true,last:now()});jobs.set(page.pageId,job);
    try{const result=await callFunction('syncFacebookInbox',{pageId:page.pageId,automatic:true},{timeout:125000});if(run!==generation||state.user?.uid!==uid)return null;
     if(!state.inboxPageColorPending?.(page.pageId)&&typeof result.pageInboxColor==='string'&&page.inboxColor!==result.pageInboxColor){page.inboxColor=result.pageInboxColor;state.repaintPageColors?.();state.chatbotPagesChanged?.();}
     if(result.pagePhotoUrl&&page.pagePhotoUrl!==result.pagePhotoUrl){page.pagePhotoUrl=result.pagePhotoUrl;state.chatbotPagesChanged?.();}job.failures=0;return {ok:true};
    }catch(error){if(run!==generation||state.user?.uid!==uid)return null;job.failures=Math.min(job.failures+1,3);return {error:error.message||'Chưa đồng bộ được. Sẽ thử lại.'};}finally{job.busy=false;}
   }));
-  if(run!==generation||state.user?.uid!==uid)return;const failed=results.find(r=>r?.error);onStatus(failed?'error':'live',failed?failed.error:'Realtime · Dự phòng 5 giây · '+new Date(now()).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  if(run!==generation||state.user?.uid!==uid)return;const failed=results.find(r=>r?.error);onStatus?.(failed?'error':'live',failed?failed.error:'Realtime · Dự phòng 5 giây · '+new Date(now()).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
  }
  const timer=setInterval(tick,1000);document.addEventListener('visibilitychange',tick);window.addEventListener('online',tick);
- return {tick,reset(){generation++;owner='';jobs=new Map();onStatus('waiting','Realtime · Dự phòng mỗi 5 giây');},stop(){clearInterval(timer);document.removeEventListener('visibilitychange',tick);window.removeEventListener('online',tick);}};
+ return {tick,reset(){generation++;owner='';jobs=new Map();onStatus?.('waiting','Realtime · Dự phòng mỗi 5 giây');},stop(){clearInterval(timer);document.removeEventListener('visibilitychange',tick);window.removeEventListener('online',tick);}};
 }
