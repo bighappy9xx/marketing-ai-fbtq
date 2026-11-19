@@ -232,14 +232,15 @@ export function initMessengerPush({state,callFunction,showToast}){
     }finally{busy=false;render();}
   });
   async function notifyBackground(rows){
-    if(!supported||!document.hidden||Notification.permission!=='granted')return;
+    const away=()=>document.hidden||!document.querySelector('#page-inbox')?.classList.contains('active');
+    if(!supported||!away()||Notification.permission!=='granted')return;
     const uid=state.user?.uid;
     if(!uid)return;
     try{
       const [current,registration]=await Promise.all([readBinding(),navigator.serviceWorker.getRegistration()]);
-      if(current?.owner!==uid||state.user?.uid!==uid||!document.hidden||!registration?.active)return;
+      if(current?.owner!==uid||state.user?.uid!==uid||!away()||!registration?.active)return;
       for(const row of rows){
-        if(row.ownerUid!==uid||row.direction!=='incoming'||row.historical===true||!['meta_webhook','meta_sync_live'].includes(row.source))continue;
+        if(row.ownerUid!==uid||row.direction!=='incoming'||!(row.historical!==true&&['meta_webhook','meta_sync_live'].includes(row.source)||row.source==='meta_history'&&row.notifyIncoming===true))continue;
         const at=row.createdAt?.toMillis?.()??(row.createdAt?.seconds*1000);
         if(!(at>Date.now()-120000&&at<=Date.now()+5000))continue;
         const body=String(row.message||'').replace(/\s+/gu,' ').trim();
@@ -248,7 +249,7 @@ export function initMessengerPush({state,callFunction,showToast}){
         if(!/^[a-f0-9]{64}$/.test(row.id||''))continue;
         const tag=notificationTag(row.id);
         if((await registration.getNotifications?.({tag}))?.length)continue;
-        if(state.user?.uid!==uid||!document.hidden)return;
+        if(state.user?.uid!==uid||!away())return;
         await registration.showNotification(String(preview?.title||'Tin Nhắn Messenger Mới').trim().slice(0,100)||'Tin Nhắn Messenger Mới',{
           body:preview?.body.slice(0,240)||'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.',
           icon:notificationIcon,

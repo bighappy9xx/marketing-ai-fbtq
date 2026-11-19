@@ -1,8 +1,8 @@
-import {initMessengerPush} from './messenger-push-ui.js?v=20261119-push-renewal';
+import {initMessengerPush} from './messenger-push-ui.js?v=20261119-messenger-background-tab';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bright-navigation';
-import {fanpageColor} from './inbox-notifications.js?v=20261119-messenger-popup-repair';
+import {fanpageColor} from './inbox-notifications.js?v=20261119-messenger-background-tab';
 import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';
-import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261119-inbox-status';
+import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261119-messenger-background-tab';
 import {speechErrorInfo,speechErrorMarkup} from './gemini-speech-errors.js?v=20261118-gemini-free';
 import {synthesizeGeminiSpeech} from './gemini-speech.js?v=20261118-gemini-free';
 import {analyzeOpenAIHighlights} from './studio-openai-highlights.js?v=20261117-openai-blaze';
@@ -17,7 +17,7 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-messenger-popup-repair';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-messenger-background-tab';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
 import { initOverviewHub } from './overview-hub.js?v=20261119-award-recipient-avatar';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';

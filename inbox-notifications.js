@@ -16,7 +16,7 @@ export function createIncomingPopupGate({now=Date.now}={}){
   if(!owner||fromCache)return [];
   const received=[],time=now();
   for(const row of rows){
-   if(seen.has(row.id)||row.ownerUid!==owner||row.direction!=='incoming'||row.historical===true||!['meta_webhook','meta_sync_live'].includes(row.source))continue;
+   if(seen.has(row.id)||row.ownerUid!==owner||row.direction!=='incoming'||!(row.historical!==true&&['meta_webhook','meta_sync_live'].includes(row.source)||row.source==='meta_history'&&row.notifyIncoming===true))continue;
    seen.add(row.id);
    const at=millis(row.createdAt);
    if(ready&&at>time-120000&&at<=time+5000)received.push(row);
@@ -40,7 +40,7 @@ export function initInboxNotifications({page,state,callFunction,showToast}){
  function notify(rows,info={}){
   sync();
   const arrivals=popupGate.inspect(uid,rows,info);
-  if(document.hidden&&arrivals.length)state.inboxNotifyBackground?.(arrivals);
+  if(arrivals.length&&(document.hidden||!page.classList.contains('active')))state.inboxNotifyBackground?.(arrivals);
   const ids=gate.inspect(uid,rows,info);if(!ids.length)return;
   if(!enabled||context?.state!=='running')return;const owner=uid,run=generation,key='fbtq_inbox_sound_claims_'+uid;let shared=true;
   try{const previous=JSON.parse(localStorage.getItem(key)||'[]'),claims=Array.isArray(previous)?previous:[];for(const messageId of ids)if(!claims.some(c=>c.messageId===messageId))claims.push({messageId,tabId});localStorage.setItem(key,JSON.stringify(claims.slice(-500)));}catch{shared=false;}
