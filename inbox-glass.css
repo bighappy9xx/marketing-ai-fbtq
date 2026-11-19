@@ -77,3 +77,20 @@
 .messenger-menu-close{position:absolute;z-index:2;right:13px;top:13px;border:0;border-radius:9px;background:#e9f1fd;color:#58749c;width:28px;height:28px;font-size:20px;cursor:pointer}
 .messenger-menu-panel button:focus-visible{outline:2px solid #4c86d8;outline-offset:3px}
 @media(max-width:760px){#page-inbox .messenger-navigation{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:4px}#page-inbox .messenger-navigation button{font-size:10px;padding:8px 5px;gap:4px}#page-inbox .messenger-navigation svg{width:13px;height:13px;flex-basis:13px}.messenger-menu-panel .glass-settings-card{padding:22px}.messenger-menu-panel .glass-settings-card .btn{white-space:normal}}
+
+.modal:has(.chatbot-faq){width:min(96vw,990px)}
+.chatbot-faq{display:grid;gap:12px;padding:18px;border:1px solid #dce6f2;border-radius:16px;background:#f6f9fe}
+.chatbot-faq h4,.chatbot-faq p{margin:0}
+.chatbot-faq-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chatbot-faq-toolbar input[type=search]{flex:1 1 195px;width:auto}
+.chatbot-faq-toolbar select{width:auto}
+.chatbot-faq-table{overflow:auto;max-height:360px;border:1px solid #dde7f2;border-radius:9px;background:white}
+.chatbot-faq table{border-collapse:collapse;width:100%;min-width:590px;text-align:left;font-size:12px}
+.chatbot-faq th,.chatbot-faq td{padding:9px 10px;border-bottom:1px solid #e7edf5;vertical-align:top;overflow-wrap:anywhere}
+.chatbot-faq th{position:sticky;top:0;background:#eef4ff;color:#254987}
+.chatbot-faq th:nth-child(2){width:26%}
+.chatbot-faq td:nth-child(3){white-space:pre-wrap}
+.chatbot-faq td label{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.chatbot-faq input[type=checkbox]{width:auto;margin:0;accent-color:#2563d3}
+.chatbot-faq-editor{display:grid;gap:8px}
+.chatbot-faq-editor[hidden],.chatbot-faq [data-faq-file][hidden]{display:none}

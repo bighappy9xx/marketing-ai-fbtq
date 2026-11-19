@@ -17,5 +17,19 @@ test('server checks owner, window, once-only sending, and refuses an expired OAu
  const imported={...incoming,params:{messageId:'history-import'},data:{data:()=>({...incoming.data.data(),historical:true,source:'meta_history'})}};await api.autoReplyFacebook(imported);assert.equal(sends,2);assert.equal(records.has('chatbotJobs/auto_history-import'),false);
  const threadId=core.key(pageId,recipient);records.set(`workspaces/fbtq/inbox/${threadId}`,{ownerUid:uid,pageId,lastIncomingAtMs:Date.now(),lastIncomingMessageId:'incoming-image'});await api.setMessengerThreadColor(request({threadId,color:'green'}));assert.equal(records.get(`workspaces/fbtq/inbox/${threadId}`).tagColor,'green');await assert.rejects(api.setMessengerThreadColor(request({threadId,color:'url(evil)'})),/Màu/);await assert.rejects(api.setMessengerThreadColor({...request({threadId,color:'red'}),auth:{uid:'other'}}),/không thuộc/);
  const jpeg='data:image/jpeg;base64,'+Buffer.from([255,216,255,224,0,1,2,3,255,217]).toString('base64');records.get(`workspaces/fbtq/pages/${pageId}`).scripts=[{keywords:['gia'],text:'Nội dung và hình ảnh',image:jpeg,imagePreview:jpeg}];await api.autoReplyFacebook({...incoming,params:{messageId:'incoming-image'}});assert.equal(sends,4);const validated=core.settings({mode:'script',scripts:[{title:'Ảnh và chữ',keywords:'giá',text:'Nội dung',image:jpeg,imagePreview:jpeg}]});assert.equal(validated.scripts[0].image,jpeg);assert.throws(()=>core.settings({mode:'script',scripts:[{image:'javascript:alert(1)'}]}));
+ const faqs=[{question:'Cửa hàng mở cửa lúc mấy giờ?',answer:'Từ 8 giờ đến 17 giờ.',enabled:true}];
+ await api.savePageChatbot(request({mode:'off',model:'openai',faqs,faqRevision:0}));
+ const faqConfig=await api.getPageChatbot(request({includeFaqs:true}));
+ assert.deepEqual(faqConfig.faqs,faqs);assert.equal(faqConfig.faqRevision,1);
+ assert.equal((await api.getPageChatbot(request())).faqs,undefined);
+ await assert.rejects(api.getPageChatbot({...request({includeFaqs:true}),auth:{uid:'other'}}),e=>e.code==='permission-denied');
+ await assert.rejects(api.savePageChatbot(request({mode:'off',faqs:[],faqRevision:0})),e=>e.code==='aborted');
+ await api.savePageChatbot(request({mode:'off',instructions:'Cập nhật riêng lời chào'}));
+ assert.deepEqual((await api.getPageChatbot(request({includeFaqs:true}))).faqs,faqs);
+ const {relevantFaqs,replyInstructions}=require('../functions/chatbot-faq');
+ const hidden={question:faqs[0].question,answer:'Không dùng',enabled:false};
+ const matching=relevantFaqs([...faqs,hidden],'Cho mình hỏi cửa hàng mở cửa mấy giờ vậy?');
+ assert.equal(matching.length,1);assert.match(replyInstructions(page,matching),/8 giờ đến 17 giờ/);
+ assert.deepEqual(relevantFaqs(faqs,'Cảm ơn bạn'),[]);
  await assert.rejects(api.finishFacebookLogin({auth:{uid},data:{state:'a'.repeat(64),code:'x'}}),/hết hạn/);}finally{global.fetch=previous;}
 });
