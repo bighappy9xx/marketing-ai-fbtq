@@ -15,12 +15,32 @@ module.exports.registerChatbot=function({db,onCall,onRequest,HttpsError,FieldVal
     if(!response.ok){const code=Number(data.error?.code)||response.status;if(code===190)throw new HttpsError('failed-precondition','Page Token đã hết hiệu lực hoặc bị thu hồi. Kết nối lại Fanpage bằng tài khoản có quyền.');if([10,200,294,299].includes(code))throw new HttpsError('permission-denied',`Meta từ chối quyền (${code}). Kiểm tra pages_messaging, pages_manage_metadata, pages_read_engagement, vai trò thử nghiệm và App Review.`);if([4,17,32,613].includes(code))throw new HttpsError('resource-exhausted','Meta đang giới hạn số yêu cầu. Chờ hạn mức phục hồi.');throw new HttpsError('unavailable',`Meta từ chối yêu cầu (${code}). Kiểm tra token, quyền và tình trạng ứng dụng.`);}
     return data;
   }
-  async function send(page,recipientId,text,source='manual',jobId){
-    const ref=db.doc(`${inbox}/${core.key(page.pageId,recipientId)}`),snap=await ref.get();if(!page.active||!core.eligible({...snap.data(),...(source==='manual'?{humanPaused:false}:{})}))fail('Hội thoại ngoài 24 giờ, đã dừng nhận tin hoặc đang chuyển nhân viên.');
+  async function send(page,recipientId,text,source='manual',autoReply){
+    const ref=db.doc(`${inbox}/${core.key(page.pageId,recipientId)}`),current=(await ref.get()).data();
+    if(autoReply&&!canReplyTo(current,autoReply.messageId))return;
+    if(!page.active||!core.eligible({...current,...(source==='manual'?{humanPaused:false}:{})}))fail('Hội thoại ngoài 24 giờ, đã dừng nhận tin hoặc đang chuyển nhân viên.');
     if(!text?.trim()||text.length>2000)fail('Tin nhắn cần từ 1 đến 2.000 ký tự.');
-    const token=decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value());const result=await graph(`${page.pageId}/messages`,token,{recipient:{id:recipientId},message:{text:text.trim()},messaging_type:'RESPONSE'});
+    const token=decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value());
+    const sendingAt=Date.now();
+    const result=await graph(`${page.pageId}/messages`,token,{recipient:{id:recipientId},message:{text:text.trim()},messaging_type:'RESPONSE'});
+    if(autoReply){
+      const acceptedAt=Date.now();
+      logger?.info('Messenger automatic reply accepted',{type:autoReply.type,metaMs:acceptedAt-sendingAt,prepareMs:sendingAt-autoReply.startedAt,...(autoReply.receivedAt!==undefined?{webhookMs:acceptedAt-autoReply.receivedAt}:{})});
+    }
     const message={pageId:page.pageId,pageName:page.pageName,ownerUid:page.ownerUid,senderId:recipientId,conversationId:ref.id,direction:'outgoing',message:text.trim(),source,createdAt:FieldValue.serverTimestamp()};
-    await db.collection('workspaces/fbtq/messages').doc(result.message_id?require('./messenger-history').messageKey(ref.id,result.message_id):jobId||crypto.randomUUID()).set({...message,metaMessageId:result.message_id||''},{merge:true});await ref.set({message:text.trim(),direction:'outgoing',needsReply:false,receivedAt:FieldValue.serverTimestamp(),lastSendStatus:'sent',lastMessageAtMs:Date.now()},{merge:true});return {ok:true,messageId:result.message_id};
+    const messageRef=db.collection('workspaces/fbtq/messages').doc(result.message_id?require('./messenger-history').messageKey(ref.id,result.message_id):crypto.randomUUID());
+    const patch={message:text.trim(),direction:'outgoing',needsReply:false,receivedAt:FieldValue.serverTimestamp(),lastSendStatus:'sent',lastMessageAtMs:Date.now()};
+    if(autoReply){
+      await db.runTransaction(async tx=>{
+        const latest=(await tx.get(ref)).data();
+        tx.set(messageRef,{...message,metaMessageId:result.message_id||''},{merge:true});
+        if(latest?.lastIncomingMessageId===autoReply.messageId)tx.set(ref,patch,{merge:true});
+      });
+    }else{
+      await messageRef.set({...message,metaMessageId:result.message_id||''},{merge:true});
+      await ref.set(patch,{merge:true});
+    }
+    return {ok:true,messageId:result.message_id};
   }
   out.getChatbotSetup=callable({},async request=>{await signedIn(request);return metaConfig();});
   out.beginFacebookLogin=callable({},async request=>{const auth=await signedIn(request),config=metaConfig();if(!config.configured)fail('Cấu hình Messenger còn thiếu: '+config.missing.join(', '));const nonce=crypto.randomBytes(32).toString('hex');await db.doc(`${sessions}/${nonce}`).set({ownerUid:auth.uid,expiresAtMs:Date.now()+600000,status:'pending'});return {url:loginUrl(config,nonce),state:nonce};});
@@ -82,24 +102,38 @@ module.exports.registerChatbot=function({db,onCall,onRequest,HttpsError,FieldVal
   const {onDocumentCreated,onDocumentUpdated}=require('firebase-functions/v2/firestore');
   const replySecrets=[...secret,OPENAI_API_KEY,...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?[GEMINI_API_KEY]:[])];
   const replyTrigger={document:'workspaces/fbtq/messages/{messageId}',secrets:replySecrets,timeoutSeconds:120,retry:false};
-  async function replyToIncoming(messageId,m,pageSnapshot){
+  function canReplyTo(thread,messageId){
+    return core.eligible(thread)&&thread.lastIncomingMessageId===messageId&&thread.direction!=='outgoing';
+  }
+  async function replyToIncoming(messageId,m,pageSnapshot,receivedAt){
+    const startedAt=Date.now();
     if(!m||m.direction!=='incoming'||m.historical===true||m.source==='meta_history')return;
     const page=pageSnapshot??(await db.doc(`${pages}/${m.pageId}`).get()).data();
     if(!page?.active||!page.mode||page.mode==='off')return;
     const threadRef=db.doc(`${inbox}/${m.conversationId}`);
-    const thread=(await threadRef.get()).data();
-    const canReply=current=>core.eligible(current)&&current.lastIncomingMessageId===messageId&&current.direction!=='outgoing';
-    if(!canReply(thread))return;
+    const [thread,faq]=await Promise.all([threadRef.get(),page.hasChatbotFaqs?faqRef(page.pageId).get():undefined]);
+    if(!canReplyTo(thread.data(),messageId))return;
     const job=db.doc(`chatbotJobs/auto_${messageId}`);
     try{await job.create({status:'processing',createdAt:FieldValue.serverTimestamp()});}
     catch(error){if(error.code===6||error.code==='already-exists')return;throw error;}
     try{
-      const faqRows=page.hasChatbotFaqs?(await faqRef(page.pageId).get()).data()?.rows||[]:[];
+      const faqRows=faq?.data()?.rows||[];
       const faqReply=page.mode==='ai'?undefined:findFaqReply(faqRows,m.message);
       const script=page.mode==='ai'||faqReply?undefined:core.pickScript(m.message,page.scripts);
       let text=faqReply?.answer||script?.text;
       if(!text&&!script?.image&&['ai','hybrid'].includes(page.mode)){if(!metaConfig().availableModels.includes(page.model||'gemini'))fail('Mô hình chatbot này chưa bật trên máy chủ. Chọn OpenAI và lưu lại cấu hình.');const history=await db.collection('workspaces/fbtq/messages').where('conversationId','==',m.conversationId).orderBy('createdAt','desc').limit(6).get();const prompt=history.docs.reverse().map(d=>{const r=d.data();return `${r.direction==='incoming'?'Khách':'Trang'}: ${String(r.message||'').slice(0,1200)}`;}).join('\n');const faqs=relevantFaqs(faqRows,m.message);text=await generateWithProvider(page.model||'gemini',prompt,replyInstructions(page,faqs),{...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?{gemini:GEMINI_API_KEY.value()}:{}),openai:OPENAI_API_KEY.value()},{...(page.model==='openai'?require('./ai-policy').textPolicy('reply'):{}),task:'reply',maxTokens:300});}
-      if((text||script?.image)&&canReply((await threadRef.get()).data())){if(script?.image){const media=require('./messenger-image');await media.sendPreparedImage({db,page,recipientId:m.senderId,bytes:media.decodeImage(script.image.slice(23),'image/jpeg',150000),mimeType:'image/jpeg',preview:script.imagePreview||'',source:'auto',token:decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),graphUrl,HttpsError,FieldValue});}if(text)await send(page,m.senderId,text.slice(0,2000),'auto');await job.update({status:'sent'});}else await job.update({status:'skipped'});
+      let sent=false;
+      if(script?.image){
+        if(canReplyTo((await threadRef.get()).data(),messageId)){
+          const media=require('./messenger-image');
+          await media.sendPreparedImage({db,page,recipientId:m.senderId,bytes:media.decodeImage(script.image.slice(23),'image/jpeg',150000),mimeType:'image/jpeg',preview:script.imagePreview||'',source:'auto',token:decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),graphUrl,HttpsError,FieldValue});
+          if(text)await send(page,m.senderId,text.slice(0,2000),'auto');
+          sent=true;
+        }
+      }else if(text){
+        sent=Boolean(await send(page,m.senderId,text.slice(0,2000),'auto',{messageId,startedAt,receivedAt,type:faqReply?'faq':script?'script':'ai'}));
+      }
+      await job.update({status:sent?'sent':'skipped'});
     }catch(e){await job.update({status:'failed',error:e.message});await db.doc(`${pages}/${m.pageId}`).set({lastError:e.message},{merge:true});}
   }
   out.autoReplyFacebook=onDocumentCreated(replyTrigger,event=>replyToIncoming(event.params.messageId,event.data?.data()));

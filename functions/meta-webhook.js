@@ -7,7 +7,7 @@ async function storeWebhookMessage(db,page,event,now=Date.now()){
  const threadRef=db.doc(`workspaces/fbtq/inbox/${threadId}`),messageRef=db.doc(`workspaces/fbtq/messages/${id}`),direction=echo?'outgoing':'incoming';
  const attachments=(event.message.attachments||[]).slice(0,10).map(a=>({type:String(a.type||'attachment').slice(0,80),url:typeof a.payload?.url==='string'&&a.payload.url.startsWith('https://')?a.payload.url:''}));
  return db.runTransaction(async tx=>{
-  const thread=await tx.get(threadRef),message=await tx.get(messageRef);
+  const [thread,message]=await Promise.all([tx.get(threadRef),tx.get(messageRef)]);
   const previous=message.data();
   const promote=message.exists&&!echo&&previous?.source==='meta_history'&&previous.historical===true&&at>now-30000;
   if(message.exists&&!promote){if(echo&&attachments.some(a=>a.url))tx.update(messageRef,{attachments:attachments.map((a,i)=>({...a,...(message.data().attachments?.[i]?.preview?{preview:message.data().attachments[i].preview}:{})}))});return false;}const old=thread.data()||{};
@@ -39,7 +39,7 @@ async function refreshProfiles(db,page,events,token){
 }
 function registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,META_TOKEN_ENCRYPTION_KEY,decryptToken,logger,replyToIncoming,replySecrets=[]}){
  const secrets=[...new Set([META_VERIFY_TOKEN,META_APP_SECRET,...(META_TOKEN_ENCRYPTION_KEY?[META_TOKEN_ENCRYPTION_KEY]:[]),...replySecrets])];
- return onRequest({invoker:'public',secrets,timeoutSeconds:120,memory:'256MiB'},async(req,res)=>{
+ return onRequest({invoker:'public',secrets,minInstances:1,timeoutSeconds:120,memory:'256MiB'},async(req,res)=>{
   if(req.method==='GET'){if(req.query['hub.mode']==='subscribe'&&req.query['hub.verify_token']===META_VERIFY_TOKEN.value()&&typeof req.query['hub.challenge']==='string')return res.status(200).send(req.query['hub.challenge']);return res.sendStatus(403);}
   if(req.method!=='POST')return res.sendStatus(405);
   const signature=req.get('x-hub-signature-256')||'',raw=req.rawBody||Buffer.from(JSON.stringify(req.body||{})),expected='sha256='+crypto.createHmac('sha256',META_APP_SECRET.value()).update(raw).digest('hex');
@@ -50,24 +50,40 @@ function registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,MET
    if(!/^\d{5,30}$/.test(pageId))return 0;
    const ref=db.doc(`workspaces/fbtq/pages/${pageId}`),config=(await ref.get()).data();
    if(config?.active!==true)return 0;
-   const page={...config,pageId},events=entry.messaging||[],incoming=[];
+   const page={...config,pageId},events=entry.messaging||[];
    let stored=0;
+   // Preserve ordering within an inbox thread while unrelated customers run in parallel.
+   const groups=new Map();
    for(const event of events){
     if(!event.message)continue;
-    const saved=await storeWebhookMessage(db,page,event);
-    if(!saved)continue;
-    stored++;
-    if(saved.message.direction==='incoming')incoming.push(saved);
+    const peer=String((event.message.is_echo?event.recipient:event.sender)?.id||'');
+    if(!groups.has(peer))groups.set(peer,[]);
+    groups.get(peer).push(event);
    }
-   const replies=replyToIncoming?incoming.map(({id,message})=>replyToIncoming(id,message,page)):[];
+   const writes=[...groups.values()].map(async group=>{
+    let latest;
+    for(const event of group){
+     const saved=await storeWebhookMessage(db,page,event);
+     if(!saved)continue;
+     stored++;
+     if(saved.message.direction==='incoming'&&(!latest||stamp(saved.message.createdAt)>=stamp(latest.message.createdAt)))latest=saved;
+    }
+    return latest;
+   });
+   const deliveries=Promise.allSettled(writes.map(async write=>{
+    const latest=await write;
+    if(latest&&replyToIncoming)await replyToIncoming(latest.id,latest.message,page,receivedAt);
+   }));
+   await Promise.allSettled(writes);
    const diagnostics=ref.set({lastWebhookAt:new Date(),lastWebhookMessageCount:stored},{merge:true});
    const profile=Promise.resolve().then(()=>{
     if(META_TOKEN_ENCRYPTION_KEY)return refreshProfiles(db,page,events,decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()));
    });
-   const results=await Promise.allSettled([...replies,diagnostics,profile]);
-   if(results.slice(0,-1).some(result=>result.status==='rejected'))throw new Error('Webhook processing failed');
+   const [status,,replies]=await Promise.allSettled([diagnostics,profile,deliveries]);
+   if(status.status==='rejected'||replies.value.some(result=>result.status==='rejected'))throw new Error('Webhook processing failed');
    return stored;
   }
+  const receivedAt=Date.now();
   try{
    const results=await Promise.allSettled((req.body.entry||[]).map(processEntry));
    if(results.some(result=>result.status==='rejected'))throw new Error('Webhook entry failed');

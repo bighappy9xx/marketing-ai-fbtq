@@ -51,6 +51,18 @@ test('server checks owner, window, once-only sending, and refuses an expired OAu
  await api.autoReplyFacebookPromoted(promotion);assert.equal(sends,6);
  await api.autoReplyFacebookPromoted(promotion);assert.equal(sends,6);
 
+ const threadPath=`workspaces/fbtq/inbox/${threadId}`;
+ const respond=global.fetch;
+ global.fetch=async(...args)=>{
+   const result=await respond(...args);
+   Object.assign(records.get(threadPath),{lastIncomingMessageId:'newer-incoming',direction:'incoming',message:'Tin nhắn tiếp theo',needsReply:true});
+   return result;
+ };
+ await deliver('reply-in-flight',faqs[0].question);
+ assert.equal(sends,7);
+ assert.equal(records.get(threadPath).message,'Tin nhắn tiếp theo');
+ assert.equal(records.get(threadPath).needsReply,true);
+ assert.equal(records.get('chatbotJobs/auto_reply-in-flight').status,'sent');
 
  await assert.rejects(api.finishFacebookLogin({auth:{uid},data:{state:'a'.repeat(64),code:'x'}}),/hết hạn/);}finally{global.fetch=previous;}
 });
