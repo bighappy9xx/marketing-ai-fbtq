@@ -14,6 +14,7 @@ const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const META_TOKEN_ENCRYPTION_KEY = defineSecret('META_TOKEN_ENCRYPTION_KEY');
 const META_VERIFY_TOKEN = defineSecret('META_VERIFY_TOKEN');
 const META_APP_SECRET = defineSecret('META_APP_SECRET');
+const MESSENGER_WEB_PUSH_VAPID = defineSecret('MESSENGER_WEB_PUSH_VAPID');
 const GRAPH_VERSION = () => process.env.META_GRAPH_VERSION || 'v26.0';
 
 async function requireSignedIn(request) {
@@ -231,6 +232,7 @@ exports.sendPageReply = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_
 });
 
 Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,onRequest,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,META_VERIFY_TOKEN,GEMINI_API_KEY,OPENAI_API_KEY,logger}));
+Object.assign(exports,require('./messenger-push').registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_WEB_PUSH_VAPID,logger}));
 
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
 

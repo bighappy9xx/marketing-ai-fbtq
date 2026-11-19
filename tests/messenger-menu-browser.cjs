@@ -29,7 +29,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright'),root=
    });
   }
   const page=await context.newPage();await page.goto('https://fbtq.test');await seed(page);await page.evaluate(()=>window.__inboxQA.state.firebase={});
-  assert.deepEqual(await page.locator('.messenger-navigation button:not([role=switch])').allTextContents(),['Hội thoại','AI & kịch bản','Kết nối & đồng bộ','Gửi Tin Nhắn Hàng Loạt']);
+  assert.deepEqual(await page.locator('.messenger-navigation button:not([role=switch])').allTextContents(),['Hội thoại','AI & kịch bản','Kết nối & đồng bộ','Gửi Tin Nhắn Tối Ưu']);
   assert.equal(await page.locator('#page-chatbot-settings [data-hub-ai]').count(),0);assert.equal(await page.locator('#page-chatbot-settings [data-hub-connect]').count(),0);
   await page.locator('[data-inbox-menu="0"]').click();assert.equal(await page.locator('#messengerMenu0').isVisible(),true);assert.equal(await page.locator('#messengerMenu0 .glass-settings-card button').count(),3);await page.keyboard.press('Escape');assert.equal(await page.locator('#messengerMenu0').isHidden(),true);assert.equal(await page.locator('[data-inbox-menu="0"]').getAttribute('aria-expanded'),'false');
   await page.locator('[data-inbox-menu="1"]').click();assert.equal(await page.locator('#messengerMenu1').isVisible(),true);await page.locator('.chatbot-search').click();assert.equal(await page.locator('#messengerMenu1').isHidden(),true);

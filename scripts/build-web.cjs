@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const output=path.join(root,'web-dist');
 const pages=['index.html','canva-callback.html','privacy.html','terms.html','data-deletion.html'];
 const staticFiles=[
-  'icons.svg','favicon.svg','logo.svg','logo-light.svg','apple-touch-icon.png',
+  'icons.svg','favicon.svg','logo.svg','logo-light.svg','apple-touch-icon.png','messenger-app.webmanifest',
   'OPENAI_FIREBASE_SETUP.md','FIREBASE_AI_SETUP.md','FACEBOOK-CONNECT.md',
   'extension/README.md','extension/FBTQ-Ads-Clipper.zip',
   'vendor/mediabunny/LICENSE'
@@ -91,6 +91,7 @@ async function build(){
       await write(file,html.replace(/<head\b[^>]*>/i,head=>head+'\n<meta http-equiv="Content-Security-Policy" content="'+csp+'">'));
     }
     await addAssets('assets');
+    await addModule('messenger-push-worker.js');
     for(const file of staticFiles){
       const data=await fs.readFile(path.join(root,file));
       if(!file.endsWith('.png')&&!file.endsWith('.zip'))checkPublicText(file,data.toString('utf8'));
