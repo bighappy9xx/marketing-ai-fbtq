@@ -16,9 +16,9 @@ export function initMessengerSync({state,callFunction,openModal,esc,showToast,re
     finally{busy=false;if(root.isConnected){buttons.forEach(b=>b.disabled=false);select.disabled=false;}}
    }
    root.querySelector('[data-sync-stop]').onclick=()=>{stopped=true;status.textContent='Sẽ dừng sau lượt đang xử lý; có thể tiếp tục lần sau.';};
-   root.querySelector('[data-sync-all]').onclick=async()=>{if(busy)return;busy=true;stopped=false;const pageId=select.value,key='fbtq_full_history_'+uid+'_'+pageId,stop=root.querySelector('[data-sync-stop]');buttons.forEach(b=>b.disabled=true);stop.hidden=false;stop.disabled=false;select.disabled=true;state.messengerFullSyncPage=pageId;
+   root.querySelector('[data-sync-all]').onclick=async()=>{if(busy)return;busy=true;stopped=false;const pageId=select.value,key='fbtq_full_history_'+uid+'_'+pageId,stop=root.querySelector('[data-sync-stop]');buttons.forEach(b=>b.disabled=true);stop.hidden=false;stop.disabled=false;select.disabled=true;
     try{const result=await downloadAllHistory({pageId,callFunction,load:()=>{try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}},save:job=>localStorage.setItem(key,JSON.stringify(job)),onProgress:job=>{if(root.isConnected)status.textContent=`Đã tải ${job.imported} tin · ${job.conversations} hội thoại · ${job.queue.length} hội thoại còn tin cũ. ${job.done?'Đã tải hết lịch sử Meta cho phép.':'Đang tiếp tục…'}`;},isStopped:()=>stopped||!root.isConnected||state.user?.uid!==uid});if(result.stopped&&root.isConnected)status.textContent='Đã dừng. Bấm Tải toàn bộ lịch sử để tiếp tục từ mốc đã lưu.';}
-    catch(e){if(root.isConnected&&state.user?.uid===uid)status.textContent='Tiến trình đã lưu. '+e.message;}finally{busy=false;state.messengerFullSyncPage=null;if(root.isConnected){buttons.forEach(b=>b.disabled=false);stop.hidden=true;select.disabled=false;}}
+    catch(e){if(root.isConnected&&state.user?.uid===uid)status.textContent='Tiến trình đã lưu. '+e.message;}finally{busy=false;if(root.isConnected){buttons.forEach(b=>b.disabled=false);stop.hidden=true;select.disabled=false;}}
    };
    root.querySelector('[data-check-messenger]').onclick=()=>run(true);root.querySelector('[data-sync-messenger]').onclick=()=>run();root.querySelector('[data-sync-more]').onclick=()=>run(false,true);
   }catch(error){showToast(error.message,'error');}

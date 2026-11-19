@@ -1,11 +1,11 @@
 import {faqMarkup, bindFaqEditor} from './chatbot-faq-ui.js?v=20261119-faq-reply-scripts';
 import {initMessengerMenus} from './messenger-menu.js?v=20261119-inbox-expanded-details';
 import {initThreadTools} from './messenger-thread-tools.js?v=20261118-blue-chatbot-menu';
-import {initInboxNotifications} from './inbox-notifications.js?v=20261119-messenger-background-tab';
+import {initInboxNotifications} from './inbox-notifications.js?v=20261119-messenger-webhook-only';
 import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blue-chatbot-menu';
 import {initScriptSearch} from './messenger-script-search.js?v=20261119-personal-reply-scripts';
-import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-background-tab';
-import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-blue-chatbot-menu';
+import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-webhook-only';
+import {initMessengerSync} from './messenger-sync-ui.js?v=20261119-messenger-webhook-only';
 import {initInboxTools} from './inbox-workspace.js?v=20261118-blue-chatbot-menu';
 export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{},onOpenSoundSettings=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
@@ -150,9 +150,8 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
     finally{callbackBusy=false;}
   },1000);
   const inboxNotices=initInboxNotifications({page,state,callFunction,showToast});
-  const autoInbox=initAutomaticInbox({state,callFunction,canSync:()=>!document.querySelector('[data-messenger-sync]'),isForeground:()=>document.visibilityState==='visible'&&page.classList.contains('active')&&!page.classList.contains('broadcast-active')});
   const brokenProfiles=new Map();
   document.addEventListener('error',async e=>{const img=e.target;if(!img?.matches?.('[data-messenger-photo]'))return;const {profileThread:threadId,profilePage:pageId}=img.dataset;img.remove();const uid=state.user?.uid,key=uid+':'+threadId;if(!uid||!state.firebase||!/^[a-f0-9]{64}$/.test(threadId||'')||Date.now()-(brokenProfiles.get(key)||0)<300000||!state.pages.some(p=>p.pageId===pageId))return;brokenProfiles.set(key,Date.now());try{await callFunction('refreshMessengerProfiles',{pageId,threadIds:[threadId]},{timeout:125000});}catch{ /* The fallback remains visible; diagnostics/manual refresh can show the reason. */ }},true);
-  function reset(){menus.close();inboxNotices.reset();bulkWorkspace.reset();scriptSearch.reset();profileChecks.clear();state.currentMessengerScripts=[];autoInbox.reset();clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
+  function reset(){menus.close();inboxNotices.reset();bulkWorkspace.reset();scriptSearch.reset();profileChecks.clear();state.currentMessengerScripts=[];clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
   return {openSetup,configure,reset,openSync:syncUI.openSync};
 }

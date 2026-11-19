@@ -21,7 +21,7 @@ test('only notifies for new customer messages, including live history promotions
  assert.equal(shouldNotify(null,live,now),true);
  assert.equal(shouldNotify({historical:true},live,now),true);
  assert.equal(shouldNotify(live,live,now),false);
- assert.equal(shouldNotify(null,{...live,source:'meta_sync_live'},now),true);
+ assert.equal(shouldNotify(null,{...live,source:'meta_sync_live'},now),false);
  for(const patch of [{historical:true},{direction:'outgoing'},{source:'meta_history'},{createdAt:new Date(now-130000)},{ownerUid:''}]){
   assert.equal(shouldNotify(null,{...live,...patch},now),false);
  }

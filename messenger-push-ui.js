@@ -240,7 +240,7 @@ export function initMessengerPush({state,callFunction,showToast}){
       const [current,registration]=await Promise.all([readBinding(),navigator.serviceWorker.getRegistration()]);
       if(current?.owner!==uid||state.user?.uid!==uid||!away()||!registration?.active)return;
       for(const row of rows){
-        if(row.ownerUid!==uid||row.direction!=='incoming'||!(row.historical!==true&&['meta_webhook','meta_sync_live'].includes(row.source)||row.source==='meta_history'&&row.notifyIncoming===true))continue;
+        if(row.ownerUid!==uid||row.direction!=='incoming'||row.historical===true||row.source!=='meta_webhook')continue;
         const at=row.createdAt?.toMillis?.()??(row.createdAt?.seconds*1000);
         if(!(at>Date.now()-120000&&at<=Date.now()+5000))continue;
         const body=String(row.message||'').replace(/\s+/gu,' ').trim();

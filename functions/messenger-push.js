@@ -21,7 +21,7 @@ function normalizeSubscription(input){
 
 function shouldNotify(before,after,now=Date.now()){
   if(!after?.ownerUid||after.direction!=='incoming'||after.historical===true)return false;
-  if(!['meta_webhook','meta_sync_live'].includes(after.source))return false;
+  if(after.source!=='meta_webhook')return false;
   if(before&&before.historical!==true)return false;
   const at=after.createdAt?.toMillis?.()??(after.createdAt instanceof Date?after.createdAt.getTime():0);
   return at>now-120000&&at<=now+5000;
