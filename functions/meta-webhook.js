@@ -1,7 +1,9 @@
 const crypto=require('node:crypto'),core=require('./chatbot-core');
 const {messageKey,stamp}=require('./messenger-history');
+const isEcho=(page,event)=>event.message?.is_echo===true||String(event.sender?.id||'')===page.pageId;
+const peerId=(page,event)=>String((isEcho(page,event)?event.recipient:event.sender)?.id||'');
 async function storeWebhookMessage(db,page,event,now=Date.now()){
- const echo=event.message?.is_echo===true,peer=String((echo?event.recipient:event.sender)?.id||''),at=Math.min(now,Number(event.timestamp)||now);
+ const echo=isEcho(page,event),peer=peerId(page,event),at=Math.min(now,Number(event.timestamp)||now);
  if(!/^\d{5,30}$/.test(peer)||peer===page.pageId||!event.message)return false;
  const text=String(event.message.text||'[Đã nhận tệp đính kèm]').slice(0,10000),threadId=core.key(page.pageId,peer),mid=String(event.message.mid||`${event.timestamp}:${peer}:${text}`),id=messageKey(threadId,mid);
  const threadRef=db.doc(`workspaces/fbtq/inbox/${threadId}`),messageRef=db.doc(`workspaces/fbtq/messages/${id}`),direction=echo?'outgoing':'incoming';
@@ -25,7 +27,7 @@ async function recordMessage(db,page,event,now){
  return Boolean(await storeWebhookMessage(db,page,event,now));
 }
 async function refreshProfiles(db,page,events,token){
- const peers=[...new Set(events.filter(e=>e.message&&!e.message.is_echo).map(e=>String(e.sender?.id||'')))].filter(id=>/^\d{5,30}$/.test(id)&&id!==page.pageId).slice(0,3);
+ const peers=[...new Set(events.filter(e=>e.message&&!isEcho(page,e)).map(e=>peerId(page,e)))].filter(id=>/^\d{5,30}$/.test(id)).slice(0,3);
  const graph=async(path,access)=>{
   const response=await fetch(`https://graph.facebook.com/${process.env.META_GRAPH_VERSION||'v26.0'}/${path}`,{headers:{Authorization:`Bearer ${access}`},signal:AbortSignal.timeout(7000)});
   const data=await response.json().catch(()=>null);
@@ -55,13 +57,14 @@ function registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,MET
    if(!/^\d{5,30}$/.test(pageId))return 0;
    const ref=db.doc(`workspaces/fbtq/pages/${pageId}`),config=(await ref.get()).data();
    if(config?.active!==true)return 0;
-   const page={...config,pageId},events=entry.messaging||[];
+   const page={...config,pageId};
+   const events=[...(entry.messaging||[]),...(entry.changes||[]).filter(change=>change.field==='message_echoes'&&change.value?.message).map(({value})=>({...value,message:{...value.message,is_echo:true}}))];
    let stored=0;
    // Preserve ordering within an inbox thread while unrelated customers run in parallel.
    const groups=new Map();
    for(const event of events){
     if(!event.message)continue;
-    const peer=String((event.message.is_echo?event.recipient:event.sender)?.id||'');
+    const peer=peerId(page,event);
     if(!groups.has(peer))groups.set(peer,[]);
     groups.get(peer).push(event);
    }

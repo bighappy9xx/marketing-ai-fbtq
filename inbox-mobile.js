@@ -8,7 +8,6 @@ const icons={
   add:'M12 5v14M5 12h14',
   chat:'M5 6h14v10H9l-4 3z',
   pages:'M5 4h10v12H5zm4 15h10V8',
-  chart:'M4 19h16M7 15v-4m5 4V6m5 9V9',
   settings:'M5 7h14M5 12h14M5 17h14m-9-12v4m4 1v4m-5 1v4',
   details:'M7 20h10m-5-8v8m0-15v3 M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0',
 };
@@ -51,7 +50,7 @@ export function initMobileInbox({page,state,onConnect,onNavigate}){
   const dock=document.createElement('nav');
   dock.className='inbox-mobile-dock';
   dock.setAttribute('aria-label','Điều hướng hộp thư');
-  dock.innerHTML=[['list','chat','Hội thoại'],['pages','pages','Fanpage'],['analytics','chart','Thống kê'],['settings','settings','Cài đặt']].map(([action,glyph,label])=>`<button type="button" data-mobile-action="${action}">${icon(glyph)}<span>${label}</span></button>`).join('');
+  dock.innerHTML=[['list','chat','Hội thoại'],['pages','pages','Fanpage'],['settings','settings','Cài đặt']].map(([action,glyph,label])=>`<button type="button" data-mobile-action="${action}">${icon(glyph)}<span>${label}</span></button>`).join('');
   page.append(dock);
   const tools=header.querySelector('[data-mobile-action="tools"]');
   tools.setAttribute('aria-expanded','false');
@@ -115,7 +114,7 @@ export function initMobileInbox({page,state,onConnect,onNavigate}){
     }
     if(action==='workspace'){document.querySelector('#mobileMenu')?.click();return;}
     if(action==='connect'){onConnect();return;}
-    if(action==='analytics'||action==='settings'){show('list');onNavigate(action==='settings'?'chatbot-settings':'analytics');}
+    if(action==='settings'){show('list');onNavigate('chatbot-settings');}
   });
   media.addEventListener('change',()=>{
     syncSearchPlaceholder();

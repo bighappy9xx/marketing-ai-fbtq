@@ -46,7 +46,7 @@
  #page-inbox .inbox-list .conversation p{font-size:12px;color:var(--mobile-inbox-muted)}
  #page-inbox .inbox-list .conversation-head small{font-size:11px}
  #page-inbox .inbox-list .conversation :is(.channel-tag,small){color:var(--mobile-inbox-muted)}
- #page-inbox .inbox-mobile-dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px 7px max(6px,env(safe-area-inset-bottom));border-top:1px solid var(--mobile-inbox-line);background:var(--mobile-inbox-surface);color:var(--mobile-inbox-muted);flex:none}
+ #page-inbox .inbox-mobile-dock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:6px 7px max(6px,env(safe-area-inset-bottom));border-top:1px solid var(--mobile-inbox-line);background:var(--mobile-inbox-surface);color:var(--mobile-inbox-muted);flex:none}
  .inbox-mobile-dock button{display:grid;place-items:center;align-content:center;gap:3px;min-height:46px;font-size:11px;border-radius:10px}
  .inbox-mobile-dock button[aria-current="page"]{background:var(--mobile-inbox-soft);color:var(--mobile-inbox-ink);font-weight:700}
  #page-inbox[data-mobile-inbox-view="pages"] .inbox-list :is(.inbox-search,.inbox-filter-summary,.inbox-empty,.conversation,.inbox-mobile-list-controls,.inbox-page-picker>summary){display:none!important}

@@ -39,10 +39,10 @@ test('history is idempotent, keeps original time, never reopens 24h or replaces 
 test('live events are deduplicated and keep correct order; outgoing echoes do not open response windows',async()=>{const q=database(),at=Date.now()-1000,event={sender:{id:peer.id},recipient:{id:page.pageId},timestamp:at,message:{mid:'live1',text:'Tin mới'}};assert.equal(await recordMessage(q.db,page,event),true);assert.equal(await recordMessage(q.db,page,event),false);await recordMessage(q.db,page,{...event,timestamp:at-1000,message:{mid:'live0',text:'Tin đến trễ'}});let t=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(t.message,'Tin mới');assert.equal(t.lastIncomingAtMs,at);assert.equal(t.lastIncomingMessageId,messageKey(threadId,'live1'));await recordMessage(q.db,page,{sender:{id:page.pageId},recipient:{id:peer.id},timestamp:at+500,message:{mid:'echo',is_echo:true,text:'Trả lời từ Meta'}});t=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(t.message,'Trả lời từ Meta');assert.equal(t.direction,'outgoing');assert.equal(t.lastIncomingAtMs,at);assert.equal([...q.data.values()].filter(v=>v.conversationId===threadId&&v.createdAt).length,3);});
 function response(){return {statusCode:0,body:null,status(code){this.statusCode=code;return this;},send(body){this.body=body;return this;},sendStatus(code){this.statusCode=code;return this;}};}
 test('webhook rejects bad signatures, verifies challenge, records signed message and ignores inactive pages',async()=>{const q=database(),secret='server-app-secret',handler=registerMetaWebhook({db:q.db,onRequest:(_,fn)=>fn,META_VERIFY_TOKEN:{value:()=> 'verify'},META_APP_SECRET:{value:()=> secret},logger:{info:()=>{},error:()=>{}}});let res=response();await handler({method:'GET',query:{'hub.mode':'subscribe','hub.verify_token':'verify','hub.challenge':'challenge'}},res);assert.equal(res.statusCode,200);assert.equal(res.body,'challenge');const body={object:'page',entry:[{id:page.pageId,messaging:[{sender:{id:peer.id},timestamp:Date.now(),message:{mid:'signed',text:'Xin chào'}}]}]},rawBody=Buffer.from(JSON.stringify(body)),signature='sha256='+crypto.createHmac('sha256',secret).update(rawBody).digest('hex');res=response();await handler({method:'POST',body,rawBody,get:()=> 'bad'},res);assert.equal(res.statusCode,401);assert.equal(q.data.size,1);res=response();await handler({method:'POST',body,rawBody,get:()=>signature},res);assert.equal(res.statusCode,200);assert.ok(q.data.get('workspaces/fbtq/pages/'+page.pageId).lastWebhookAt);q.data.get('workspaces/fbtq/pages/'+page.pageId).active=false;const before=q.data.size;body.entry[0].messaging[0].message.mid='should-ignore';const next=Buffer.from(JSON.stringify(body));await handler({method:'POST',body,rawBody:next,get:()=> 'sha256='+crypto.createHmac('sha256',secret).update(next).digest('hex')},response());assert.equal(q.data.size,before);});
-function service(graph){const q=database();const api=registerMessengerHistory({db:q.db,onCall:(_,fn)=>fn,HttpsError,owner:async(req,id)=>{if(req.auth?.uid!=='owner'||id!==page.pageId)throw new HttpsError('permission-denied','owner required');return {auth:{uid:'owner'},page:{...page},ref:q.db.doc('workspaces/fbtq/pages/'+page.pageId)};},graph,decryptToken:()=> 'private-page-token',META_TOKEN_ENCRYPTION_KEY:{value:()=> 'server-key'},META_APP_SECRET:{value:()=> 'private-app-secret'}});return {...q,...api};}
+function service(graph){const q=database();const api=registerMessengerHistory({db:q.db,onCall:(_,fn)=>fn,HttpsError,owner:async(req,id)=>{if(req.auth?.uid!=='owner'||id!==page.pageId)throw new HttpsError('permission-denied','owner required');return {auth:{uid:'owner',profile:{role:req.auth.role||'director'}},page:{...page},ref:q.db.doc('workspaces/fbtq/pages/'+page.pageId)};},graph,decryptToken:()=> 'private-page-token',META_TOKEN_ENCRYPTION_KEY:{value:()=> 'server-key'},META_APP_SECRET:{value:()=> 'private-app-secret'},META_VERIFY_TOKEN:{value:()=> 'test-verify'}});return {...q,...api};}
 const req=data=>({auth:{uid:'owner'},data:{pageId:page.pageId,...data}});
 test('sync requires owner, bounds history, paginates and releases lock on Meta failure',async()=>{const calls=[],at=Date.now()-10000,q=service(async path=>{calls.push(path);if(path.includes('/conversations?'))return {data:[{id:'t_one',participants:{data:[{id:page.pageId},peer]}}],paging:{next:'must-not-fetch-this-url',cursors:{after:'next-pages'}}};return {data:[msg('sync1',peer.id,at)],...(path.includes('after=older-messages')?{}:{paging:{next:'not-used',cursors:{after:'older-messages'}}})};});await assert.rejects(q.syncFacebookInbox({auth:{uid:'other'},data:{pageId:page.pageId}}),{code:'permission-denied'});let r=await q.syncFacebookInbox(req());assert.equal(r.imported,1);assert.equal(r.nextCursor,'next-pages');assert.ok(calls[0].includes('limit=5'));assert.ok(calls[1].includes('limit=25'));assert.equal(calls.filter(p=>!p.includes('first_name')&&!p.includes('fields=profile_pic')).length,2);await q.syncFacebookInbox(req({threadId}));assert.ok(calls.at(-1).includes('after=older-messages'));assert.equal(q.data.get('workspaces/fbtq/pages/'+page.pageId).syncLockUntil,0);await assert.rejects(q.syncFacebookInbox(req({threadId:'f'.repeat(64)})),{code:'permission-denied'});q.data.get('workspaces/fbtq/pages/'+page.pageId).syncLockUntil=Date.now()+100000;await assert.rejects(q.syncFacebookInbox(req()),{code:'resource-exhausted'});const failing=service(async()=>{throw Error('Meta denied');});await assert.rejects(failing.syncFacebookInbox(req()),/Meta denied/);assert.equal(failing.data.get('workspaces/fbtq/pages/'+page.pageId).syncLockUntil,0);assert.ok(!JSON.stringify(r).includes('private-page-token'));});
-test('connection checks only return safe diagnostics and do not send any messages',async()=>{const previous=process.env.META_APP_ID;process.env.META_APP_ID='999999';const previousUrl=process.env.META_WEBHOOK_URL;process.env.META_WEBHOOK_URL='https://example.test/webhook';try{const calls=[],q=service(async(path,token)=>{calls.push(path);if(path.includes('/subscribed_apps'))return {data:[{id:'999999',subscribed_fields:['messages']}]};if(path==='999999/subscriptions')return {data:[{object:'page',active:true,callback_url:'https://example.test/webhook',fields:[{name:'messages'}]}]};if(path.includes('/conversations?'))return {data:[]};return {id:page.pageId};});const result=await q.checkMessengerConnection(req());assert.deepEqual(result.checks.map(c=>c.status),['ok','ok','ok','warning']);assert.equal(result.lastWebhookAtMs,0);assert.ok(!JSON.stringify(result).includes('private'));assert.equal(calls.length,4);assert.ok(!calls.some(p=>/\/messages(?:\?|$)/.test(p)));}finally{process.env.META_APP_ID=previous;process.env.META_WEBHOOK_URL=previousUrl;}});
+test('connection checks only return safe diagnostics and do not send any messages',async()=>{const previous=process.env.META_APP_ID;process.env.META_APP_ID='999999';const previousUrl=process.env.META_WEBHOOK_URL;process.env.META_WEBHOOK_URL='https://example.test/webhook';try{const calls=[],q=service(async(path,token)=>{calls.push(path);if(path.includes('/subscribed_apps'))return {data:[{id:'999999',subscribed_fields:['messages']}]};if(path==='999999/subscriptions')return {data:[{object:'page',active:true,callback_url:'https://example.test/webhook',fields:[{name:'messages'}]}]};if(path.includes('/conversations?'))return {data:[]};return {id:page.pageId};});const result=await q.checkMessengerConnection(req());assert.deepEqual(result.checks.map(c=>c.status),['ok','warning','warning','warning']);assert.equal(result.lastWebhookAtMs,0);assert.ok(!JSON.stringify(result).includes('private'));assert.equal(calls.length,4);assert.ok(!calls.some(p=>/\/messages(?:\?|$)/.test(p)));}finally{process.env.META_APP_ID=previous;process.env.META_WEBHOOK_URL=previousUrl;}});
 
 test('legacy automatic sync requests never fetch from Meta',async()=>{let reads=0;const q=service(async()=>{reads++;return {data:[]};});assert.deepEqual(await q.syncFacebookInbox(req({automatic:true})),{skipped:true,conversations:0,imported:0});assert.equal(reads,0);await assert.rejects(q.syncFacebookInbox(req({automatic:true,cursor:'older'})),{code:'invalid-argument'});});
 test('profile enrichment keeps messages working without profile permission, caches and filters unsafe photos',async()=>{const {enrichProfile,profileFields}=require('../functions/messenger-profile');assert.deepEqual(profileFields({first_name:'An',last_name:'Nguyen',profile_pic:'javascript:alert(1)'}),{senderName:'An Nguyen'});assert.deepEqual(profileFields({profile_pic:'https://example.test/a?access_token=secret'}),{});const q=database();await recordMessage(q.db,page,{sender:{id:peer.id},timestamp:Date.now(),message:{mid:'profile1',text:'Xin chào'}});let count=0;const graph=async()=>{count++;return {first_name:'An',last_name:'Nguyen',profile_pic:'https://example.test/a.jpg'};};await enrichProfile({db:q.db,page,peerId:peer.id,graph,token:'secret'});await enrichProfile({db:q.db,page,peerId:peer.id,graph,token:'secret'});assert.equal(count,2);const ref=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(ref.senderName,'An Nguyen');assert.equal(ref.senderPhotoUrl,'https://example.test/a.jpg');ref.profileCheckedAtMs=0;await enrichProfile({db:q.db,page,peerId:peer.id,graph:async()=>{throw Error('permission denied');}});assert.equal(ref.message,'Xin chào');assert.equal(q.data.get('workspaces/fbtq/inbox/'+threadId).senderPhotoUrl,'https://example.test/a.jpg');});
@@ -92,4 +92,68 @@ test('uses the exact Messenger participant name even when Meta withholds the ava
  assert.equal(result.status,'restricted');
  assert.equal(result.nameUpdated,true);
  assert.equal(calls.length,2);
+});
+
+test('recent sync recovers missing incoming and outgoing messages for a webhook-only thread',async()=>{
+ const now=Date.now(),calls=[];
+ const q=service(async path=>{
+  calls.push(path);
+  if(path.includes('/conversations?')){
+   assert.equal(new URL('https://graph.test/'+path).searchParams.get('user_id'),peer.id);
+   return {data:[{id:'other-thread',participants:{data:[{id:page.pageId},{id:'987654'}]}},{id:'right-thread',participants:{data:[{id:page.pageId},peer]}}]};
+  }
+  assert.ok(path.startsWith('right-thread/messages?'));
+  if(path.includes('after=next-history'))return {data:[msg('prior',peer.id,now-5000)]};
+  const outgoing=msg('business-suite-reply',page.pageId,now-1000,'Đã trả lời từ Meta');
+  return {data:[outgoing,outgoing,msg('live',peer.id,now-2000)],paging:{next:'unused',cursors:{after:'next-history'}}};
+ });
+ await recordMessage(q.db,page,{sender:{id:peer.id},timestamp:now-2000,message:{mid:'live',text:'Tin tới'}});
+ const args=req({threadId,recent:true});
+ assert.equal((await q.syncFacebookInbox(args)).imported,2);
+ assert.equal(q.data.get('workspaces/fbtq/messages/'+messageKey(threadId,'business-suite-reply')).direction,'outgoing');
+ assert.equal(q.data.get('workspaces/fbtq/messages/'+messageKey(threadId,'prior')).historical,true);
+ const path='workspaces/fbtq/inbox/'+threadId;
+ assert.equal(q.data.get(path).lastIncomingMessageId,messageKey(threadId,'live'));
+ assert.equal(q.data.get(path).historyCursor,'next-history');
+ q.data.get(path).historyCursor='older-pagination-progress';
+ assert.equal((await q.syncFacebookInbox(args)).imported,0);
+ assert.equal(q.data.get(path).historyCursor,'older-pagination-progress');
+ assert.equal(calls.filter(p=>p.includes('/conversations?')).length,1);
+});
+
+test('an outgoing message from the Page is stored once even without an echo flag',async()=>{
+ const q=database(),event={sender:{id:page.pageId},recipient:{id:peer.id},timestamp:Date.now(),message:{mid:'suite-echo',text:'Trả lời'}};
+ assert.equal(await recordMessage(q.db,page,event),true);
+ assert.equal(await recordMessage(q.db,page,{...event,message:{...event.message,is_echo:true}}),false);
+ const saved=q.data.get('workspaces/fbtq/messages/'+messageKey(threadId,'suite-echo'));
+ assert.equal(saved.direction,'outgoing');
+ assert.equal(saved.source,'meta_echo');
+ assert.equal(q.data.get('workspaces/fbtq/inbox/'+threadId).lastIncomingAtMs,undefined);
+});
+
+test('enabling echoes preserves existing subscriptions and denies app changes for non-directors',async()=>{
+ const before={id:process.env.META_APP_ID,url:process.env.META_WEBHOOK_URL};
+ process.env.META_APP_ID='999999';process.env.META_WEBHOOK_URL='https://example.test/webhook';
+ try{
+  const appFields=['messages','feed'],pageFields=['messages','messaging_postbacks','feed'],writes=[];
+  const q=service(async(path,token,body)=>{
+   if(body)writes.push(path);
+   if(path==='999999/subscriptions'&&body){assert.equal(body.callback_url,process.env.META_WEBHOOK_URL);appFields.splice(0,appFields.length,...body.fields.split(','));return {success:true};}
+   if(path===page.pageId+'/subscribed_apps'&&body){pageFields.splice(0,pageFields.length,...body.subscribed_fields);return {success:true};}
+   if(path==='999999/subscriptions')return {data:[{object:'page',active:true,callback_url:process.env.META_WEBHOOK_URL,fields:appFields.map(name=>({name}))}]};
+   if(path.includes('/subscribed_apps?'))return {data:[{id:'999999',subscribed_fields:pageFields}]};
+   if(path.includes('/conversations?'))return {data:[{id:'t'}]};
+   return {id:page.pageId};
+  });
+  await assert.rejects(q.checkMessengerConnection({auth:{uid:'owner',role:'employee'},data:{pageId:page.pageId,repairEchoes:true}}),{code:'permission-denied'});
+  assert.equal(writes.length,0);
+  const result=await q.checkMessengerConnection(req({repairEchoes:true}));
+  assert.deepEqual(appFields,['messages','feed','message_echoes']);
+  assert.deepEqual(pageFields,['messages','messaging_postbacks','feed','message_echoes']);
+  assert.deepEqual(result.checks.map(c=>c.status),['ok','ok','ok','ok']);
+  await q.checkMessengerConnection(req({repairEchoes:true}));
+  assert.equal(writes.length,2);
+ }finally{
+  for(const [key,value] of [['META_APP_ID',before.id],['META_WEBHOOK_URL',before.url]]){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+ }
 });

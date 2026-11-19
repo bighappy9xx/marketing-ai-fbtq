@@ -1,15 +1,15 @@
 import {downloadAllHistory} from './messenger-history-loader.js?v=20261118-blue-chatbot-menu';
 import {pageAvatar} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
-export function initMessengerSync({state,callFunction,openModal,esc,showToast,refresh}){
+export function initMessengerSync({state,callFunction,openModal,esc,showToast,refresh,onChange}){
  async function openSync(){
   try{
    if(!state.user||!state.firebase)throw Error('Đăng nhập Firebase trước khi kiểm tra Messenger.');
    const uid=state.user.uid,pages=await refresh();if(state.user?.uid!==uid)return;if(!pages.length)throw Error('Kết nối ít nhất một Fanpage trước khi đồng bộ.');
-   openModal('Đồng bộ & kiểm tra Messenger',`<div class="modal-fields" data-messenger-sync><div data-sync-avatar></div><label>Fanpage<select data-sync-page>${pages.map(p=>`<option value="${esc(p.pageId)}">${esc(p.pageName||p.pageId)}</option>`).join('')}</select></label><p>Tin cũ cần tải từ Meta. Mỗi lượt tối đa 5 hội thoại, 25 tin gần nhất mỗi hội thoại; có thể tải thêm. Tin lịch sử không kích hoạt bot hoặc làm mới cửa sổ gửi 24 giờ.</p><div class="messenger-sync-actions"><button type="button" class="btn btn-secondary" data-check-messenger>Kiểm tra kết nối</button><button type="button" class="btn btn-primary" data-sync-messenger>Tải lịch sử gần đây</button><button type="button" class="btn btn-primary" data-sync-all>Tải toàn bộ lịch sử</button><button type="button" class="btn btn-secondary" data-sync-stop hidden>Dừng tải</button><button type="button" class="btn btn-secondary" data-sync-more hidden>Tải thêm hội thoại</button></div><div data-sync-status role="status" aria-live="polite">Nếu App chưa xuất bản hoặc thiếu quyền truy cập, Meta có thể không trả hội thoại của khách ngoài nhóm thử.</div></div>`,'',null);
+   openModal('Đồng bộ & kiểm tra Messenger',`<div class="modal-fields" data-messenger-sync><div data-sync-avatar></div><label>Fanpage<select data-sync-page>${pages.map(p=>`<option value="${esc(p.pageId)}">${esc(p.pageName||p.pageId)}</option>`).join('')}</select></label><p>Tin cũ cần tải từ Meta. Mỗi lượt tối đa 5 hội thoại, 25 tin gần nhất mỗi hội thoại; có thể tải thêm. Tin lịch sử không kích hoạt bot hoặc làm mới cửa sổ gửi 24 giờ.</p><div class="messenger-sync-actions"><button type="button" class="btn btn-secondary" data-check-messenger>Kiểm tra kết nối</button><button type="button" class="btn btn-secondary" data-sync-echoes>Bật đồng bộ tin gửi từ Meta</button><button type="button" class="btn btn-primary" data-sync-messenger>Tải lịch sử gần đây</button><button type="button" class="btn btn-primary" data-sync-all>Tải toàn bộ lịch sử</button><button type="button" class="btn btn-secondary" data-sync-stop hidden>Dừng tải</button><button type="button" class="btn btn-secondary" data-sync-more hidden>Tải thêm hội thoại</button></div><div data-sync-status role="status" aria-live="polite">Nếu App chưa xuất bản hoặc thiếu quyền truy cập, Meta có thể không trả hội thoại của khách ngoài nhóm thử.</div></div>`,'',null);
    const root=document.querySelector('[data-messenger-sync]'),select=root.querySelector('[data-sync-page]'),status=root.querySelector('[data-sync-status]'),buttons=[...root.querySelectorAll('button')];let cursor='',busy=false,stopped=false;const avatar=root.querySelector('[data-sync-avatar]'),renderAvatar=()=>{avatar.innerHTML=pageAvatar(pages.find(p=>p.pageId===select.value));};renderAvatar();
    select.onchange=()=>{renderAvatar();cursor='';root.querySelector('[data-sync-more]').hidden=true;status.textContent='Chọn Kiểm tra kết nối hoặc Tải lịch sử cho Fanpage này.';};
-   async function run(check=false,more=false){if(busy)return;busy=true;buttons.forEach(b=>b.disabled=true);select.disabled=true;const pageId=select.value;status.textContent=check?'Đang kiểm tra token, đăng ký webhook và quyền hội thoại…':'Đang tải lịch sử Meta; không gửi tin nhắn…';
-    try{const result=await callFunction(check?'checkMessengerConnection':'syncFacebookInbox',{pageId,...(!check&&more&&cursor?{cursor}:{})},{timeout:125000});if(!root.isConnected||state.user?.uid!==uid)return;
+   async function run(check=false,more=false,repairEchoes=false){if(busy)return;busy=true;buttons.forEach(b=>b.disabled=true);select.disabled=true;const pageId=select.value;status.textContent=repairEchoes?'Đang đăng ký đồng bộ tin gửi từ Meta…':check?'Đang kiểm tra token, đăng ký webhook và quyền hội thoại…':'Đang tải lịch sử Meta; không gửi tin nhắn…';
+    try{const result=await callFunction(check?'checkMessengerConnection':'syncFacebookInbox',{pageId,...(!check&&more&&cursor?{cursor}:{}),...(repairEchoes?{repairEchoes:true}:{})},{timeout:125000});if(!root.isConnected||state.user?.uid!==uid)return;
      if(result.pagePhotoUrl){const p=pages.find(p=>p.pageId===pageId);if(p)p.pagePhotoUrl=result.pagePhotoUrl;renderAvatar();state.chatbotPagesChanged?.();}if(check){status.innerHTML='<ul class="messenger-checks">'+result.checks.map(c=>`<li><b>${c.status==='ok'?'✓':c.status==='warning'?'!':'×'} ${esc(c.label)}</b><p>${esc(c.detail)}</p></li>`).join('')+'</ul><p>'+esc(result.lastWebhookAtMs?'Lần nhận sự kiện gần nhất: '+new Date(result.lastWebhookAtMs).toLocaleString('vi-VN'):'Máy chủ chưa ghi nhận sự kiện tin nhắn cho Fanpage này.')+'</p><p>'+esc(result.note)+'</p>';}
      else{cursor=result.nextCursor||'';root.querySelector('[data-sync-more]').hidden=!cursor;status.innerHTML=`<p><b>Đã xử lý ${Number(result.conversations)||0} hội thoại, thêm ${Number(result.imported)||0} tin nhắn.</b></p>${!result.conversations?'<p>Meta chưa trả về hội thoại trong phạm vi quyền hiện tại. Bấm Kiểm tra kết nối và thử bằng tài khoản có vai trò trong App.</p>':''}<p>${esc(result.note||'')}</p>${(result.errors||[]).map(e=>'<p class="chatbot-error">'+esc(e)+'</p>').join('')}`;showToast('Đã tải '+(Number(result.imported)||0)+' tin nhắn từ Meta.');}
     }catch(error){if(root.isConnected&&state.user?.uid===uid)status.innerHTML='<p class="chatbot-error" role="alert">'+esc(error.message||'Không xử lý được yêu cầu.')+'</p>';}
@@ -20,10 +20,23 @@ export function initMessengerSync({state,callFunction,openModal,esc,showToast,re
     try{const result=await downloadAllHistory({pageId,callFunction,load:()=>{try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}},save:job=>localStorage.setItem(key,JSON.stringify(job)),onProgress:job=>{if(root.isConnected)status.textContent=`Đã tải ${job.imported} tin · ${job.conversations} hội thoại · ${job.queue.length} hội thoại còn tin cũ. ${job.done?'Đã tải hết lịch sử Meta cho phép.':'Đang tiếp tục…'}`;},isStopped:()=>stopped||!root.isConnected||state.user?.uid!==uid});if(result.stopped&&root.isConnected)status.textContent='Đã dừng. Bấm Tải toàn bộ lịch sử để tiếp tục từ mốc đã lưu.';}
     catch(e){if(root.isConnected&&state.user?.uid===uid)status.textContent='Tiến trình đã lưu. '+e.message;}finally{busy=false;if(root.isConnected){buttons.forEach(b=>b.disabled=false);stop.hidden=true;select.disabled=false;}}
    };
-   root.querySelector('[data-check-messenger]').onclick=()=>run(true);root.querySelector('[data-sync-messenger]').onclick=()=>run();root.querySelector('[data-sync-more]').onclick=()=>run(false,true);
+   root.querySelector('[data-sync-echoes]').onclick=()=>run(true,false,true);root.querySelector('[data-check-messenger]').onclick=()=>run(true);root.querySelector('[data-sync-messenger]').onclick=()=>run();root.querySelector('[data-sync-more]').onclick=()=>run(false,true);
   }catch(error){showToast(error.message,'error');}
  }
- async function loadOlder(){const thread=state.activeThread,uid=state.user?.uid,button=document.querySelector('[data-load-history]');if(!thread||!uid)return;button&&(button.disabled=true);try{const result=await callFunction('syncFacebookInbox',{pageId:thread.pageId,threadId:thread.id},{timeout:125000});if(state.user?.uid===uid)showToast('Đã tải thêm '+(Number(result.imported)||0)+' tin nhắn cũ.');}catch(e){if(state.user?.uid===uid)showToast(e.message,'error');}finally{if(button?.isConnected)button.disabled=false;}}
- state.chatbotHistoryMore=loadOlder;
+ async function loadThreadHistory(recent=false){
+  const thread=state.activeThread,uid=state.user?.uid;
+  if(!state.firebase||!thread||!uid||state.chatHistoryRequest)return;
+  const request={threadId:thread.id,recent};
+  state.chatHistoryRequest=request;onChange?.();
+  try{
+   const result=await callFunction('syncFacebookInbox',{pageId:thread.pageId,threadId:thread.id,...(recent?{recent:true}:{})},{timeout:125000});
+   if(state.user?.uid!==uid||state.chatHistoryRequest!==request)return;
+   if(result.errors?.length)throw Error(result.errors.join(' '));
+   showToast(result.imported?'Đã tải thêm '+result.imported+' tin nhắn từ Meta.':recent?'Đã kiểm tra tin gần đây. Meta không trả thêm tin nhắn.':'Đã tải hết tin cũ Meta trả về.');
+  }catch(error){if(state.user?.uid===uid&&state.chatHistoryRequest===request)showToast(error.message,'error');}
+  finally{if(state.chatHistoryRequest===request){state.chatHistoryRequest=null;onChange?.();}}
+ }
+ state.chatbotHistoryMore=()=>loadThreadHistory();
+ state.chatbotHistoryRecent=()=>loadThreadHistory(true);
  return {openSync};
 }
