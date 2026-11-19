@@ -7,7 +7,7 @@ import {initScriptSearch} from './messenger-script-search.js?v=20261118-blue-cha
 import {messengerAvatar,initAutomaticInbox,pageAvatar} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
 import {initMessengerSync} from './messenger-sync-ui.js?v=20261118-blue-chatbot-menu';
 import {initInboxTools} from './inbox-workspace.js?v=20261118-blue-chatbot-menu';
-export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{}}){
+export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{},onOpenSoundSettings=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');
   page?.classList.add('messenger-workspace');
@@ -45,6 +45,7 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   state.chatbotPagesChanged=()=>{renderConnectedPages();onFilterChange?.();};
   const settings=document.querySelector('#page-chatbot-settings');
   settings.querySelector('[data-hub-ai]').onclick=configure;settings.querySelector('[data-hub-connect]').onclick=()=>openSetup();settings.querySelector('[data-hub-sync]').onclick=()=>syncUI.openSync();settings.querySelector('[data-hub-handoff]').onclick=handoff;settings.querySelector('[data-settings-scripts]').onclick=()=>document.querySelector('#manageScripts').click();settings.querySelector('[data-settings-banned]').onclick=()=>document.querySelector('#manageBanned').click();
+  settings.querySelector('[data-hub-sound]').onclick=onOpenSoundSettings;
   const menus=initMessengerMenus({page,navigation,cards:[...settings.querySelectorAll('.glass-settings-card')].slice(0,2)});
   initThreadTools({page,state,callFunction,openModal,closeModal,showToast,onChange:onFilterChange});
 

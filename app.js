@@ -15,7 +15,7 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261118-blue-chatbot-menu';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-hide-chatbot-settings';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
 import { initOverviewHub } from './overview-hub.js?v=20261108-overview-hub';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
@@ -1081,7 +1081,7 @@ setInterval(refreshDailyBoundary,60000);window.addEventListener('focus',refreshD
 reviewBridge=createFinalReviewBridge({state,navigate,toast:showToast,onPreviewChanged:()=>updateContentReviewInput()});
 const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>{const session={getFirebase:requireFirebaseAI,getUserId:()=>state.user?.uid||null};if(name==='analyzeStudioHighlights')return $('#defaultModel').value==='openai'?analyzeOpenAIHighlights({...data,call:callFunction,getUserId:session.getUserId}):analyzeStudioHighlights({...data,...session});if(['transcribeStudioAudio','getStudioAISetup','generateStudioImage'].includes(name))return $('#defaultModel').value==='openai'||name==='generateStudioImage'?callFunction(name,data):name==='getStudioAISetup'?checkFirebaseGemini(session):transcribeFirebaseAudio({...data,...session});throw Error('Chức năng Studio AI chưa hỗ trợ.');},onFinal:artifact=>reviewBridge.stage(artifact)});
 messengerImages=initMessengerImages({state,callFunction,selectThread,sendText:sendChatReply,showToast});state.applyMessengerScript=async script=>{const input=$('#replyInput');input.value=script.text||'';await messengerImages.applyScript(script);input.focus();};
-const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange:renderInbox,onOpenInbox:()=>navigate('inbox')});
+const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange:renderInbox,onOpenInbox:()=>navigate('inbox'),onOpenSoundSettings:()=>navigate('chatbot-settings')});
 
 for(const container of [$('#fbtqAssistantWindow .fbtq-dock-head'),$('#page-assistant .page-heading')].filter(Boolean)){
  const label=document.createElement('label');label.className='assistant-model-picker';label.innerHTML='<span>Mô hình AI</span><select aria-label="Mô hình Trợ lý FBTQ"><option value="openai">OpenAI · tiết kiệm</option><option value="gemini">Gemini Developer API</option></select>';container.append(label);const select=label.querySelector('select');select.value=localStorage.getItem('fbtq_assistant_provider_v2')||$('#defaultModel').value;select.onchange=()=>{localStorage.setItem('fbtq_assistant_provider_v2',select.value);document.querySelectorAll('.assistant-model-picker select').forEach(el=>el.value=select.value);};

@@ -241,13 +241,13 @@ Thành công nghĩa là Meta đã xác nhận nhận yêu cầu, không đồng 
 
 ### Âm báo tin mới và màu nhận diện Fanpage
 
-Trong **Cài đặt Chatbot → Âm báo tin nhắn**, bấm **Bật âm báo** một lần để cho trình duyệt phát tiếng. Nút chuyển sang **Âm báo: bật**; bấm lại để tắt. Lựa chọn được nhớ riêng cho tài khoản trên trình duyệt đang dùng. Âm báo dành cho mọi tin khách mới từ tất cả Fanpage đã kết nối, kể cả Trang đang ẩn bởi bộ lọc hoặc khi đang mở mục khác trên website. Mỗi tin đến liên tiếp có một lượt âm báo riêng; tin mới được nhận qua đồng bộ dự phòng cũng được báo. Tải lịch sử cũ, đồng bộ ban đầu và tin mình gửi không phát tiếng. Các tab cùng trình duyệt phối hợp để hạn chế reo lặp. Trang cần còn mở; đây không phải thông báo hệ điều hành khi đóng trình duyệt.
+Trong **Chatbot AI → Kết nối & đồng bộ → Âm báo tin nhắn**, bấm **Bật âm báo** một lần để cho trình duyệt phát tiếng. Nút chuyển sang **Âm báo: bật**; bấm lại để tắt. Lựa chọn được nhớ riêng cho tài khoản trên trình duyệt đang dùng. Âm báo dành cho mọi tin khách mới từ tất cả Fanpage đã kết nối, kể cả Trang đang ẩn bởi bộ lọc hoặc khi đang mở mục khác trên website. Mỗi tin đến liên tiếp có một lượt âm báo riêng; tin mới được nhận qua đồng bộ dự phòng cũng được báo. Tải lịch sử cũ, đồng bộ ban đầu và tin mình gửi không phát tiếng. Các tab cùng trình duyệt phối hợp để hạn chế reo lặp. Trang cần còn mở; đây không phải thông báo hệ điều hành khi đóng trình duyệt.
 
 Trong **Gộp Fanpage**, ô màu cạnh từng Trang cho phép chọn màu bất kỳ; nút **↺** khôi phục màu mặc định. Màu được lưu trên máy chủ theo Fanpage của tài khoản sở hữu, hiện ở vạch cạnh hội thoại, chấm cạnh tên Trang và đầu khung trò chuyện. Các phiên đang mở nhận màu qua chu kỳ đồng bộ tự động. Màu Fanpage độc lập với màu đánh dấu từng hội thoại.
 
 ### Hộp thư Liquid Glass và trạng thái lọc
 
-Hai menu **AI & kịch bản** và **Kết nối & đồng bộ** nằm ngay trên thanh ngang trong **Chatbot AI**. Bấm tên mục để mở các chức năng; bấm ngoài menu hoặc Escape để đóng. Âm báo nằm trong **Cài đặt Chatbot** ở menu chính; dãy ô màu dưới ô tìm kiếm đã được ẩn. Đổi màu Fanpage trong **Gộp Fanpage** như trước.
+Hai menu **AI & kịch bản** và **Kết nối & đồng bộ** nằm ngay trên thanh ngang trong **Chatbot AI**. Bấm tên mục để mở các chức năng; bấm ngoài menu hoặc Escape để đóng. Âm báo nằm trong **Kết nối & đồng bộ**; dãy ô màu dưới ô tìm kiếm đã được ẩn. Đổi màu Fanpage trong **Gộp Fanpage** như trước.
 
 Hộp thư nhận tin bằng Firestore realtime sau khi webhook Meta ghi nhận tin. Kiểm tra dự phòng chạy cho các Fanpage song song, mỗi Trang tối thiểu cách 5 giây giữa các lần bắt đầu, khi hộp thư hiển thị. Lượt trước đang chạy sẽ không tạo lượt trùng. Meta lỗi hoặc giới hạn tốc độ sẽ giãn khoảng kiểm tra; thời gian nhận còn phụ thuộc webhook, mạng và quyền Meta. Đồng bộ tự động bỏ bước gọi ảnh hồ sơ để không giữ tin nhắn chờ ảnh.
 
