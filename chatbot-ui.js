@@ -1,4 +1,4 @@
-import {initMessengerMenus} from './messenger-menu.js?v=20261118-blue-chatbot-menu';
+import {initMessengerMenus} from './messenger-menu.js?v=20261119-inbox-expanded-details';
 import {initThreadTools} from './messenger-thread-tools.js?v=20261118-blue-chatbot-menu';
 import {initInboxNotifications} from './inbox-notifications.js?v=20261118-blue-chatbot-menu';
 import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blue-chatbot-menu';

@@ -165,10 +165,11 @@ body.inbox-immersive .fbtq-assistant-launcher,body.inbox-immersive .fbtq-assista
 #page-inbox .conversation[data-tag-color=blue]{border-left:5px solid #468eea;background:#edf4ff}
 #page-inbox .conversation[data-tag-color=purple]{border-left:5px solid #9a69d9;background:#f6f0ff}
 #page-inbox.inbox-expanded{inset:0;padding:0;border:0;border-radius:0;background:white;box-shadow:none}
-#page-inbox.inbox-expanded>.page-heading,#page-inbox.inbox-expanded .chat-settings{display:none!important}
+#page-inbox.inbox-expanded>.page-heading{display:none!important}
 #page-inbox.inbox-expanded .messenger-exit-expanded{display:block}
 #page-inbox.inbox-expanded>.messenger-topbar{border-radius:0;margin:0;padding:9px 12px}
-#page-inbox.messenger-workspace.inbox-expanded .inbox-layout{grid-template-columns:54px 280px minmax(0,1fr);border:0;border-radius:0}
+#page-inbox.messenger-workspace.inbox-expanded .inbox-layout{grid-template-columns:54px clamp(200px,22vw,280px) minmax(0,1fr) clamp(200px,21vw,240px);border:0;border-radius:0}
+@media(min-width:761px){#page-inbox.messenger-workspace.inbox-expanded .chat-settings{display:block;overflow:auto}}
 @media(max-width:760px){#page-inbox .messenger-navigation button{flex:1;font-size:10px;padding:7px 5px}#page-inbox .messenger-topbar{padding:8px}#page-inbox.messenger-workspace.inbox-expanded .inbox-layout{grid-template-columns:48px minmax(0,1fr)}#page-inbox [data-thread-color]{max-width:100px;padding:5px;font-size:9px}.messenger-exit-expanded{font-size:10px;padding:7px 6px}}
 /* Fixed circular avatars: page-picker span rules must not stretch the image slot. */
 #page-inbox .conversation>.avatar{flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px;max-width:42px;aspect-ratio:1;border-radius:50%!important;overflow:hidden}

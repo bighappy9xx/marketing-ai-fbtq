@@ -65,7 +65,7 @@
 #page-inbox .messenger-navigation button:hover,#page-inbox .messenger-navigation button[aria-expanded=true]{background:#ffffff24;color:#fff;border-color:#ffffff26}
 #page-inbox .messenger-navigation button.selected{background:#fff;color:#2255a2;border-color:#fff}
 #page-inbox .messenger-navigation svg{width:16px;height:16px;fill:none;stroke:currentColor;flex:0 0 16px}
-.messenger-menu-caret{font-size:15px;line-height:1;opacity:.8}
+#page-inbox .messenger-navigation svg.messenger-menu-caret{width:12px;height:12px;flex:0 0 12px;opacity:.85}
 #page-inbox .inbox-filter-rail{background:linear-gradient(180deg,#326ed4f5,#245cafeb);border-right-color:#5489d1}
 #page-inbox .inbox-filter-rail button{color:#e1eeff}
 #page-inbox .inbox-filter-rail button:hover{color:#fff;background:#ffffff24}
