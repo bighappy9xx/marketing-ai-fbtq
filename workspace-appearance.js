@@ -36,7 +36,6 @@ export function initWorkspaceAppearance({document, storage, system}) {
   const tint=document.querySelector('#themeGlassTint');
   const accentButtons=[...document.querySelectorAll('[data-theme-accent]')];
   const modeButtons=[...document.querySelectorAll('[data-theme-choice]')];
-  const logo=document.querySelector('#sidebar .brand-logo');
   const toggle=document.querySelector('#themeToggle');
 
   function render(){
@@ -59,8 +58,6 @@ export function initWorkspaceAppearance({document, storage, system}) {
       button.setAttribute('aria-pressed',String(selected));
     }
     for(const button of accentButtons)button.setAttribute('aria-pressed',String(button.dataset.themeAccent===preferences.accent));
-    const logoSource=(dark?'logo-light.svg':'logo.svg')+'?v=20261107-menu-logo';
-    if(logo.getAttribute('src')!==logoSource)logo.setAttribute('src',logoSource);
     toggle.setAttribute('aria-pressed',String(dark));
     toggle.setAttribute('aria-label',dark?'Chuyển sang giao diện sáng':'Chuyển sang giao diện tối');
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content',dark?'#131923':'#f1f5fc');

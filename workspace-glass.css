@@ -48,48 +48,9 @@ body.dark {
   background-attachment: fixed;
 }
 
-:is(body,body.dark) .app-shell .sidebar,
-:is(body,body.dark) .app-shell .topbar {
-  background: var(--glass-material);
-  color: var(--glass-text);
-  border-color: var(--glass-edge);
-  backdrop-filter: blur(24px) saturate(145%);
-  -webkit-backdrop-filter: blur(24px) saturate(145%);
-  box-shadow: inset 0 1px 0 var(--glass-shine),var(--glass-shadow);
-}
-:is(body,body.dark) .app-shell .sidebar .nav-item,
-:is(body,body.dark) .app-shell .sidebar .nav-icon,
-:is(body,body.dark) .app-shell .sidebar .icon-button,
-:is(body,body.dark) .app-shell .sidebar .user-meta b,
-:is(body,body.dark) .app-shell .sidebar .sidebar-close,
-:is(body,body.dark) .app-shell .topbar .breadcrumbs b,
+.app-shell .sidebar .brand-logo {filter:none}
 :is(body,body.dark) .app-shell .page-heading h1 {color:var(--glass-text)}
-:is(body,body.dark) .app-shell .sidebar .nav-label,
-:is(body,body.dark) .app-shell .sidebar .user-meta small,
-:is(body,body.dark) .app-shell .topbar .breadcrumbs,
 :is(body,body.dark) .app-shell .muted {color:var(--glass-muted)}
-:is(body,body.dark) .app-shell .sidebar .side-user,
-:is(body,body.dark) .app-shell .sidebar .manage-label {border-color:var(--glass-edge)}
-:is(body,body.dark) .app-shell .sidebar .nav-item:hover {
-  color: var(--glass-text);
-  transform: none;
-  background: var(--glass-control);
-  border-color: var(--glass-shine);
-}
-:is(body,body.dark) .app-shell .sidebar .nav-item.active {
-  color: var(--glass-focus);
-  background: linear-gradient(rgb(var(--glass-accent) / .13),rgb(var(--glass-accent) / .08)),var(--glass-solid);
-  border-color:var(--glass-edge);
-  box-shadow:inset 0 1px var(--glass-shine),0 3px 12px #15274112;
-}
-:is(body,body.dark) .app-shell .sidebar .nav-item.active .nav-icon {color:inherit}
-:is(body,body.dark) .app-shell .sidebar .count-badge:not(.has-pending),
-:is(body,body.dark) .app-shell .sidebar .nav-badge {
-  background:var(--glass-subtle);
-  border-color:var(--glass-edge);
-  color:var(--glass-focus);
-}
-:is(body,body.dark) .app-shell .sidebar .brand-logo {filter:none}
 
 :is(body,body.dark) .app-shell :is(.panel,.stat-card,.task-column,.task-card,.automation-card,.role-card,.settings-nav,.content-review-card):not(.ov-gold-panel):not(.inbox-layout) {
   background: var(--glass-solid);
@@ -97,9 +58,6 @@ body.dark {
   box-shadow: inset 0 1px 0 var(--glass-shine),var(--glass-shadow);
 }
 .app-shell .page-heading {color:var(--glass-text)}
-.app-shell .topbar .icon-button,
-.app-shell .topbar .theme-toggle,
-.app-shell .topbar #topProfile {color:var(--glass-text);border-color:var(--glass-edge)}
 :is(body,body.dark) :is(.app-shell,#modalRoot,.messenger-menu-panel) .btn-primary {
   color:#fff;
   background:linear-gradient(#ffffff12,transparent 55%),rgb(var(--glass-accent-fill));
@@ -223,30 +181,69 @@ body.dark .app-shell .ov-status:is(.ov-status-rejected,.ov-status-revision_reque
 #setting-appearance .theme-card {width:100%}
 #setting-appearance .theme-card .theme-preview {width:100%}
 
-/* A denser material around the workspace keeps its edges distinct. */
+/* Opaque, saturated navigation separates the controls from the working canvas. */
 body {
-  --chrome-sidebar: #cbd7e9;
-  --chrome-toolbar: #dae4f2;
-  --chrome-divider: #9baec9;
-  --chrome-depth: #283e642c;
+  --chrome-accent: rgb(var(--glass-accent-fill));
+  --chrome-sidebar: color-mix(in srgb,var(--chrome-accent) 59%,#0b1938);
+  --chrome-toolbar: color-mix(in srgb,var(--chrome-accent) 82%,#091934);
+  --chrome-divider: #0b1938;
+  --chrome-depth: #11284a4d;
+  --chrome-text: #fff;
+  --chrome-muted: #e3ebfc;
+  --chrome-hairline: #ffffff45;
   --motion-ease: cubic-bezier(.22,1,.36,1);
   --motion-spring: cubic-bezier(.24,1.25,.52,1);
 }
 body.dark {
-  --chrome-sidebar: #0a101b;
-  --chrome-toolbar: #101926;
-  --chrome-divider: #43526b;
-  --chrome-depth: #0007;
+  --chrome-sidebar: color-mix(in srgb,var(--chrome-accent) 67%,#0a1431);
+  --chrome-toolbar: color-mix(in srgb,var(--chrome-accent) 89%,#080f27);
+  --chrome-divider: var(--chrome-hairline);
+  --chrome-depth: #0008;
 }
 :is(body,body.dark) .app-shell .sidebar {
-  background: linear-gradient(rgb(var(--glass-accent) / var(--glass-tint)),transparent 115%),var(--chrome-sidebar);
+  background: linear-gradient(158deg,var(--chrome-sidebar) 8%,var(--chrome-accent) 100%);
   border-right-color:var(--chrome-divider);
-  box-shadow:inset -1px 0 var(--glass-shine), 8px 0 24px var(--chrome-depth);
+  box-shadow:inset -1px 0 var(--chrome-hairline),8px 0 24px var(--chrome-depth);
 }
 :is(body,body.dark) .app-shell .topbar {
-  background:linear-gradient(rgb(var(--glass-accent) / var(--glass-tint)),transparent),var(--chrome-toolbar);
+  background:linear-gradient(114deg,var(--chrome-toolbar) 8%,var(--chrome-accent) 100%);
   border-bottom-color:var(--chrome-divider);
-  box-shadow:inset 0 1px var(--glass-shine),0 4px 16px var(--chrome-depth);
+  box-shadow:inset 0 1px var(--chrome-hairline),0 4px 16px var(--chrome-depth);
+}
+:is(body,body.dark) .app-shell .sidebar :is(.nav-item,.nav-icon,.icon-button,.user-meta b,.sidebar-close),
+:is(body,body.dark) .app-shell .topbar :is(.breadcrumbs b,.icon-button,#topProfile,.theme-toggle) {
+  color:var(--chrome-text);
+}
+:is(body,body.dark) .app-shell .sidebar :is(.nav-label,.user-meta small),
+:is(body,body.dark) .app-shell .topbar .breadcrumbs {
+  color:var(--chrome-muted);
+}
+:is(body,body.dark) .app-shell .sidebar :is(.side-user,.manage-label),
+:is(body,body.dark) .app-shell .topbar :is(.top-divider,.theme-toggle) {
+  border-color:var(--chrome-hairline);
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item:hover,
+:is(body,body.dark) .app-shell .topbar .theme-toggle {
+  background:#ffffff1c;
+  color:var(--chrome-text);
+  border-color:var(--chrome-hairline);
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item.active {
+  background:#f4f8ff;
+  color:var(--chrome-accent);
+  border-color:#fff;
+  box-shadow:0 4px 12px #08152f50,inset 0 1px #fff;
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item.active .nav-icon {color:inherit}
+:is(body,body.dark) .app-shell .sidebar .count-badge:not(.has-pending),
+:is(body,body.dark) .app-shell .sidebar .nav-badge {
+  background:#0a163649;
+  color:#fff;
+  border-color:var(--chrome-hairline);
+}
+:is(body,body.dark) .app-shell .sidebar .nav-item.active :is(.count-badge:not(.has-pending),.nav-badge) {
+  color:var(--chrome-accent);
+  background:#e4edfc;
 }
 
 .app-shell .sidebar .nav-item,

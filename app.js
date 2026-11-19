@@ -1,4 +1,4 @@
-import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-liquid-glass';
+import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bold-navigation';
 import {fanpageColor} from './inbox-notifications.js?v=20261118-blue-chatbot-menu';
 import {attachmentMarkup,initMessengerImages} from './messenger-images.js?v=20261118-blue-chatbot-menu';
 import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
