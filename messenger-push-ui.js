@@ -1,5 +1,7 @@
 const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',import.meta.url).href;
+const notificationIcon=new URL('./apple-touch-icon.png',import.meta.url).href;
+const notificationTag=id=>'fbtq-message-'+id;
 
 export function initMessengerPush({state,callFunction,showToast}){
   const button=document.querySelector('[data-messenger-push-toggle]');
@@ -134,27 +136,40 @@ export function initMessengerPush({state,callFunction,showToast}){
     clearTimeout(testing?.timeout);
     testing=undefined;
     testStatus.textContent=message;
+    showToast(message);
     render();
   }
   if(supported)navigator.serviceWorker.addEventListener('message',event=>{
-    if(event.data?.type==='fbtq-messenger-test-displayed'&&testing?.device===event.data.device){
-      finishTest('Trình duyệt đã gửi pop-up thử tới hệ điều hành. Nếu chưa thấy, kiểm tra chế độ Biểu ngữ và Không làm phiền.');
-    }
+    if(!testing||event.data?.type!=='fbtq-messenger-test-displayed'||testing.device!==event.data.device||testing.id!==event.data.id)return;
+    finishTest('Trình duyệt đã nhận Web Push và chuyển thông báo tới hệ điều hành. Nếu chưa thấy pop-up, kiểm tra Biểu ngữ và chế độ Không làm phiền.');
   });
   testButton.addEventListener('click',async()=>{
     if(testing||binding?.owner!==owner||!owner)return;
-    const run={device:binding.device};
+    const run={device:binding.device,owner,id:Array.from(crypto.getRandomValues(new Uint8Array(32)),byte=>byte.toString(16).padStart(2,'0')).join('')};
     testing=run;
-    testStatus.textContent='Đang gửi thông báo thử…';
+    testStatus.textContent='Đang kiểm tra pop-up trên thiết bị và đường gửi Web Push…';
     render();
+    const local=(async()=>{
+      const registration=await navigator.serviceWorker.getRegistration();
+      if(!registration?.active||testing!==run||state.user?.uid!==run.owner)return false;
+      await registration.showNotification('Thông Báo Thử FBTQ',{
+        body:'Thiết bị này đã nhận thông báo từ Chatbot AI.',
+        icon:notificationIcon,
+        tag:notificationTag(run.id),
+        renotify:false,
+      });
+      return true;
+    })().catch(()=>false);
     try{
-      await callFunction('testMessengerPushDevice',{id:run.device},{timeout:20000});
+      const [,displayed]=await Promise.all([callFunction('testMessengerPushDevice',{id:run.device,testId:run.id},{timeout:20000}),local]);
       if(testing!==run)return;
+      testStatus.textContent=displayed?'Đã yêu cầu hệ điều hành hiện pop-up thử. Đang chờ trình duyệt xác nhận Web Push…':'Đang chờ trình duyệt xác nhận Web Push…';
       run.timeout=setTimeout(()=>{
-        if(testing===run)finishTest('Dịch vụ đã nhận yêu cầu nhưng trình duyệt chưa xác nhận. Hãy tải lại trang và kiểm tra quyền thông báo.');
+        if(testing===run)finishTest(displayed?'Trình duyệt đã yêu cầu hệ điều hành hiện pop-up thử. Web Push chưa được trình duyệt xác nhận.':'Dịch vụ đã nhận yêu cầu nhưng trình duyệt chưa hiển thị. Kiểm tra quyền thông báo của website và thiết bị.');
       },12000);
     }catch(error){
-      if(testing===run)finishTest(error.message||'Chưa gửi được thông báo thử.');
+      const displayed=await local;
+      if(testing===run)finishTest((displayed?'Đã yêu cầu hiện pop-up trực tiếp. ':'')+(error.message||'Chưa gửi được Web Push thử.'));
     }
   });
   async function notifyBackground(rows){
@@ -171,7 +186,16 @@ export function initMessengerPush({state,callFunction,showToast}){
         const body=String(row.message||'').replace(/\s+/gu,' ').trim();
         const attachment=row.attachments?.some(item=>item.type==='image')?'Đã gửi một hình ảnh':'Đã gửi tệp đính kèm';
         const preview=current.showPreview===true?{title:row.pageName,body:!body||/^\[(?:Đã nhận tệp đính kèm|Tệp đính kèm)\]$/i.test(body)?attachment:body}:undefined;
-        registration.active.postMessage({type:'fbtq-messenger-background',owner:uid,device:current.device,id:row.id,preview});
+        if(!/^[a-f0-9]{64}$/.test(row.id||''))continue;
+        const tag=notificationTag(row.id);
+        if((await registration.getNotifications?.({tag}))?.length)continue;
+        if(state.user?.uid!==uid||!document.hidden)return;
+        await registration.showNotification(String(preview?.title||'Tin Nhắn Messenger Mới').trim().slice(0,100)||'Tin Nhắn Messenger Mới',{
+          body:preview?.body.slice(0,240)||'Bạn có tin nhắn mới trong Hộp Thư Chatbot AI.',
+          icon:notificationIcon,
+          tag,
+          renotify:false,
+        });
       }
     }catch{/* Web Push can still deliver the notification. */}
   }

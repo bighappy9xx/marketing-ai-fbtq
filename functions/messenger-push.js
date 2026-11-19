@@ -75,8 +75,9 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     vapidDetails:{subject:'https://mediafbtq-6e1bb.web.app/',...vapid()},TTL:120,urgency:'high',timeout:8000
   });
   const testDevice=callable({secrets:[MESSENGER_WEB_PUSH_VAPID],timeoutSeconds:20},async request=>{
-    const {uid}=await requireSignedIn(request),id=request.data?.id;
+    const {uid}=await requireSignedIn(request),id=request.data?.id,testId=request.data?.testId;
     if(typeof id!=='string'||!/^[a-f0-9]{64}$/.test(id))throw new HttpsError('invalid-argument','Thiết bị không hợp lệ.');
+    if(testId!==undefined&&(typeof testId!=='string'||!/^[a-f0-9]{64}$/.test(testId)))throw new HttpsError('invalid-argument','Mã kiểm tra không hợp lệ.');
     const ref=db.collection(devices).doc(id),now=Date.now();
     const saved=await db.runTransaction(async tx=>{
       const device=(await tx.get(ref)).data();
@@ -86,7 +87,7 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
       return device;
     });
     try{
-      await sendPush(saved.subscription,{owner:uid,device:id,id:randomBytes(32).toString('hex'),test:true});
+      await sendPush(saved.subscription,{owner:uid,device:id,id:testId??randomBytes(32).toString('hex'),test:true});
     }catch(error){
       const status=Number(error.statusCode)||0;
       logger.warn('Messenger web push test failed',{status});

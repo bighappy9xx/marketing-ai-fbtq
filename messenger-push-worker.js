@@ -26,7 +26,7 @@ async function showIncoming(payload,fromTab=false){
       });
       if(payload.test===true&&!fromTab){
         const clients=await self.clients.matchAll({type:'window'});
-        clients.forEach(client=>client.postMessage({type:'fbtq-messenger-test-displayed',device:payload.device}));
+        clients.forEach(client=>client.postMessage({type:'fbtq-messenger-test-displayed',device:payload.device,id:payload.id}));
       }
     }finally{
       if(fromTab)pendingLocal.delete(tag);
