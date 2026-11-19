@@ -1,3 +1,4 @@
+import {initMobileInbox} from './inbox-mobile.js?v=20261119-mobile-inbox';
 import {faqMarkup, bindFaqEditor} from './chatbot-faq-ui.js?v=20261119-faq-reply-scripts';
 import {initMessengerMenus} from './messenger-menu.js?v=20261119-inbox-expanded-details';
 import {initThreadTools} from './messenger-thread-tools.js?v=20261118-blue-chatbot-menu';
@@ -6,8 +7,8 @@ import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blu
 import {initScriptSearch} from './messenger-script-search.js?v=20261119-personal-reply-scripts';
 import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-profile-identity';
 import {initMessengerSync} from './messenger-sync-ui.js?v=20261119-messenger-webhook-only';
-import {initInboxTools} from './inbox-workspace.js?v=20261119-messenger-profile-identity';
-export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{},onOpenMessage=onOpenInbox,onOpenSoundSettings=()=>{}}){
+import {initInboxTools} from './inbox-workspace.js?v=20261119-mobile-inbox';
+export function initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange,onOpenInbox=()=>{},onOpenMessage=onOpenInbox,onNavigate=onOpenInbox,onOpenSoundSettings=()=>{}}){
   const $=s=>document.querySelector(s);let callbackBusy=false,recoveredOwner='',selection=null;
   const page=$('#page-inbox');
   page?.classList.add('messenger-workspace');
@@ -86,6 +87,10 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   toolbar.querySelector('[data-bot-setup]').onclick=()=>openSetup();toolbar.querySelector('[data-bot-config]').onclick=()=>configure();toolbar.querySelector('[data-bot-bulk]').onclick=()=>broadcast();
   const search=page?.querySelector('.inbox-search input')||document.createElement('input');search.className='chatbot-search';search.placeholder='Tìm khách hàng, Fanpage hoặc nội dung…';search.setAttribute('aria-label','Tìm hội thoại');if(!search.isConnected)page?.querySelector('.inbox-list')?.prepend(search);page?.querySelector('.inbox-filter')?.remove();page?.querySelectorAll('.chat-compose .icon-button,.chat-header .dots-button').forEach(el=>el.remove());
   const inboxTools=initInboxTools({page,state,search,callFunction,showToast,onChange:()=>onFilterChange?.()});state.filterInboxThreads=threads=>inboxTools.filter(threads);
+  const mobileInbox=initMobileInbox({page,state,onConnect:()=>openSetup(),onNavigate});
+  state.openMobileInboxThread=mobileInbox.showThread;
+  state.renderMobileInbox=mobileInbox.render;
+
   const hint=page?.querySelector('.chat-settings>p');if(hint)hint.textContent='Chọn AI, kịch bản hoặc kết hợp theo từng Trang. Có thể chuyển hội thoại cho nhân viên.';
   const oldToggle=$('#botToggle');if(oldToggle){const next=oldToggle.cloneNode(true);next.className='btn btn-secondary';next.setAttribute('role','button');next.tabIndex=0;next.textContent='Cấu hình';oldToggle.replaceWith(next);next.onclick=()=>navigation.querySelector('[data-inbox-menu="0"]')?.click();next.onkeydown=e=>{if(e.key==='Enter')next.click();};}
   async function guarded(work){try{if(!state.firebase||!state.user)throw new Error('Đăng nhập Firebase để sử dụng Chatbot.');return await work();}catch(e){showToast(e.message,'error');}}
@@ -152,6 +157,6 @@ export function initChatbotWorkspace({state,callFunction,openModal,closeModal,es
   const inboxNotices=initInboxNotifications({page,state,callFunction,showToast,onOpenMessage});
   const brokenProfiles=new Map();
   document.addEventListener('error',async e=>{const img=e.target;if(!img?.matches?.('[data-messenger-photo]'))return;const {profileThread:threadId,profilePage:pageId}=img.dataset;img.remove();const uid=state.user?.uid,key=uid+':'+threadId;if(!uid||!state.firebase||!/^[a-f0-9]{64}$/.test(threadId||'')||Date.now()-(brokenProfiles.get(key)||0)<300000||!state.pages.some(p=>p.pageId===pageId))return;brokenProfiles.set(key,Date.now());try{await callFunction('refreshMessengerProfiles',{pageId,threadIds:[threadId]},{timeout:125000});}catch{ /* The fallback remains visible; diagnostics/manual refresh can show the reason. */ }},true);
-  function reset(){menus.close();inboxNotices.reset();bulkWorkspace.reset();scriptSearch.reset();profileChecks.clear();state.currentMessengerScripts=[];clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
+  function reset(){mobileInbox.reset();menus.close();inboxNotices.reset();bulkWorkspace.reset();scriptSearch.reset();profileChecks.clear();state.currentMessengerScripts=[];clearSelection();recoveredOwner='';if(document.querySelector('[data-fanpage-selection],[data-messenger-sync]'))closeModal();try{sessionStorage.removeItem('fbtq_meta_login');}catch{}}
   return {openSetup,configure,reset,openSync:syncUI.openSync};
 }

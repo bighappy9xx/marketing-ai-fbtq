@@ -2,11 +2,17 @@ import {fanpageColor} from './inbox-notifications.js?v=20261118-blue-chatbot-men
 import {pageAvatar} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function initInboxPagePicker({page,state,onChange,callFunction,showToast}){
- const root=document.createElement('details');root.className='inbox-page-picker';root.innerHTML='<summary><span>Gộp Fanpage</span><b data-page-picker-label>Tất cả Trang</b></summary><div class="inbox-page-picker-body"><p>Tick các Trang muốn hiển thị chung trong hộp thư.</p><div class="inbox-page-picker-actions"><button type="button" data-pages-all>Chọn tất cả</button><button type="button" data-pages-none>Bỏ chọn</button></div><div data-page-picker-options></div><button type="button" class="btn btn-secondary" data-profile-refresh>Cập nhật tên và ảnh đại diện</button><p data-profile-refresh-status role="status"></p></div>';page.querySelector('.inbox-search').after(root);
+ const root=document.createElement('details');root.className='inbox-page-picker';root.innerHTML='<summary><span>Gộp Fanpage</span><b data-page-picker-label>Tất cả Trang</b></summary><div class="inbox-page-picker-body"><input class="inbox-mobile-page-search" type="search" aria-label="Tìm Fanpage" placeholder="Tìm Fanpage"><p>Tick các Trang muốn hiển thị chung trong hộp thư.</p><div class="inbox-page-picker-actions"><button type="button" data-pages-all>Chọn tất cả</button><button type="button" data-pages-none>Bỏ chọn</button></div><div data-page-picker-options></div><button type="button" class="btn btn-secondary" data-profile-refresh>Cập nhật tên và ảnh đại diện</button><p data-profile-refresh-status role="status"></p></div>';page.querySelector('.inbox-search').after(root);
 
  let uid='',selected=null,available=[],busy=false,generation=0;
+ const pageSearch=root.querySelector('.inbox-mobile-page-search');
+ function filterPages(){
+  const query=pageSearch.value.trim().toLocaleLowerCase('vi');
+  root.querySelectorAll('.fanpage-picker-row').forEach(row=>{row.hidden=!!query&&!row.querySelector('.fanpage-avatar-name').textContent.toLocaleLowerCase('vi').includes(query);});
+ }
+ pageSearch.addEventListener('input',filterPages);
  const storageKey=()=> 'fbtq_inbox_pages_v1_'+uid;
- function account(){const next=state.user?.uid||'';if(next===uid)return;uid=next;selected=null;generation++;root.open=false;root.querySelector('[data-profile-refresh-status]').textContent='';try{const value=JSON.parse(localStorage.getItem(storageKey())||'null');if(Array.isArray(value)&&value.every(id=>typeof id==='string'))selected=value;}catch{}}
+ function account(){const next=state.user?.uid||'';if(next===uid)return;uid=next;pageSearch.value='';selected=null;generation++;root.open=false;root.querySelector('[data-profile-refresh-status]').textContent='';try{const value=JSON.parse(localStorage.getItem(storageKey())||'null');if(Array.isArray(value)&&value.every(id=>typeof id==='string'))selected=value;}catch{}}
  function publish(){state.inboxSelectedPageIds=selected===null?null:[...selected];}
  function change(value){account();selected=value;try{localStorage.setItem(storageKey(),JSON.stringify(selected));}catch{}publish();onChange();}
  root.querySelector('[data-pages-all]').onclick=()=>change(null);root.querySelector('[data-pages-none]').onclick=()=>change([]);
@@ -18,6 +24,7 @@ export function initInboxPagePicker({page,state,onChange,callFunction,showToast}
   const choosing=page.contains(document.activeElement)&&document.activeElement?.matches('[data-page-color]');
   if(!choosing){
   options.innerHTML=available.map(p=>{const count=state.inboxThreads.filter(t=>t.pageId===p.pageId).length,checked=selected===null||selected.includes(p.pageId);return `<div class="fanpage-picker-row"><label><input type="checkbox" data-page-choice="${esc(p.pageId)}" ${checked?'checked':''}><span class="fanpage-choice-name">${pageAvatar(p)}</span><small>${count}</small></label><input type="color" data-page-color="${esc(p.pageId)}" value="${fanpageColor(p)}" aria-label="Màu Fanpage ${esc(p.pageName||p.pageId)}"><button type="button" data-page-color-reset="${esc(p.pageId)}" title="Khôi phục màu mặc định" aria-label="Khôi phục màu ${esc(p.pageName||p.pageId)}">↺</button></div>`;}).join('')||'<p>Chưa có Fanpage. Bấm + Fanpage để kết nối.</p>';}
+  filterPages();
   if(focused)[...options.querySelectorAll('input')].find(el=>el.dataset.pageChoice===focused)?.focus();
   const count=selected===null?available.length:available.filter(p=>selected.includes(p.pageId)).length;root.querySelector('[data-page-picker-label]').textContent=selected===null?'Tất cả '+count+' Trang':count+' / '+available.length+' Trang';root.querySelector('[data-profile-refresh]').disabled=busy||!state.firebase||!uid||!state.inboxThreads.some(t=>selected===null||selected.includes(t.pageId));
  }
