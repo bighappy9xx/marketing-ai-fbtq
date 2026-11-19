@@ -395,16 +395,24 @@ async function loadCloudData(){
 const chatHistory=$('#chatBody'),chatScrollLatest=$('#chatScrollLatest');
 const chatDistanceFromEnd=()=>chatHistory.scrollHeight-chatHistory.clientHeight-chatHistory.scrollTop;
 const atChatEnd=()=>chatDistanceFromEnd()<=16;
+let followChatEnd=true;
 function updateChatScrollLatest(){
  chatScrollLatest.hidden=!state.activeThread||!chatHistory.clientHeight||atChatEnd();
 }
-chatHistory.addEventListener('scroll',updateChatScrollLatest,{passive:true});
-chatHistory.addEventListener('load',updateChatScrollLatest,true);
-new ResizeObserver(updateChatScrollLatest).observe(chatHistory);
-chatScrollLatest.onclick=()=>{
- chatHistory.scrollTop=chatHistory.scrollHeight;
- chatHistory.focus({preventScroll:true});
+function keepLatestVisible(){
+ if(followChatEnd&&state.activeThread&&chatHistory.clientHeight)chatHistory.scrollTop=chatHistory.scrollHeight;
  updateChatScrollLatest();
+}
+chatHistory.addEventListener('scroll',()=>{
+ if(chatHistory.clientHeight)followChatEnd=atChatEnd();
+ updateChatScrollLatest();
+},{passive:true});
+chatHistory.addEventListener('load',keepLatestVisible,true);
+new ResizeObserver(keepLatestVisible).observe(chatHistory);
+chatScrollLatest.onclick=()=>{
+ followChatEnd=true;
+ keepLatestVisible();
+ chatHistory.focus({preventScroll:true});
 };
 function renderInbox(){state.inboxSoundRefresh?.();messengerPush.refresh();
  const threads=(state.filterInboxThreads?state.filterInboxThreads(state.inboxThreads):state.inboxThreads.slice().sort((a,b)=>chatTime(b.receivedAt)-chatTime(a.receivedAt))),list=$('.inbox-list');if(!list)return;
@@ -413,12 +421,13 @@ function renderInbox(){state.inboxSoundRefresh?.();messengerPush.refresh();
  const empty=list.querySelector('.inbox-empty');if(empty){empty.hidden=threads.length>0;empty.textContent=state.inboxLoadError||(state.inboxThreads.length?'Không có hội thoại khớp bộ lọc.':'Chưa có hội thoại.');}
  $$('.conversation',list).forEach(el=>el.remove());const header=$('.chat-header');$('#replyInput').disabled=$('#sendReply').disabled=!active;
  if(!active){state.renderThreadTools?.(null);const color=header.querySelector('[data-thread-color]');if(color)color.hidden=true;state.activeThread=null;state.activeMessage=null;$('#replyInput').value='';state.chatbotDetails?.();messengerImages?.render();$('.avatar',header).outerHTML=messengerAvatar(null);$('div:nth-child(2) b',header).textContent=state.inboxThreads.length?'Không có hội thoại phù hợp':'Chưa có hội thoại';$('div:nth-child(2) small',header).textContent=state.inboxThreads.length?'Thử thay đổi hoặc xóa bộ lọc':(state.pages.length?'Fanpage đã kết nối · nhận tin qua webhook':'Kết nối Fanpage để bắt đầu');$('#chatBody').innerHTML='<div class="result-empty"><h3>'+ (state.inboxThreads.length?'Không có hội thoại khớp bộ lọc':'Chưa có tin nhắn')+'</h3><p>'+ (state.pages.length?'Hộp thư nhận tin mới trực tiếp qua webhook Meta. Mở Kết nối & đồng bộ để kiểm tra trạng thái webhook hoặc tải lịch sử.':'Kết nối Fanpage rồi kiểm tra webhook để nhận tin.')+'</p></div>';updateChatScrollLatest();return;}
- threads.forEach(thread=>{const name=thread.senderName||`Khách ${String(thread.senderId||'').slice(-4)}`,row=document.createElement('button');row.type='button';row.className='conversation'+(thread.unread?' unread':'');row.dataset.threadId=thread.id;row.dataset.pageId=thread.pageId||'';row.style.setProperty('--fanpage-color',fanpageColor(state.pages.find(p=>p.pageId===thread.pageId)||{pageId:thread.pageId}));row.dataset.tagColor=thread.tagColor||'';row.innerHTML=messengerAvatar(thread)+`<div><div class="conversation-head"><b>${esc(name)}</b><small>${chatTime(thread.receivedAt)?new Date(chatTime(thread.receivedAt)).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):''}</small></div><p>${thread.direction==='outgoing'?'Bạn: ':''}${esc(thread.message||'[Tệp đính kèm]')}</p><span class="channel-tag">${esc(thread.pageName||'Messenger')}</span></div>`;row.addEventListener('click',()=>selectThread(thread,{openMobile:true}));list.append(row);});
+ threads.forEach(thread=>{const name=thread.senderName||`Khách ${String(thread.senderId||'').slice(-4)}`,row=document.createElement('button');row.type='button';row.className='conversation'+(thread.unread?' unread':'');row.dataset.threadId=thread.id;row.dataset.pageId=thread.pageId||'';row.style.setProperty('--fanpage-color',fanpageColor(state.pages.find(p=>p.pageId===thread.pageId)||{pageId:thread.pageId}));row.dataset.tagColor=thread.tagColor||'';row.innerHTML=messengerAvatar(thread)+`<div><div class="conversation-head"><b>${esc(name)}</b><small>${chatTime(thread.receivedAt)?new Date(chatTime(thread.receivedAt)).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):''}</small></div><p>${thread.direction==='outgoing'?'Bạn: ':''}${esc(thread.message||'[Tệp đính kèm]')}</p><span class="channel-tag">${esc(thread.pageName||'Messenger')}</span></div>`;row.addEventListener('click',()=>selectThread(thread,{openedByUser:true}));list.append(row);});
  selectThread(active);
 }
-function selectThread(thread,{openMobile=false}={}){
- const openedMobile=openMobile&&state.openMobileInboxThread?.();
- const chat=$('#chatBody'),changed=state.activeThread?.id!==thread.id,oldHeight=chat.scrollHeight,oldTop=chat.scrollTop,oldFirst=chat.dataset.firstMessage,nearBottom=atChatEnd();
+function selectThread(thread,{openedByUser=false}={}){
+ if(openedByUser)state.openMobileInboxThread?.();
+ const chat=chatHistory,changed=state.activeThread?.id!==thread.id,oldHeight=chat.scrollHeight,oldTop=chat.scrollTop,oldFirst=chat.dataset.firstMessage;
+ followChatEnd=changed||openedByUser||followChatEnd;
  if(changed)$('#replyInput').value='';state.activeThread=thread;$$('.conversation').forEach(el=>el.classList.toggle('selected',el.dataset.threadId===thread.id));
  const name=thread.senderName||`Khách ${String(thread.senderId||'').slice(-4)}`,header=$('.chat-header');$('.avatar',header).outerHTML=messengerAvatar(thread);$('div:nth-child(2) b',header).textContent=name;$('div:nth-child(2) small',header).textContent=`Messenger · ${thread.pageName||'Fanpage'}`;let color=header.querySelector('[data-thread-color]');if(!color){color=document.createElement('select');color.dataset.threadColor='';color.setAttribute('aria-label','Đánh dấu màu hội thoại');color.innerHTML=[['','Không đánh dấu'],['red','🔴 Đỏ'],['orange','🟠 Cam'],['yellow','🟡 Vàng'],['green','🟢 Xanh lá'],['blue','🔵 Xanh dương'],['purple','🟣 Tím']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('');header.append(color);}state.renderThreadTools?.(thread);color.hidden=false;color.value=thread.tagColor||'';color.onchange=async()=>{const uid=state.user?.uid,old=thread.tagColor||'',value=color.value;try{await callFunction('setMessengerThreadColor',{pageId:thread.pageId,threadId:thread.id,color:value});if(state.user?.uid===uid){thread.tagColor=value;const original=state.inboxThreads.find(t=>t.id===thread.id);if(original)original.tagColor=value;const row=$$('[data-thread-id]').find(el=>el.dataset.threadId===thread.id);if(row)row.dataset.tagColor=value;renderInbox();}}catch(e){if(state.user?.uid===uid){if(state.activeThread?.id===thread.id)color.value=old;showToast(e.message,'error');}}};
  const history=state.messages.filter(m=>m.conversationId===thread.conversationId).sort((a,b)=>chatTime(a.createdAt)-chatTime(b.createdAt)),latestIncoming=[...history].reverse().find(m=>m.direction==='incoming');state.activeMessage=latestIncoming?.message||thread.message;
@@ -428,7 +437,9 @@ function selectThread(thread,{openMobile=false}={}){
  const keepSuggestion=state.chatSuggestionKey===suggestionKey&&suggestion&&!suggestion.startsWith('Chọn “Tạo gợi ý”');state.chatSuggestionKey=suggestionKey;
  const bubbles=items.map(m=>{const outgoing=m.direction==='outgoing',time=chatTime(m.createdAt),status=m.sendState==='sending'?'Đang gửi…':m.sendState==='failed'?'Chưa gửi được · '+(m.sendError||'Kiểm tra kết nối'):outgoing?'Đã gửi':'';const source=m.source==='meta_echo'?'Meta':m.source==='auto'?'Bot':m.source==='manual'||m.createdBy?'FBTQ':'';return `<div class="messenger-message-row ${outgoing?'outgoing':'incoming'}">${outgoing?'':messengerAvatar(thread,'avatar messenger-message-avatar')}<div class="message ${outgoing?'our-message':'customer-msg'} ${m.sendState==='failed'?'message-failed':''}"><span>${esc(m.message||'[Tệp đính kèm]')}</span>${attachmentMarkup(m.attachments)}<small>${time?new Date(time).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):''}${status?' · '+esc(status):''}${outgoing&&source?' · '+source:''}</small></div></div>`;}).join('');
  chat.innerHTML=`<div class="chat-date">${chatTime(thread.receivedAt)?new Date(chatTime(thread.receivedAt)).toLocaleDateString('vi-VN',{day:'2-digit',month:'long'}):'Hội thoại'}</div>${thread.historyHasMore?`<button type="button" class="btn btn-secondary" data-load-history ${state.chatHistoryRequest?'disabled':''}>Tải tin nhắn cũ hơn</button>`:''}${bubbles}${latestIncoming?`<div class="ai-suggestion"><div><span class="ai-spark">✦</span><b>Gợi ý trả lời từ AI</b><span class="suggestion-model">${esc(thread.model||'OpenAI')}</span></div><p>${keepSuggestion?esc(suggestion):'Chọn “Tạo gợi ý” để AI soạn câu trả lời theo kịch bản đã duyệt.'}</p><div class="suggestion-actions"><button id="sendSuggestion">✓ Gửi trả lời</button><button id="editSuggestion">✎ Chỉnh sửa</button><button class="regenerate" id="regenerateReply">↻ Tạo gợi ý</button></div></div>`:''}`;
- bindChatActions();state.repaintPageColors?.();state.chatbotDetails?.();messengerImages?.render();const first=items[0]?.id||'';chat.dataset.firstMessage=first;chat.scrollTop=changed||openedMobile||nearBottom?chat.scrollHeight:oldTop+(oldFirst&&first!==oldFirst?Math.max(0,chat.scrollHeight-oldHeight):0);updateChatScrollLatest();
+ bindChatActions();state.repaintPageColors?.();state.chatbotDetails?.();messengerImages?.render();const first=items[0]?.id||'';chat.dataset.firstMessage=first;
+ if(!followChatEnd)chat.scrollTop=oldTop+(oldFirst&&first!==oldFirst?Math.max(0,chat.scrollHeight-oldHeight):0);
+ keepLatestVisible();
 }
 function bindChatActions(){const older=$('[data-load-history]');if(older)older.onclick=()=>state.chatbotHistoryMore?.();const suggest=$('#regenerateReply');suggest?.addEventListener('click',async()=>{if(!state.firebase||!state.activeThread)return showToast('Kết nối Fanpage và Firebase để tạo gợi ý thật.','error');suggest.disabled=true;suggest.textContent='Đang tạo…';try{const result=await callFunction((state.activeThread.model||$('#defaultModel').value)==='openai'?'suggestReplyOpenAI':'suggestReply',{pageId:state.activeThread.pageId,message:state.activeMessage,model:state.activeThread.model||$('#defaultModel').value});$('.ai-suggestion p').textContent=result.content}catch(e){showToast(e.message,'error')}finally{suggest.disabled=false;suggest.textContent='↻ Tạo lại'}});$('#sendSuggestion')?.addEventListener('click',async()=>{const text=$('.ai-suggestion p').textContent;if(text.startsWith('Chọn “Tạo gợi ý”'))return showToast('Tạo gợi ý trước khi gửi.','error');await sendChatReply(text)});$('#editSuggestion')?.addEventListener('click',()=>{const p=$('.ai-suggestion p');p.contentEditable='true';p.focus()})}
 
@@ -1184,7 +1195,7 @@ const creativeStudio=initCreativeStudio({state,showToast,aiCall:(name,data)=>{co
 messengerImages=initMessengerImages({state,callFunction,selectThread,sendText:sendChatReply,showToast});state.applyMessengerScript=async script=>{const input=$('#replyInput');input.value=script.text||'';await messengerImages.applyScript(script);input.focus();};
 const messengerPush=initMessengerPush({state,callFunction,showToast});
 state.inboxNotifyBackground=messengerPush.notifyBackground;
-const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange:renderInbox,onOpenInbox:()=>navigate('inbox'),onOpenMessage:message=>{navigate('inbox');const thread=state.inboxThreads.find(row=>row.id===message.conversationId);if(thread)selectThread(thread,{openMobile:true})},onNavigate:navigate,onOpenSoundSettings:()=>navigate('chatbot-settings')});
+const chatbotWorkspace=initChatbotWorkspace({state,callFunction,openModal,closeModal,esc,showToast,connectPageAdvanced,renderConnectedPages,onFilterChange:renderInbox,onOpenInbox:()=>navigate('inbox'),onOpenMessage:message=>{navigate('inbox');const thread=state.inboxThreads.find(row=>row.id===message.conversationId);if(thread)selectThread(thread,{openedByUser:true})},onNavigate:navigate,onOpenSoundSettings:()=>navigate('chatbot-settings')});
 
 for(const container of [$('#fbtqAssistantWindow .fbtq-dock-head'),$('#page-assistant .page-heading')].filter(Boolean)){
  const label=document.createElement('label');label.className='assistant-model-picker';label.innerHTML='<span>Mô hình AI</span><select aria-label="Mô hình Trợ lý FBTQ"><option value="openai">OpenAI · tiết kiệm</option><option value="gemini">Gemini Developer API</option></select>';container.append(label);const select=label.querySelector('select');select.value=localStorage.getItem('fbtq_assistant_provider_v2')||$('#defaultModel').value;select.onchange=()=>{localStorage.setItem('fbtq_assistant_provider_v2',select.value);document.querySelectorAll('.assistant-model-picker select').forEach(el=>el.value=select.value);};
