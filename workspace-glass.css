@@ -222,3 +222,97 @@ body.dark .app-shell .ov-status:is(.ov-status-rejected,.ov-status-revision_reque
 }
 #setting-appearance .theme-card {width:100%}
 #setting-appearance .theme-card .theme-preview {width:100%}
+
+/* A denser material around the workspace keeps its edges distinct. */
+body {
+  --chrome-sidebar: #cbd7e9;
+  --chrome-toolbar: #dae4f2;
+  --chrome-divider: #9baec9;
+  --chrome-depth: #283e642c;
+  --motion-ease: cubic-bezier(.22,1,.36,1);
+  --motion-spring: cubic-bezier(.24,1.25,.52,1);
+}
+body.dark {
+  --chrome-sidebar: #0a101b;
+  --chrome-toolbar: #101926;
+  --chrome-divider: #43526b;
+  --chrome-depth: #0007;
+}
+:is(body,body.dark) .app-shell .sidebar {
+  background: linear-gradient(rgb(var(--glass-accent) / var(--glass-tint)),transparent 115%),var(--chrome-sidebar);
+  border-right-color:var(--chrome-divider);
+  box-shadow:inset -1px 0 var(--glass-shine), 8px 0 24px var(--chrome-depth);
+}
+:is(body,body.dark) .app-shell .topbar {
+  background:linear-gradient(rgb(var(--glass-accent) / var(--glass-tint)),transparent),var(--chrome-toolbar);
+  border-bottom-color:var(--chrome-divider);
+  box-shadow:inset 0 1px var(--glass-shine),0 4px 16px var(--chrome-depth);
+}
+
+.app-shell .sidebar .nav-item,
+.app-shell .topbar :is(.icon-button,#topProfile,.theme-toggle) {
+  transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,box-shadow 180ms ease,transform 220ms var(--motion-spring);
+}
+@media(hover:hover){
+  .app-shell .topbar :is(.icon-button,#topProfile):hover {transform:translateY(-1px)}
+}
+.app-shell .sidebar .nav-item:active,
+.app-shell .topbar :is(.icon-button,#topProfile,.theme-toggle):active {
+  transform:scale(.975);
+}
+.app-shell .topbar .theme-toggle i {transition:transform 280ms var(--motion-spring),background-color 180ms ease}
+.app-shell .page.active:not(.inbox-expanded) {
+  animation:workspacePageAppear 230ms var(--motion-ease);
+}
+#modalRoot .modal-backdrop {animation:workspaceScrimAppear 180ms ease-out}
+#modalRoot .modal {animation:workspaceGlassOpen 300ms var(--motion-spring)}
+:is(.search-box,.system-notification-panel,.messenger-menu-panel,.inbox-filter-popover):not(.hidden,[hidden]){
+  animation:workspaceGlassOpen 230ms var(--motion-ease);
+  transform-origin:top center;
+}
+@keyframes workspacePageAppear {from{opacity:.35}to{opacity:1}}
+@keyframes workspaceScrimAppear {from{opacity:0}to{opacity:1}}
+@keyframes workspaceGlassOpen {
+  from {opacity:0;transform:translateY(6px) scale(.975)}
+  to {opacity:1;transform:translateY(0) scale(1)}
+}
+
+@media(max-width:900px){
+  .app-shell .sidebar {
+    visibility:hidden;
+    transition:transform 300ms var(--motion-ease),visibility 0s linear 300ms;
+  }
+  .app-shell .sidebar.open {
+    visibility:visible;
+    transition:transform 300ms var(--motion-ease),visibility 0s;
+  }
+  .app-shell .sidebar-scrim {
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:30;
+    background:#111d2d70;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity 220ms ease,visibility 0s linear 220ms;
+  }
+  .app-shell .sidebar-scrim.show {
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transition:opacity 220ms ease,visibility 0s;
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  :is(body,body.dark) .app-shell .sidebar {background:var(--chrome-sidebar)}
+  :is(body,body.dark) .app-shell .topbar {background:var(--chrome-toolbar)}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-shell :is(.page.active,.sidebar,.sidebar-scrim,.nav-item,.nav-icon,.nav-svg,.icon-button,#topProfile,.theme-toggle,.theme-toggle i),
+  #modalRoot :is(.modal,.modal-backdrop),
+  :is(.search-box,.system-notification-panel,.messenger-menu-panel,.inbox-filter-popover):not(.hidden,[hidden]) {
+    animation:none!important;
+    transition:none!important;
+  }
+}
