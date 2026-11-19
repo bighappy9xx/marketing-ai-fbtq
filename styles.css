@@ -1242,3 +1242,24 @@ body:has(#modalRoot .modal-backdrop) .fbtq-assistant-dock{visibility:hidden;poin
 body.dark .sidebar .main-nav .count-badge.has-pending{
   background:#be123c;color:#fff;border-color:#fecdd366;flex-shrink:0;
 }
+
+.wf-leave-panel .heading-actions {
+  align-items: flex-end;
+  max-width: 100%;
+}
+.wf-leave-panel .heading-actions label {
+  min-width: 0;
+}
+.wf-leave-panel #wfLeaveMonth,
+.wf-leave-panel [data-wf-action="export"] {
+  height: 38px;
+  min-height: 38px;
+}
+.wf-leave-panel #wfLeaveMonth {
+  min-width: 0;
+  width: 100%;
+}
+.wf-leave-panel [data-wf-action="export"] {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
