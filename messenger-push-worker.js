@@ -1,4 +1,4 @@
-importScripts('./messenger-notification-format.js?v=20261119-native-push-banner');
+importScripts('./messenger-notification-format.js?v=20261119-desktop-banners');
 
 const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',self.registration.scope).href;

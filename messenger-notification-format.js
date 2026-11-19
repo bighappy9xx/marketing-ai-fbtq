@@ -9,7 +9,7 @@ globalThis.fbtqMessengerNotification=(scope,{id,preview,test=false,timestamp=Dat
   const canShowActions=Number(globalThis.Notification?.maxActions)>0;
   return {title,options:{
     body,icon,badge:new URL('./assets/fbtq-notification-badge.png',scope).href,tag:'fbtq-message-'+id,timestamp,
-    renotify:false,
+    lang:'vi',renotify:false,
     ...(canShowActions?{actions:[{action:'open-inbox',title:'Mở hộp thư'}]}:{}),
   }};
 };

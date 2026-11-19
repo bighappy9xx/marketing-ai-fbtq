@@ -62,7 +62,9 @@
 body.dark #page-chatbot-settings .messenger-push-sample{background:#172b47;border-color:#335278;color:#f2f6fc}
 body.dark #page-chatbot-settings .messenger-push-sample span{color:#c4d3e7}
 .messenger-browser-banners{position:fixed;z-index:1250;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));display:grid;gap:8px;width:min(360px,calc(100vw - 32px));pointer-events:none}
+.messenger-browser-banners[data-desktop-platform="windows"]{top:auto;bottom:max(108px,env(safe-area-inset-bottom))}
 .messenger-browser-banner{display:flex;align-items:flex-start;gap:4px;padding:6px;border:1px solid #d3dfed;border-radius:17px;background:#f8fbff;color:#172e4b;box-shadow:0 10px 24px #102d5126;pointer-events:auto}
+.messenger-browser-banners[data-desktop-platform="windows"] .messenger-browser-banner{border-radius:11px}
 .messenger-browser-banner-open,.messenger-browser-banner-close{color:inherit;background:transparent;border:0;cursor:pointer}
 .messenger-browser-banner-open{display:flex;flex:1;align-items:center;gap:11px;min-width:0;padding:6px;text-align:left;border-radius:11px}
 .messenger-browser-banner-open:hover,.messenger-browser-banner-close:hover{background:#dbe9fb}

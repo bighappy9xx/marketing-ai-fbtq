@@ -16,3 +16,12 @@ test('notification gate accepts only new confirmed webhook messages for the sign
  assert.deepEqual(gate.inspect('v',[next]),[next]);
 });
 test('Page colors accept arbitrary RGB safely and keep stable defaults',async()=>{const {fanpageColor}=await modulePromise;assert.equal(fanpageColor({pageId:'p',inboxColor:'#f012ab'}),'#F012AB');assert.equal(fanpageColor({pageId:'p',inboxColor:'url(evil)'}),fanpageColor({pageId:'p'}));assert.match(fanpageColor({pageId:'p'}),/^#[A-F0-9]{6}$/);});
+
+test('in-page banners identify desktop Windows and macOS while leaving mobile platforms neutral',async()=>{
+ const {messengerDesktopPlatform}=await modulePromise;
+ assert.equal(messengerDesktopPlatform({userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}),'windows');
+ assert.equal(messengerDesktopPlatform({userAgentData:{platform:'Windows'}}),'windows');
+ assert.equal(messengerDesktopPlatform({platform:'MacIntel',maxTouchPoints:0}),'macos');
+ assert.equal(messengerDesktopPlatform({platform:'MacIntel',maxTouchPoints:5}),'');
+ assert.equal(messengerDesktopPlatform({userAgent:'Mozilla/5.0 (Linux; Android 15)'}),'');
+});

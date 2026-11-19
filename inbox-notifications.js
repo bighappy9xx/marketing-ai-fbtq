@@ -1,3 +1,11 @@
+export function messengerDesktopPlatform(browser){
+  const platform=[browser.userAgentData?.platform,browser.platform,browser.userAgent].filter(Boolean).join(' ');
+  if(/iPhone|iPad|iPod|Android/i.test(platform))return '';
+  if(/Windows|Win32|Win64/i.test(platform))return 'windows';
+  if(/Mac/i.test(platform)&&!(browser.maxTouchPoints>1))return 'macos';
+  return '';
+}
+
 const palette=['#3884D8','#9B68D8','#25A58B','#E69048','#D86593','#639D55','#6C7BD7','#B8874C'];
 export function fanpageColor(page){if(/^#[a-f0-9]{6}$/i.test(page?.inboxColor||''))return page.inboxColor.toUpperCase();let hash=0;for(const char of String(page?.pageId||''))hash=(hash*31+char.charCodeAt(0))>>>0;return palette[hash%palette.length];}
 const millis=value=>value?.toMillis?.()||(value?.seconds?value.seconds*1000:Number(value)||0);
@@ -20,7 +28,7 @@ export function createIncomingPopupGate({now=Date.now}={}){
 }
 export function initInboxNotifications({page,state,callFunction,showToast,onOpenMessage=()=>{}}){
  const incomingGate=createIncomingPopupGate(),controls=document.createElement('div');controls.className='inbox-notification-controls';controls.innerHTML='<button type="button" data-inbox-sound aria-pressed="false">🔔 Bật âm báo</button><small data-inbox-sound-status></small>';document.querySelector('.chatbot-sound-settings').append(controls);const button=controls.querySelector('button'),status=controls.querySelector('small');
- const banners=document.createElement('div');banners.className='messenger-browser-banners';banners.setAttribute('aria-live','polite');banners.setAttribute('aria-relevant','additions');document.body.append(banners);
+ const banners=document.createElement('div');banners.className='messenger-browser-banners';banners.dataset.desktopPlatform=messengerDesktopPlatform(navigator);banners.setAttribute('aria-live','polite');banners.setAttribute('aria-relevant','additions');document.body.append(banners);
  let uid='',enabled=true,context=null,unlocking=null,generation=0,nextToneAt=0;const tabId=globalThis.crypto?.randomUUID?.()||Math.random().toString(36),colorRequests=new Map();
  const preferenceKey=()=> 'fbtq_inbox_sound_v1_'+uid;
  function render(){const running=context?.state==='running';button.textContent=!enabled?'🔕 Âm báo: tắt':running?'🔔 Âm báo: bật':'🔔 Bật âm báo';button.setAttribute('aria-pressed',String(enabled&&running));button.title='Âm báo mọi tin khách mới từ tất cả Fanpage; không reo khi tải lịch sử cũ. Nhấn để bật/tắt.';status.textContent=enabled&&!running?'Chạm để cho phép phát âm thanh':'';}

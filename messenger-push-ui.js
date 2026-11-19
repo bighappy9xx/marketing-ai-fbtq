@@ -1,4 +1,5 @@
-import './messenger-notification-format.js?v=20261119-native-push-banner';
+import './messenger-notification-format.js?v=20261119-desktop-banners';
+import {messengerDesktopPlatform} from './inbox-notifications.js?v=20261119-desktop-banners';
 
 const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',import.meta.url).href;
@@ -11,6 +12,13 @@ export function initMessengerPush({state,callFunction,showToast}){
   const testStatus=document.querySelector('[data-messenger-push-test-status]');
   const reconnectButton=document.querySelector('[data-messenger-push-reconnect]');
   const sample=document.querySelector('[data-messenger-push-sample]');
+  const platformHelp=document.querySelector('[data-messenger-push-platform]');
+  const desktopPlatform=messengerDesktopPlatform(navigator);
+  const desktopHelp={
+    macos:'macOS · Cài đặt hệ thống → Thông báo → Chrome, Safari, Edge hoặc FBTQ. Bật Cho phép thông báo và chọn kiểu hiển thị trên màn hình.',
+    windows:'Windows 11 · Cài đặt → Hệ thống → Thông báo. Windows 10 · Cài đặt → Hệ thống → Thông báo và hành động. Chọn Chrome, Edge hoặc FBTQ và bật Hiện biểu ngữ thông báo.',
+  }[desktopPlatform];
+  if(platformHelp&&desktopHelp){platformHelp.textContent=desktopHelp;platformHelp.hidden=false;}
   if(sample){
     const {title,options}=globalThis.fbtqMessengerNotification(import.meta.url,{id:'sample',test:true});
     sample.querySelector('strong').textContent=title;
@@ -184,7 +192,7 @@ export function initMessengerPush({state,callFunction,showToast}){
   }
   if(supported)navigator.serviceWorker.addEventListener('message',event=>{
     if(!testing||event.data?.type!=='fbtq-messenger-test-displayed'||testing.device!==event.data.device||testing.id!==event.data.id)return;
-    finishTest('Trình duyệt đã nhận Web Push và chuyển thông báo tới hệ điều hành. Nếu chưa thấy pop-up, kiểm tra Biểu ngữ và chế độ Không làm phiền.');
+    finishTest('Trình duyệt đã nhận Web Push. Nếu chưa thấy pop-up, kiểm tra cài đặt thông báo và chế độ Không làm phiền của thiết bị.');
   });
   testButton.addEventListener('click',async()=>{
     if(testing||binding?.owner!==owner||!owner)return;

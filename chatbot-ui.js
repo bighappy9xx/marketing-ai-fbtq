@@ -1,7 +1,7 @@
 import {faqMarkup, bindFaqEditor} from './chatbot-faq-ui.js?v=20261119-faq-reply-scripts';
 import {initMessengerMenus} from './messenger-menu.js?v=20261119-inbox-expanded-details';
 import {initThreadTools} from './messenger-thread-tools.js?v=20261118-blue-chatbot-menu';
-import {initInboxNotifications} from './inbox-notifications.js?v=20261119-browser-message-popup';
+import {initInboxNotifications} from './inbox-notifications.js?v=20261119-desktop-banners';
 import {initBroadcastWorkspace} from './messenger-broadcast-ui.js?v=20261118-blue-chatbot-menu';
 import {initScriptSearch} from './messenger-script-search.js?v=20261119-personal-reply-scripts';
 import {messengerAvatar,pageAvatar} from './inbox-realtime.js?v=20261119-messenger-webhook-only';
