@@ -39,24 +39,39 @@ function notificationPreview(message){
 function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_WEB_PUSH_VAPID,logger}){
   const vapid=()=>JSON.parse(MESSENGER_WEB_PUSH_VAPID.value());
   const callable=(options,handler)=>onCall({invoker:'public',...options},handler);
+  const expiredError=()=>new HttpsError('failed-precondition','Đăng ký thông báo của trình duyệt đã hết hiệu lực.',{reason:'expired-push-subscription'});
+  async function markExpired(ref,saved){
+    await db.runTransaction(async tx=>{
+      const current=(await tx.get(ref)).data();
+      if(current?.ownerUid===saved.ownerUid&&current?.subscription?.endpoint===saved.subscription.endpoint){
+        tx.set(ref,{status:'expired',expiredAt:new Date()});
+      }
+    });
+  }
   const config=callable({secrets:[MESSENGER_WEB_PUSH_VAPID]},async request=>{
     await requireSignedIn(request);
     return {publicKey:vapid().publicKey};
   });
   const register=callable({},async request=>{
     const {uid}=await requireSignedIn(request);
+    const replaces=request.data?.replaces;
+    if(replaces!==undefined&&(typeof replaces!=='string'||!/^[a-f0-9]{64}$/.test(replaces)))throw new HttpsError('invalid-argument','Thiết bị cũ không hợp lệ.');
     let subscription;
     try{subscription=normalizeSubscription(request.data?.subscription);}
     catch(error){throw new HttpsError('invalid-argument',error.message);}
     const id=createHash('sha256').update(subscription.endpoint).digest('hex');
     const ref=db.collection(devices).doc(id);
+    const oldRef=replaces&&replaces!==id?db.collection(devices).doc(replaces):null;
     const showPreview=await db.runTransaction(async tx=>{
-      const current=await tx.get(ref);
+      const [current,old]=await Promise.all([tx.get(ref),oldRef?tx.get(oldRef):undefined]);
+      if(current.data()?.status==='expired')throw expiredError();
       const existing=await tx.get(db.collection(devices).where('ownerUid','==',uid).limit(maxDevices));
-      if(existing.size>=maxDevices&&current.data()?.ownerUid!==uid)throw new HttpsError('resource-exhausted','Tài khoản đã đạt giới hạn thiết bị nhận thông báo.');
+      const replaceOwnDevice=old?.data()?.ownerUid===uid;
+      if(existing.size>=maxDevices&&current.data()?.ownerUid!==uid&&!replaceOwnDevice)throw new HttpsError('resource-exhausted','Tài khoản đã đạt giới hạn thiết bị nhận thông báo.');
       const previous=current.data();
       const preference=typeof request.data?.showPreview==='boolean'?request.data.showPreview:previous?.ownerUid===uid&&previous.showPreview===true;
       tx.set(ref,{ownerUid:uid,subscription,showPreview:preference,updatedAtMs:Date.now(),lastTestAtMs:previous?.ownerUid===uid?previous.lastTestAtMs||0:0});
+      if(replaceOwnDevice)tx.delete(oldRef);
       return preference;
     });
     return {id,showPreview};
@@ -81,6 +96,7 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     const ref=db.collection(devices).doc(id),now=Date.now();
     const saved=await db.runTransaction(async tx=>{
       const device=(await tx.get(ref)).data();
+      if(device?.status==='expired')throw expiredError();
       if(device?.ownerUid!==uid)throw new HttpsError('failed-precondition','Hãy bật lại thông báo trên thiết bị này.');
       if(now-(device.lastTestAtMs||0)<10000)throw new HttpsError('resource-exhausted','Vui lòng chờ 10 giây trước khi thử lại.');
       tx.update(ref,{lastTestAtMs:now});
@@ -91,7 +107,10 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
     }catch(error){
       const status=Number(error.statusCode)||0;
       logger.warn('Messenger web push test failed',{status});
-      if([404,410].includes(status))throw new HttpsError('failed-precondition','Đăng ký trên trình duyệt đã hết hạn. Hãy tắt và bật lại thông báo.');
+      if([404,410].includes(status)){
+        await markExpired(ref,saved);
+        throw expiredError();
+      }
       throw new HttpsError('unavailable','Dịch vụ thông báo chưa nhận được yêu cầu thử.');
     }
     return {accepted:true};
@@ -118,7 +137,10 @@ function registerMessengerPush({db,onCall,HttpsError,requireSignedIn,MESSENGER_W
         const result=await sendPush(saved.subscription,payload);
         logger.info?.('Messenger web push accepted',{status:result?.statusCode||0});
       }catch(error){
-        if([404,410].includes(error.statusCode))return removeIfUnchanged(doc);
+        if([404,410].includes(Number(error.statusCode))){
+          logger.info?.('Messenger web push subscription expired',{status:Number(error.statusCode)});
+          return markExpired(doc.ref,saved);
+        }
         logger.warn('Messenger web push failed',{status:Number(error.statusCode)||0});
       }
     }));

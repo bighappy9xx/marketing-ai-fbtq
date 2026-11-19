@@ -1,4 +1,4 @@
-import {initMessengerPush} from './messenger-push-ui.js?v=20261119-native-popup-diagnostics';
+import {initMessengerPush} from './messenger-push-ui.js?v=20261119-push-renewal';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bright-navigation';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-messenger-popup-repair';
 import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';

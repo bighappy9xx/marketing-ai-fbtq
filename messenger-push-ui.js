@@ -9,11 +9,13 @@ export function initMessengerPush({state,callFunction,showToast}){
   const status=document.querySelector('[data-messenger-push-status]');
   const testButton=document.querySelector('[data-messenger-push-test]');
   const testStatus=document.querySelector('[data-messenger-push-test-status]');
-  if(!button||!previews||!status||!testButton||!testStatus)return {refresh(){},disable(){},notifyBackground(){}};
+  const reconnectButton=document.querySelector('[data-messenger-push-reconnect]');
+  if(!button||!previews||!status||!testButton||!testStatus||!reconnectButton)return {refresh(){},disable(){},notifyBackground(){}};
   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
   const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
   const supported=window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&'caches' in window;
-  let owner='',ready,binding=null,busy=false,testing;
+  let owner='',ready,binding=null,busy=false,testing,needsReconnect=false,renewal;
+  const isExpired=error=>error?.details?.reason==='expired-push-subscription';
   const worker=()=>navigator.serviceWorker.register(new URL('./messenger-push-worker.js',import.meta.url),{updateViaCache:'none'});
   const readBinding=async()=>{
     const cache=await caches.open(cacheName);
@@ -33,7 +35,9 @@ export function initMessengerPush({state,callFunction,showToast}){
     previews.checked=active&&binding.showPreview===true;
     previews.disabled=busy||!active;
     testButton.disabled=busy||!active||Boolean(testing);
-    status.textContent=ios&&!standalone?'Trên iPhone hoặc iPad, thêm website vào Màn hình chính rồi mở từ biểu tượng.':!supported?'Trình duyệt này chưa hỗ trợ thông báo nền.':Notification.permission==='denied'?'Thông báo đang bị chặn. Hãy cho phép trong cài đặt của trình duyệt hoặc thiết bị.':active?'Đang bật trên thiết bị này.':'Bật trên từng máy tính hoặc điện thoại bạn muốn nhận thông báo.';
+    reconnectButton.hidden=!active;
+    reconnectButton.disabled=busy||Boolean(testing);
+    status.textContent=ios&&!standalone?'Trên iPhone hoặc iPad, thêm website vào Màn hình chính rồi mở từ biểu tượng.':!supported?'Trình duyệt này chưa hỗ trợ thông báo nền.':Notification.permission==='denied'?'Thông báo đang bị chặn. Hãy cho phép trong cài đặt của trình duyệt hoặc thiết bị.':active?(needsReconnect?'Đăng ký Web Push đã hết hiệu lực. Hãy bấm Kết Nối Lại Thiết Bị.':'Đang bật trên thiết bị này.'):'Bật trên từng máy tính hoặc điện thoại bạn muốn nhận thông báo.';
   }
   async function prepare(){
     const [registration,config]=await Promise.all([worker(),callFunction('getMessengerPushConfig',{})]);
@@ -41,6 +45,41 @@ export function initMessengerPush({state,callFunction,showToast}){
     const key=Uint8Array.from(atob(encoded),char=>char.charCodeAt(0));
     const active=registration.active?registration:await navigator.serviceWorker.ready;
     return {registration:active,key};
+  }
+  async function connectDevice(registration,key,uid,showPreview,{renew=false,existing=null,replaces}={}){
+    let subscription=existing||await registration.pushManager.getSubscription();
+    if(renew&&subscription){
+      await subscription.unsubscribe();
+      subscription=null;
+    }
+    subscription||=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+    if(state.user?.uid!==uid)return;
+    const result=await callFunction('registerMessengerPushDevice',{subscription:subscription.toJSON(),showPreview,...(replaces?{replaces}:{})});
+    if(state.user?.uid!==uid)return;
+    const next={owner:uid,device:result.id,showPreview};
+    await writeBinding(next);
+    if(state.user?.uid!==uid)return;
+    binding=next;
+    needsReconnect=false;
+    render();
+    return next;
+  }
+  function renewDevice(uid){
+    if(state.user?.uid!==uid)return;
+    if(renewal?.uid===uid)return renewal.promise;
+    needsReconnect=true;
+    render();
+    const operation={uid};
+    operation.promise=(async()=>{
+      const current=binding||await readBinding();
+      await ready?.catch(()=>{if(state.user?.uid===uid)ready=undefined;});
+      if(state.user?.uid!==uid)return;
+      const {registration,key}=await (ready||=prepare());
+      if(state.user?.uid!==uid)return;
+      return connectDevice(registration,key,uid,current?.owner===uid&&current.showPreview===true,{renew:true,replaces:current?.owner===uid?current.device:undefined});
+    })().finally(()=>{if(renewal===operation)renewal=undefined;});
+    renewal=operation;
+    return operation.promise;
   }
   function refresh(){
     const uid=state.user?.uid||'';
@@ -51,23 +90,20 @@ export function initMessengerPush({state,callFunction,showToast}){
     testStatus.textContent='';
     ready=undefined;
     binding=null;
+    needsReconnect=false;
     render();
     if(!uid||!supported||ios&&!standalone)return;
     readBinding().then(current=>{
       if(current?.owner===uid&&owner===uid&&state.user?.uid===uid&&!binding){binding=current;render();}
     }).catch(()=>{});
     ready=prepare();
-    ready.then(async({registration})=>{
+    ready.then(async({registration,key})=>{
       const current=await readBinding();
       const subscription=await registration.pushManager.getSubscription();
       if(owner!==uid||state.user?.uid!==uid)return;
-      if(current?.owner!==uid||!subscription||Notification.permission!=='granted')return;
-      const showPreview=current.showPreview===true;
-      const result=await callFunction('registerMessengerPushDevice',{subscription:subscription.toJSON(),showPreview});
-      if(owner!==uid||state.user?.uid!==uid)return;
-      binding={owner:uid,device:result.id,showPreview};
-      await writeBinding(binding);
-      render();
+      if(current?.owner!==uid||Notification.permission!=='granted')return;
+      try{await connectDevice(registration,key,uid,current.showPreview===true,{existing:subscription});}
+      catch(error){if(isExpired(error)&&state.user?.uid===uid)await renewDevice(uid);else throw error;}
     }).catch(()=>{});
   }
   async function disable(){
@@ -77,6 +113,7 @@ export function initMessengerPush({state,callFunction,showToast}){
     const current=binding||await readBinding();
     if(!current||current.owner!==uid)return;
     binding=null;
+    needsReconnect=false;
     await writeBinding(null);
     render();
     const registration=await navigator.serviceWorker.getRegistration();
@@ -161,7 +198,16 @@ export function initMessengerPush({state,callFunction,showToast}){
       return true;
     })().catch(()=>false);
     try{
-      const [,displayed]=await Promise.all([callFunction('testMessengerPushDevice',{id:run.device,testId:run.id},{timeout:20000}),local]);
+      const sendTest=()=>callFunction('testMessengerPushDevice',{id:run.device,testId:run.id},{timeout:20000});
+      const remote=sendTest().catch(async error=>{
+        if(!isExpired(error)||testing!==run)throw error;
+        testStatus.textContent='Đăng ký Web Push đã hết hiệu lực. Đang tự kết nối lại thiết bị…';
+        const renewed=await renewDevice(run.owner);
+        if(testing!==run||!renewed)throw error;
+        run.device=renewed.device;
+        return sendTest();
+      });
+      const [,displayed]=await Promise.all([remote,local]);
       if(testing!==run)return;
       testStatus.textContent=displayed?'Đã yêu cầu hệ điều hành hiện pop-up thử. Đang chờ trình duyệt xác nhận Web Push…':'Đang chờ trình duyệt xác nhận Web Push…';
       run.timeout=setTimeout(()=>{
@@ -171,6 +217,19 @@ export function initMessengerPush({state,callFunction,showToast}){
       const displayed=await local;
       if(testing===run)finishTest((displayed?'Đã yêu cầu hiện pop-up trực tiếp. ':'')+(error.message||'Chưa gửi được Web Push thử.'));
     }
+  });
+  reconnectButton.addEventListener('click',async()=>{
+    if(busy||testing||!owner||binding?.owner!==owner)return;
+    const uid=owner;
+    busy=true;
+    testStatus.textContent='Đang làm mới đăng ký thông báo…';
+    render();
+    try{
+      const device=await renewDevice(uid);
+      if(device&&state.user?.uid===uid)testStatus.textContent='Đã đăng ký lại Web Push trên thiết bị này.';
+    }catch(error){
+      if(state.user?.uid===uid)testStatus.textContent=error.message||'Chưa kết nối lại được thiết bị.';
+    }finally{busy=false;render();}
   });
   async function notifyBackground(rows){
     if(!supported||!document.hidden||Notification.permission!=='granted')return;

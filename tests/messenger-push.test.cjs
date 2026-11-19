@@ -131,3 +131,36 @@ test('test push checks device ownership and rate limit before sending',async t=>
  await assert.rejects(testMessengerPushDevice({auth:{uid:owner},data:{id}}),{code:'resource-exhausted'});
  assert.equal(send.mock.callCount(),1);
 });
+
+test('expired provider subscriptions are retired and cannot be silently registered again',async t=>{
+ const {createHash}=require('node:crypto');
+ const webPush=require('../functions/node_modules/web-push');
+ const {registerMessengerPush}=require('../functions/messenger-push');
+ const owner='owner',keys={p256dh:Buffer.concat([Buffer.from([4]),Buffer.alloc(64)]).toString('base64url'),auth:Buffer.alloc(16).toString('base64url')};
+ const old={endpoint:'https://fcm.googleapis.com/push/old',keys},fresh={...old,endpoint:'https://fcm.googleapis.com/push/fresh'};
+ const hash=s=>createHash('sha256').update(s.endpoint).digest('hex');
+ const oldId=hash(old),freshId=hash(fresh),records=new Map([[oldId,{ownerUid:owner,subscription:old}]]);
+ const send=t.mock.method(webPush,'sendNotification',async subscription=>{
+  if(subscription.endpoint===old.endpoint)throw Object.assign(new Error('expired'),{statusCode:410});
+ });
+ const db={
+  collection:()=>({doc:id=>id,where:()=>({limit:()=>({query:true})})}),
+  runTransaction:fn=>fn({
+   get:async ref=>ref?.query?{size:[...records.values()].filter(row=>row.ownerUid===owner).length}:{data:()=>records.get(ref)},
+   update:(id,patch)=>records.set(id,{...records.get(id),...patch}),
+   set:(id,data)=>records.set(id,data),
+   delete:id=>records.delete(id),
+  }),
+ };
+ class HttpsError extends Error{constructor(code,message,details){super(message);Object.assign(this,{code,details});}}
+ const push=registerMessengerPush({db,onCall:(_,handler)=>handler,HttpsError,requireSignedIn:async request=>({uid:request.auth.uid}),MESSENGER_WEB_PUSH_VAPID:{value:()=>'{}'},logger:{warn(){}}});
+ const request=data=>({auth:{uid:owner},data});
+ const expired={code:'failed-precondition',details:{reason:'expired-push-subscription'}};
+ await assert.rejects(push.testMessengerPushDevice(request({id:oldId})),expired);
+ assert.equal(records.get(oldId).status,'expired');
+ assert.equal(records.get(oldId).subscription,undefined);
+ await assert.rejects(push.registerMessengerPushDevice(request({subscription:old})),expired);
+ assert.deepEqual(await push.registerMessengerPushDevice(request({subscription:fresh,replaces:oldId,showPreview:true})),{id:freshId,showPreview:true});
+ assert.deepEqual(await push.testMessengerPushDevice(request({id:freshId})),{accepted:true});
+ assert.equal(send.mock.callCount(),2);
+});
