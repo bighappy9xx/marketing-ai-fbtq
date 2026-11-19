@@ -1,6 +1,6 @@
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261119-bright-navigation';
 import {fanpageColor} from './inbox-notifications.js?v=20261118-blue-chatbot-menu';
-import {attachmentMarkup,initMessengerImages} from './messenger-images.js?v=20261118-blue-chatbot-menu';
+import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';
 import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261118-blue-chatbot-menu';
 import {speechErrorInfo,speechErrorMarkup} from './gemini-speech-errors.js?v=20261118-gemini-free';
 import {synthesizeGeminiSpeech} from './gemini-speech.js?v=20261118-gemini-free';
@@ -16,7 +16,7 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-bot-status-switch';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-personal-reply-scripts';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
 import { initOverviewHub } from './overview-hub.js?v=20261119-award-recipient-avatar';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
@@ -38,8 +38,8 @@ let fbtqAssistantBusy=false;
 let fbtqPendingConfirmation=null;
 let assistantHistory=null,actionApproval=null;
 const storeKey=()=>`${STORE}_${state.user?.uid||'guest'}`;
-const saveLocal=()=>localStorage.setItem(storeKey(),JSON.stringify({tasks:state.tasks,drafts:state.drafts,scripts:state.scripts,banned:state.banned,invoices:state.invoices,dailyReports:state.dailyReports,photoData:state.user?.photoData||'',theme:document.body.classList.contains('dark')?'dark':'light'}));
-function loadLocalForUser(){try{const saved=JSON.parse(localStorage.getItem(storeKey())||'null');if(!saved)return;const demoTaskIds=new Set(['t1','t2','t3','t4','t5','t6','t7','t8']),demoDraftIds=new Set(['d1','d2']),demoScriptTitles=new Set(['Chào khách mới','Tư vấn tình trạng hàng','Chính sách giao hàng']),demoBanned=new Set(['lừa đảo','đảm bảo khỏi','cam kết 100%','chắc chắn có lãi','nhắn tin riêng','số điện thoại cá nhân','tài khoản ngân hàng','bôi nhọ','chửi tục','thông tin cá nhân','giảm cân cấp tốc','trị khỏi']);state.tasks=(saved.tasks||[]).filter(x=>!demoTaskIds.has(String(x.id)));state.drafts=(saved.drafts||[]).filter(x=>!demoDraftIds.has(String(x.id)));state.metrics=[];state.scripts=(saved.scripts||[]).filter(x=>!demoScriptTitles.has(x.title));state.banned=(saved.banned||[]).filter(x=>!demoBanned.has(x));state.invoices=saved.invoices||[];state.dailyReports=saved.dailyReports||[];if(state.user&&!state.user.photoData&&saved.photoData)state.user.photoData=saved.photoData;return saved.theme}catch{}}
+const saveLocal=()=>localStorage.setItem(storeKey(),JSON.stringify({tasks:state.tasks,drafts:state.drafts,banned:state.banned,invoices:state.invoices,dailyReports:state.dailyReports,photoData:state.user?.photoData||'',theme:document.body.classList.contains('dark')?'dark':'light'}));
+function loadLocalForUser(){try{const saved=JSON.parse(localStorage.getItem(storeKey())||'null');if(!saved)return;const demoTaskIds=new Set(['t1','t2','t3','t4','t5','t6','t7','t8']),demoDraftIds=new Set(['d1','d2']),demoBanned=new Set(['lừa đảo','đảm bảo khỏi','cam kết 100%','chắc chắn có lãi','nhắn tin riêng','số điện thoại cá nhân','tài khoản ngân hàng','bôi nhọ','chửi tục','thông tin cá nhân','giảm cân cấp tốc','trị khỏi']);state.tasks=(saved.tasks||[]).filter(x=>!demoTaskIds.has(String(x.id)));state.drafts=(saved.drafts||[]).filter(x=>!demoDraftIds.has(String(x.id)));state.metrics=[];state.banned=(saved.banned||[]).filter(x=>!demoBanned.has(x));state.invoices=saved.invoices||[];state.dailyReports=saved.dailyReports||[];if(state.user&&!state.user.photoData&&saved.photoData)state.user.photoData=saved.photoData;return saved.theme}catch{}}
 localStorage.removeItem('fbtq_demo_user');localStorage.removeItem(`${STORE}_demo`);localStorage.removeItem(`${STORE}_guest`);
 const money = n => new Intl.NumberFormat('vi-VN').format(Number(n)||0) + ' ₫';
 const roleName = role => ROLE_NAMES[role] || ROLE_NAMES.employee;
@@ -337,7 +337,7 @@ async function generateGeminiSpeech(text,voice){
   return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
-function signOutToAuth(){messengerImages?.reset();state.pendingChatMessages=[];state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;appearance.useAccount(null);state.role='employee';state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;appearance.useAccount(null);state.role='employee';state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
   appearance.useAccount(state.user?.uid,loadLocalForUser());
   assistantHistory?.start();
@@ -349,7 +349,7 @@ function enterApp(){
   $$('.admin-only').forEach(el=>el.classList.toggle('hidden',!isDirector()));$$('.manager-only').forEach(el=>el.classList.toggle('hidden',!isManager()));
   $('#taskPermissionHint').classList.toggle('hidden',isManager());
   renderTasks();renderMetrics();renderDrafts();renderTemplates();renderInbox();renderInvoices();renderDailyReports();loadRevenueLeaderboard();renderPeople();renderBotSummaries();renderConnectedPages();renderContentQueuePreview();renderContentReviews();updateContentReviewInput(false);saveLocal();renderSystemNotifications();
-  if(state.firebase){loadCloudData();loadRevenueLeaderboard()}
+  if(state.firebase){loadCloudData();loadRevenueLeaderboard();loadPersonalScripts().catch(error=>console.warn('Không tải được kịch bản cá nhân.',error.code));}
 }
 async function loadCloudData(){
   try{
@@ -370,8 +370,8 @@ async function loadCloudData(){
     renderPeople();if(loaded.errors.length)showToast('Một số mục chưa tải được: '+loaded.errors.map(e=>e.key+' ('+e.code+')').join(', '),'error');
     const ownProfile=state.users.find(user=>user.uid===uid);if(ownProfile)state.user={...state.user,branch:ownProfile.branch||ownProfile.branchName||ownProfile.branchId||'',department:ownProfile.department||state.user.department||''};
     const botSnap=await storeMod.getDoc(storeMod.doc(db,'workspaces','fbtq','settings','bot')).catch(error=>{console.warn('Không tải được cài đặt chatbot.',error.code);return null;});if(state.user?.uid!==uid)return;
-    state.scripts=[];state.banned=[];
-    if(botSnap?.exists()){const bot=botSnap.data();state.openaiBackendUrl=typeof bot.openaiBackendUrl==='string'?bot.openaiBackendUrl:null;state.scripts=Array.isArray(bot.scripts)?bot.scripts:[];state.banned=Array.isArray(bot.banned)?bot.banned:[];if(bot.brandVoice)$('#brandVoice').value=bot.brandVoice;if(bot.aiRoutingVersion===2&&['gemini','openai'].includes(bot.defaultModel)){$('#defaultModel').value=bot.defaultModel;$('#contentModel').value=bot.defaultModel;contentReviewAI?.clear();document.querySelectorAll('.assistant-model-picker select').forEach(el=>el.value=localStorage.getItem('fbtq_assistant_provider_v2')||bot.defaultModel)}}updateContentReviewInput(false);
+    state.banned=[];
+    if(botSnap?.exists()){const bot=botSnap.data();state.openaiBackendUrl=typeof bot.openaiBackendUrl==='string'?bot.openaiBackendUrl:null;state.banned=Array.isArray(bot.banned)?bot.banned:[];if(bot.brandVoice)$('#brandVoice').value=bot.brandVoice;if(bot.aiRoutingVersion===2&&['gemini','openai'].includes(bot.defaultModel)){$('#defaultModel').value=bot.defaultModel;$('#contentModel').value=bot.defaultModel;contentReviewAI?.clear();document.querySelectorAll('.assistant-model-picker select').forEach(el=>el.value=localStorage.getItem('fbtq_assistant_provider_v2')||bot.defaultModel)}}updateContentReviewInput(false);
     if(state.firebase.funcMod){try{const pageData=await callFunction('listMyPages',{});if(state.user?.uid!==uid)return;state.pages=Array.isArray(pageData.pages)?pageData.pages:[]}catch(error){console.warn('Không tải được danh sách Fanpage.',error);state.pages=[]}}else state.pages=[];renderConnectedPages();renderBotSummaries();
     state.members=state.users.filter(m=>m.approved!==false).map(m=>({uid:m.uid,name:m.name||m.email,initials:(m.name||m.email||'NV').split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase(),photoData:m.photoData||'',tone:'blue'}));
     $('#taskAssigneeFilter').innerHTML='<option value="all">Tất cả nhân viên</option>'+state.members.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
@@ -1035,8 +1035,64 @@ async function sendChatReply(text){
 }
 $('#sendReply').addEventListener('click',()=>messengerImages?messengerImages.send($('#replyInput').value):sendChatReply($('#replyInput').value));$('#replyInput').maxLength=2000;$('#replyInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();$('#sendReply').click();}});
 
-function editScripts(){if(!isManager())return showToast('Chỉ quản lý mới có thể chỉnh kịch bản.','error');const content=state.scripts.map((s,i)=>`<div class="draft-row"><span class="template-icon ti-blue">▧</span><div><b>${esc(s.title)}</b><small>${esc(s.text)}</small>${s.image?`<small>✓ Đã đính kèm hình ảnh</small>`:''}</div><button type="button" data-edit-script="${i}">Sửa</button></div>`).join('');openModal('Kịch bản phản hồi',`<p>Quản lý câu trả lời nhanh đã được duyệt. Có thể gắn kịch bản vào Fanpage.</p><div class="draft-list">${content||'Chưa có kịch bản.'}</div><button type="button" class="btn btn-secondary" id="newScript" style="margin-top:12px">＋ Thêm kịch bản</button>`,'',null);$('#newScript').addEventListener('click',()=>editScriptForm());$$('[data-edit-script]').forEach(b=>b.addEventListener('click',()=>editScriptForm(Number(b.dataset.editScript))))}
-function editScriptForm(index=null){const item=index===null?{title:'',text:''}:state.scripts[index];openModal(index===null?'Thêm kịch bản':'Sửa kịch bản',`<div class="modal-fields">${fInput('Tên kịch bản','title','Ví dụ: Chào khách mới')}<label>Nội dung trả lời<textarea name="text" required>${esc(item.text)}</textarea></label><label>Hình ảnh (tuỳ chọn)<input type="file" name="imageFile" accept="image/*"></label><img id="scriptPreview" class="${item.image?'':'hidden'}" src="${esc(item.image||'')}" style="max-width:100px;border-radius:7px"></div>`,'Lưu kịch bản',async f=>{const file=$('[name=imageFile]').files[0];let image=item.image||'';if(file)image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});const next={title:f.get('title'),text:f.get('text'),image};if(index===null)state.scripts.push(next);else state.scripts[index]=next;saveLocal();if(state.firebase)await saveRecord('settings',{scripts:state.scripts},'bot');closeModal();editScripts();showToast('Đã lưu kịch bản.')});$('[name=imageFile]')?.addEventListener('change',e=>{const f=e.target.files[0];if(f){const img=$('#scriptPreview');img.src=URL.createObjectURL(f);img.classList.remove('hidden')}})}
+let personalScriptsLoad=0;
+function updatePersonalScripts(scripts){
+  state.scripts=Array.isArray(scripts)?scripts:[];
+  renderBotSummaries();
+  state.chatbotDetails?.();
+}
+async function loadPersonalScripts(){
+  const uid=state.user?.uid;
+  if(!uid||!state.firebase)return false;
+  const run=++personalScriptsLoad;
+  const result=await callFunction('personalReplyScripts',{action:'list'});
+  if(state.user?.uid!==uid||run!==personalScriptsLoad)return false;
+  updatePersonalScripts(result.scripts);
+  return true;
+}
+async function editScripts(){
+  if(!state.firebase||!state.user)return showToast('Đăng nhập để quản lý kịch bản cá nhân.','error');
+  try{if(await loadPersonalScripts())showPersonalScripts();}
+  catch(error){showToast(error.message||'Không tải được kịch bản cá nhân.','error');}
+}
+function showPersonalScripts(){
+  const rows=state.scripts.map(script=>`<div class="draft-row"><div><b>${esc(script.title)}</b><small>${esc(script.text)}</small>${script.image?'<small>Có ảnh đính kèm</small>':''}</div><button type="button" data-edit-script="${esc(script.id)}">Sửa</button><button type="button" data-delete-script="${esc(script.id)}">Xoá</button></div>`).join('');
+  openModal('Kịch bản phản hồi cá nhân',`<p data-personal-scripts>Các mẫu này chỉ xuất hiện khi bạn soạn tin. Trong hội thoại, gõ tên mẫu hoặc gõ / để chọn.</p><div class="draft-list">${rows||'Chưa có kịch bản cá nhân.'}</div><button type="button" class="btn btn-secondary" id="newScript">＋ Thêm kịch bản</button>`,'',null);
+  $('#newScript').onclick=()=>editScriptForm();
+  $$('#modalRoot [data-edit-script]').forEach(button=>button.onclick=()=>editScriptForm(button.dataset.editScript));
+  $$('#modalRoot [data-delete-script]').forEach(button=>button.onclick=()=>{
+    const script=state.scripts.find(item=>item.id===button.dataset.deleteScript);
+    if(!script)return;
+    const uid=state.user?.uid;
+    openModal('Xoá kịch bản cá nhân',`<p data-personal-scripts>Xoá “${esc(script.title)}” khỏi danh sách của bạn?</p>`,'Xoá kịch bản',async()=>{
+      await savePersonalScript(uid,{action:'delete',id:script.id});
+    });
+  });
+}
+async function savePersonalScript(uid,payload){
+  if(!uid||state.user?.uid!==uid)throw Error('Tài khoản đã thay đổi.');
+  const result=await callFunction('personalReplyScripts',payload);
+  if(state.user?.uid!==uid)return;
+  personalScriptsLoad++;
+  updatePersonalScripts(result.scripts);
+  showPersonalScripts();
+  showToast(payload.action==='delete'?'Đã xoá kịch bản cá nhân.':'Đã lưu kịch bản cá nhân.');
+}
+function editScriptForm(id){
+  const item=id?state.scripts.find(script=>script.id===id):{title:'',text:''};
+  if(!item)return;
+  const uid=state.user?.uid;
+  openModal(id?'Sửa kịch bản':'Thêm kịch bản',`<div class="modal-fields" data-personal-scripts>
+    <label>Tên kịch bản<input name="title" maxlength="120" required value="${esc(item.title)}"></label>
+    <label>Nội dung trả lời<textarea name="text" maxlength="2000" required>${esc(item.text)}</textarea></label>
+    <label>Hình ảnh tùy chọn<input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp"></label>
+    ${item.image?'<label><input type="checkbox" name="removeImage"> Bỏ ảnh hiện có</label>':''}
+    </div>`,'Lưu kịch bản',async form=>{
+      const file=form.get('imageFile');
+      const media=file?.size?await prepareScriptImage(file):form.has('removeImage')?{image:'',imagePreview:''}:{image:item.image||'',imagePreview:item.imagePreview||''};
+      await savePersonalScript(uid,{action:'save',...(id?{id}:{}),script:{title:form.get('title'),text:form.get('text'),...media}});
+    });
+}
 function editBanned(){if(!isManager())return showToast('Chỉ quản lý mới có thể chỉnh từ khoá cấm.','error');openModal('Từ khoá cấm',`<p>Mỗi dòng là một cụm từ. Công cụ kiểm duyệt sẽ cảnh báo khi nội dung gửi duyệt có chứa các từ/cụm này.</p><div class="modal-fields"><label>Từ khoá<textarea name="words">${esc(state.banned.join('\n'))}</textarea></label></div>`,'Lưu từ khoá',async f=>{state.banned=f.get('words').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);saveLocal();if(state.firebase)await saveRecord('settings',{banned:state.banned},'bot');renderBotSummaries();updateContentReviewInput(false);renderContentReviews();closeModal();showToast('Đã cập nhật danh sách từ khoá.')})}
 $('#manageScripts').addEventListener('click',editScripts);$('#editScripts').addEventListener('click',editScripts);$('#manageBanned').addEventListener('click',editBanned);$('#editBanned').addEventListener('click',editBanned);
 function renderBotSummaries(){const bannedText=state.banned.length+' từ khoá',scriptText=state.scripts.length+' kịch bản'+(state.scripts.some(item=>item.image)?' · có hình ảnh':'');['#bannedSummary','#settingsBannedSummary'].forEach(selector=>{const el=$(selector);if(el)el.textContent=bannedText});['#scriptSummary','#settingsScriptSummary'].forEach(selector=>{const el=$(selector);if(el)el.textContent=scriptText})}
