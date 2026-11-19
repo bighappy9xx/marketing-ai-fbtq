@@ -4,6 +4,37 @@ class HttpsError extends Error{constructor(code,message){super(message);this.cod
 const page={pageId:'123456',ownerUid:'owner',pageName:'Trang thử',model:'openai',active:true,pagePhotoUrl:'https://example.test/page.jpg',pagePhotoCheckedAtMs:Date.now()},peer={id:'654321',name:'Khách thử'},threadId=core.key(page.pageId,peer.id);
 function database(){const data=new Map(),snap=path=>({exists:data.has(path),data:()=>data.has(path)?structuredClone(data.get(path)):undefined});let chain=Promise.resolve();const ref=path=>({path,id:path.split('/').at(-1),get:async()=>snap(path),set:async(v,o)=>data.set(path,o?.merge?{...data.get(path),...v}:structuredClone(v)),create:async v=>{if(data.has(path))throw Error('exists');data.set(path,structuredClone(v));},update:async v=>data.set(path,{...data.get(path),...v})});const db={doc:ref,runTransaction:fn=>{const p=chain.then(()=>fn({get:async r=>snap(r.path),create:(r,v)=>{if(data.has(r.path))throw Error('exists');data.set(r.path,structuredClone(v));},set:(r,v,o)=>data.set(r.path,o?.merge?{...data.get(r.path),...structuredClone(v)}:structuredClone(v)),update:(r,v)=>data.set(r.path,{...data.get(r.path),...structuredClone(v)})}));chain=p.catch(()=>{});return p;}};data.set('workspaces/fbtq/pages/'+page.pageId,{...page});return {db,data};}
 const msg=(id,from,at,text='Xin chào')=>({id,from:{id:from},created_time:new Date(at).toISOString(),message:text});
+test('signed webhook starts the bot from a saved incoming message without waiting for profile refresh',async()=>{
+ const {db,data}=database(),secret='test-app-secret',now=Date.now(),replies=[];
+ let unblockProfile;
+ const profilePending=new Promise(resolve=>{unblockProfile=resolve;});
+ let notifyReply;
+ const replyStarted=new Promise(resolve=>{notifyReply=resolve;});
+ const handler=registerMetaWebhook({
+  db,onRequest:(_,fn)=>fn,META_VERIFY_TOKEN:{value:()=>''},META_APP_SECRET:{value:()=>secret},
+  META_TOKEN_ENCRYPTION_KEY:{value:()=>''},decryptToken:()=>{throw Error('profile unavailable');},
+  logger:{info(){},error(){}},
+  replyToIncoming:async(id,message,config)=>{
+   assert.equal(data.get('workspaces/fbtq/messages/'+id).message,message.message);
+   assert.equal(data.get('workspaces/fbtq/inbox/'+threadId).lastIncomingMessageId,id);
+   assert.equal(config.pageId,page.pageId);
+   replies.push(id);
+   notifyReply();
+   await profilePending;
+  }
+ });
+ const entry={id:page.pageId,messaging:[{sender:{id:peer.id},timestamp:now,message:{mid:'fast-webhook',text:'Xin chào'}}]};
+ const body={object:'page',entry:[entry]},rawBody=Buffer.from(JSON.stringify(body));
+ const request={method:'POST',body,rawBody,get:()=> 'sha256='+crypto.createHmac('sha256',secret).update(rawBody).digest('hex')};
+ const res=response(),delivery=handler(request,res);
+ await Promise.race([replyStarted,delivery.then(()=>assert.fail('The webhook did not start the bot'))]);
+ assert.deepEqual(replies,[messageKey(threadId,'fast-webhook')]);
+ unblockProfile();
+ await delivery;
+ assert.equal(res.statusCode,200);
+ await handler(request,response());
+ assert.equal(replies.length,1);
+});
 test('history is idempotent, keeps original time, never reopens 24h or replaces newer live content/handoff',async()=>{const q=database(),old=Date.now()-3*86400000;const args={db:q.db,page,peer,metaConversationId:'t_history',rows:[msg('old1',peer.id,old),msg('old2',page.pageId,old+1000)],nextCursor:'older'};assert.equal((await storeHistory(args)).imported,2);assert.equal((await storeHistory(args)).imported,0);const t=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(t.lastIncomingAtMs,old);assert.equal(core.eligible(t),false);assert.equal(t.unread,false);assert.equal(t.historyHasMore,true);assert.equal(t.historyCursor,'older');const incoming=q.data.get('workspaces/fbtq/messages/'+messageKey(threadId,'old1'));assert.equal(incoming.historical,true);assert.equal(incoming.source,'meta_history');assert.equal(incoming.createdAt.getTime(),old);assert.equal(t.lastIncomingMessageId,undefined);Object.assign(t,{humanPaused:true,optedOut:true,lastMessageAtMs:Date.now(),message:'TIN MỚI',historyCursor:'already-progressed'});await storeHistory({...args,rows:[msg('evenolder',peer.id,old-1000)]});const after=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(after.message,'TIN MỚI');assert.equal(after.humanPaused,true);assert.equal(after.optedOut,true);assert.equal(after.historyCursor,'already-progressed');});
 test('live events are deduplicated and keep correct order; outgoing echoes do not open response windows',async()=>{const q=database(),at=Date.now()-1000,event={sender:{id:peer.id},recipient:{id:page.pageId},timestamp:at,message:{mid:'live1',text:'Tin mới'}};assert.equal(await recordMessage(q.db,page,event),true);assert.equal(await recordMessage(q.db,page,event),false);await recordMessage(q.db,page,{...event,timestamp:at-1000,message:{mid:'live0',text:'Tin đến trễ'}});let t=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(t.message,'Tin mới');assert.equal(t.lastIncomingAtMs,at);assert.equal(t.lastIncomingMessageId,messageKey(threadId,'live1'));await recordMessage(q.db,page,{sender:{id:page.pageId},recipient:{id:peer.id},timestamp:at+500,message:{mid:'echo',is_echo:true,text:'Trả lời từ Meta'}});t=q.data.get('workspaces/fbtq/inbox/'+threadId);assert.equal(t.message,'Trả lời từ Meta');assert.equal(t.direction,'outgoing');assert.equal(t.lastIncomingAtMs,at);assert.equal([...q.data.values()].filter(v=>v.conversationId===threadId&&v.createdAt).length,3);});
 function response(){return {statusCode:0,body:null,status(code){this.statusCode=code;return this;},send(body){this.body=body;return this;},sendStatus(code){this.statusCode=code;return this;}};}

@@ -230,9 +230,7 @@ exports.sendPageReply = onCall({invoker:'public',secrets:[META_TOKEN_ENCRYPTION_
   return {ok:true,messageId:result.message_id||null};
 });
 
-exports.metaWebhook=require('./meta-webhook').registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,META_TOKEN_ENCRYPTION_KEY,decryptToken,logger});
-
-Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}));
+Object.assign(exports,require('./chatbot').registerChatbot({db,onCall,onRequest,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,META_VERIFY_TOKEN,GEMINI_API_KEY,OPENAI_API_KEY,logger}));
 
 Object.assign(exports, require('./workflows').registerWorkflows({ db, onCall, HttpsError, logger }));
 

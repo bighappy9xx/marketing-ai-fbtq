@@ -3,7 +3,7 @@ const core=require('./chatbot-core');
 const {validateFaqs,relevantFaqs,findFaqReply,replyInstructions}=require('./chatbot-faq');
 const {metaConfig,loginUrl}=require('./meta-config');
 const {requireAIAccount}=require('./ai-policy');
-module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,GEMINI_API_KEY,OPENAI_API_KEY}){
+module.exports.registerChatbot=function({db,onCall,onRequest,HttpsError,FieldValue,requireSignedIn,encryptToken,decryptToken,graphUrl,generateWithProvider,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET,META_VERIFY_TOKEN,GEMINI_API_KEY,OPENAI_API_KEY,logger}){
   const out={},secret=[META_TOKEN_ENCRYPTION_KEY],pages='workspaces/fbtq/pages',inbox='workspaces/fbtq/inbox',sessions='metaOAuthSessions';
   const callable=(opts,handler)=>onCall({...opts,invoker:'public'},handler);
   const signedIn=async request=>{const auth=await requireSignedIn(request);requireAIAccount(auth,HttpsError);return auth;};
@@ -80,24 +80,35 @@ module.exports.registerChatbot=function({db,onCall,HttpsError,FieldValue,require
   });
   out.setChatbotHandoff=callable({},async request=>{const {page}=await owner(request,request.data?.pageId);const id=request.data?.recipientId;if(!/^\d+$/.test(id||''))fail('Người nhận không hợp lệ.');await db.doc(`${inbox}/${core.key(page.pageId,id)}`).set({humanPaused:request.data.paused===true},{merge:true});return {ok:true};});
   const {onDocumentCreated,onDocumentUpdated}=require('firebase-functions/v2/firestore');
-  const replyTrigger={document:'workspaces/fbtq/messages/{messageId}',secrets:[...secret,OPENAI_API_KEY,...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?[GEMINI_API_KEY]:[])],timeoutSeconds:120,retry:false};
-  async function replyToIncoming(event){
-    const m=event.data?.data();if(!m||m.direction!=='incoming'||m.historical===true||m.source==='meta_history')return;const job=db.doc(`chatbotJobs/auto_${event.params.messageId}`);try{await job.create({status:'processing',createdAt:FieldValue.serverTimestamp()});}catch{return;}
-    try{const snap=await db.doc(`${pages}/${m.pageId}`).get(),page=snap.data();if(!page?.active||!page.mode||page.mode==='off')return;const thread=(await db.doc(`${inbox}/${m.conversationId}`).get()).data();if(!core.eligible(thread)||thread.lastIncomingMessageId!==event.params.messageId||thread.direction==='outgoing')return;
+  const replySecrets=[...secret,OPENAI_API_KEY,...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?[GEMINI_API_KEY]:[])];
+  const replyTrigger={document:'workspaces/fbtq/messages/{messageId}',secrets:replySecrets,timeoutSeconds:120,retry:false};
+  async function replyToIncoming(messageId,m,pageSnapshot){
+    if(!m||m.direction!=='incoming'||m.historical===true||m.source==='meta_history')return;
+    const page=pageSnapshot??(await db.doc(`${pages}/${m.pageId}`).get()).data();
+    if(!page?.active||!page.mode||page.mode==='off')return;
+    const threadRef=db.doc(`${inbox}/${m.conversationId}`);
+    const thread=(await threadRef.get()).data();
+    const canReply=current=>core.eligible(current)&&current.lastIncomingMessageId===messageId&&current.direction!=='outgoing';
+    if(!canReply(thread))return;
+    const job=db.doc(`chatbotJobs/auto_${messageId}`);
+    try{await job.create({status:'processing',createdAt:FieldValue.serverTimestamp()});}
+    catch(error){if(error.code===6||error.code==='already-exists')return;throw error;}
+    try{
       const faqRows=page.hasChatbotFaqs?(await faqRef(page.pageId).get()).data()?.rows||[]:[];
       const faqReply=page.mode==='ai'?undefined:findFaqReply(faqRows,m.message);
       const script=page.mode==='ai'||faqReply?undefined:core.pickScript(m.message,page.scripts);
       let text=faqReply?.answer||script?.text;
       if(!text&&!script?.image&&['ai','hybrid'].includes(page.mode)){if(!metaConfig().availableModels.includes(page.model||'gemini'))fail('Mô hình chatbot này chưa bật trên máy chủ. Chọn OpenAI và lưu lại cấu hình.');const history=await db.collection('workspaces/fbtq/messages').where('conversationId','==',m.conversationId).orderBy('createdAt','desc').limit(6).get();const prompt=history.docs.reverse().map(d=>{const r=d.data();return `${r.direction==='incoming'?'Khách':'Trang'}: ${String(r.message||'').slice(0,1200)}`;}).join('\n');const faqs=relevantFaqs(faqRows,m.message);text=await generateWithProvider(page.model||'gemini',prompt,replyInstructions(page,faqs),{...(process.env.META_CHATBOT_GEMINI_ENABLED==='true'?{gemini:GEMINI_API_KEY.value()}:{}),openai:OPENAI_API_KEY.value()},{...(page.model==='openai'?require('./ai-policy').textPolicy('reply'):{}),task:'reply',maxTokens:300});}
-      const current=(await db.doc(`${inbox}/${m.conversationId}`).get()).data();if((text||script?.image)&&core.eligible(current)&&current.lastIncomingMessageId===event.params.messageId&&current.direction!=='outgoing'){if(script?.image){const media=require('./messenger-image');await media.sendPreparedImage({db,page,recipientId:m.senderId,bytes:media.decodeImage(script.image.slice(23),'image/jpeg',150000),mimeType:'image/jpeg',preview:script.imagePreview||'',source:'auto',token:decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),graphUrl,HttpsError,FieldValue});}if(text)await send(page,m.senderId,text.slice(0,2000),'auto');await job.update({status:'sent'});}else await job.update({status:'skipped'});
+      if((text||script?.image)&&canReply((await threadRef.get()).data())){if(script?.image){const media=require('./messenger-image');await media.sendPreparedImage({db,page,recipientId:m.senderId,bytes:media.decodeImage(script.image.slice(23),'image/jpeg',150000),mimeType:'image/jpeg',preview:script.imagePreview||'',source:'auto',token:decryptToken(page,META_TOKEN_ENCRYPTION_KEY.value()),graphUrl,HttpsError,FieldValue});}if(text)await send(page,m.senderId,text.slice(0,2000),'auto');await job.update({status:'sent'});}else await job.update({status:'skipped'});
     }catch(e){await job.update({status:'failed',error:e.message});await db.doc(`${pages}/${m.pageId}`).set({lastError:e.message},{merge:true});}
   }
-  out.autoReplyFacebook=onDocumentCreated(replyTrigger,replyToIncoming);
+  out.autoReplyFacebook=onDocumentCreated(replyTrigger,event=>replyToIncoming(event.params.messageId,event.data?.data()));
   out.autoReplyFacebookPromoted=onDocumentUpdated(replyTrigger,event=>{
     const before=event.data?.before.data(),after=event.data?.after.data();
     if(before?.historical!==true||after?.historical!==false||after.source!=='meta_webhook')return;
-    return replyToIncoming({data:event.data.after,params:event.params});
+    return replyToIncoming(event.params.messageId,after);
   });
+  if(onRequest)out.metaWebhook=require('./meta-webhook').registerMetaWebhook({db,onRequest,META_VERIFY_TOKEN,META_APP_SECRET,META_TOKEN_ENCRYPTION_KEY,decryptToken,logger,replyToIncoming,replySecrets});
   Object.assign(out,require('./messenger-history').registerMessengerHistory({db,onCall:callable,HttpsError,owner,graph,decryptToken,META_TOKEN_ENCRYPTION_KEY,META_APP_SECRET}));
   out.sendMessengerImage=require('./messenger-image').registerMessengerImage({db,onCall:callable,HttpsError,owner,decryptToken,graphUrl,META_TOKEN_ENCRYPTION_KEY,FieldValue});
   out.refreshMessengerProfiles=require('./messenger-profile').registerProfileRefresh({db,onCall:callable,HttpsError,owner,graph,decryptToken,META_TOKEN_ENCRYPTION_KEY});
