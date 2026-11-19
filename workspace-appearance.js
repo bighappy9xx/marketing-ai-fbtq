@@ -18,9 +18,8 @@ function luminance(channels) {
   }).reduce((sum,value,i) => sum + value*[.2126,.7152,.0722][i],0);
 }
 
-function accessibleAccent(channels, dark) {
+function accessibleAccent(channels, dark, limit = dark ? .57 : .115) {
   const target = dark ? 255 : 0;
-  const limit = dark ? .57 : .115;
   for (let amount=0; amount<=100; amount+=2) {
     const color=channels.map(value=>Math.round(value+(target-value)*amount/100));
     if (dark ? luminance(color)>=limit : luminance(color)<=limit) return color.join(' ');
@@ -46,6 +45,9 @@ export function initWorkspaceAppearance({document, storage, system}) {
     body.style.setProperty('--glass-accent',channels.join(' '));
     body.style.setProperty('--glass-accent-fill',accessibleAccent(channels,false));
     body.style.setProperty('--glass-accent-ink',accessibleAccent(channels,dark));
+    const loginBlue=preferences.accent===defaultAccent;
+    body.style.setProperty('--nav-gradient-light',accessibleAccent(loginBlue?[67,142,255]:channels,false,.165));
+    body.style.setProperty('--nav-gradient-deep',loginBlue?'33 96 232':accessibleAccent(channels,false));
     body.style.setProperty('--glass-opacity',String(.78+preferences.tint*.0022));
     body.style.setProperty('--glass-tint',String(.035+preferences.tint*.00155));
     pick.value=preferences.accent;

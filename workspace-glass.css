@@ -184,29 +184,27 @@ body.dark .app-shell .ov-status:is(.ov-status-rejected,.ov-status-revision_reque
 /* Opaque, saturated navigation separates the controls from the working canvas. */
 body {
   --chrome-accent: rgb(var(--glass-accent-fill));
-  --chrome-sidebar: color-mix(in srgb,var(--chrome-accent) 59%,#0b1938);
-  --chrome-toolbar: color-mix(in srgb,var(--chrome-accent) 82%,#091934);
-  --chrome-divider: #0b1938;
-  --chrome-depth: #11284a4d;
+  --chrome-bright: rgb(var(--nav-gradient-light, 52 118 230));
+  --chrome-deep: rgb(var(--nav-gradient-deep, 33 96 232));
+  --chrome-divider: rgb(var(--nav-gradient-deep, 33 96 232) / .68);
+  --chrome-depth: rgb(var(--nav-gradient-deep, 33 96 232) / .28);
   --chrome-text: #fff;
-  --chrome-muted: #e3ebfc;
+  --chrome-muted: #f7faff;
   --chrome-hairline: #ffffff45;
   --motion-ease: cubic-bezier(.22,1,.36,1);
   --motion-spring: cubic-bezier(.24,1.25,.52,1);
 }
 body.dark {
-  --chrome-sidebar: color-mix(in srgb,var(--chrome-accent) 67%,#0a1431);
-  --chrome-toolbar: color-mix(in srgb,var(--chrome-accent) 89%,#080f27);
   --chrome-divider: var(--chrome-hairline);
   --chrome-depth: #0008;
 }
 :is(body,body.dark) .app-shell .sidebar {
-  background: linear-gradient(158deg,var(--chrome-sidebar) 8%,var(--chrome-accent) 100%);
+  background: linear-gradient(158deg,var(--chrome-bright) 0%,var(--chrome-deep) 82%);
   border-right-color:var(--chrome-divider);
-  box-shadow:inset -1px 0 var(--chrome-hairline),8px 0 24px var(--chrome-depth);
+  box-shadow:inset 0 1px #ffffff55,inset -1px 0 var(--chrome-hairline),8px 0 24px var(--chrome-depth);
 }
 :is(body,body.dark) .app-shell .topbar {
-  background:linear-gradient(114deg,var(--chrome-toolbar) 8%,var(--chrome-accent) 100%);
+  background:linear-gradient(110deg,var(--chrome-bright),var(--chrome-deep));
   border-bottom-color:var(--chrome-divider);
   box-shadow:inset 0 1px var(--chrome-hairline),0 4px 16px var(--chrome-depth);
 }
@@ -302,8 +300,8 @@ body.dark {
   }
 }
 @media(prefers-reduced-transparency:reduce){
-  :is(body,body.dark) .app-shell .sidebar {background:var(--chrome-sidebar)}
-  :is(body,body.dark) .app-shell .topbar {background:var(--chrome-toolbar)}
+  :is(body,body.dark) .app-shell .sidebar {background:var(--chrome-deep)}
+  :is(body,body.dark) .app-shell .topbar {background:var(--chrome-deep)}
 }
 @media(prefers-reduced-motion:reduce){
   .app-shell :is(.page.active,.sidebar,.sidebar-scrim,.nav-item,.nav-icon,.nav-svg,.icon-button,#topProfile,.theme-toggle,.theme-toggle i),
