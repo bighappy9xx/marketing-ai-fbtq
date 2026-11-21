@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f9fbff">
   <title>Marketing AI FBTQ · Không gian vận hành marketing</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="home.css?v=20261121-blue-gradient-v2">
+  <link rel="stylesheet" href="home.css?v=20261121-motion">
   <script src="home-route.js?v=20261121-home" defer></script>
   <script src="home-showcase.js?v=20261121-light-depth" defer></script>
 </head>
@@ -27,6 +27,12 @@
 
   <main>
     <section class="hero">
+      <div class="hero-effects" aria-hidden="true">
+        <span class="hero-orbit"></span>
+        <span class="hero-star"></span>
+        <span class="hero-star"></span>
+        <span class="hero-star"></span>
+      </div>
       <div class="wrap hero-inner">
         <div class="hero-copy">
           <p class="kicker">WORKSPACE MARKETING FBTQ</p>
@@ -34,10 +40,13 @@
           <p>Theo dõi quảng cáo, sản xuất nội dung bằng AI và chăm sóc khách hàng trong một không gian làm việc.</p>
           <div class="hero-actions">
             <a class="button primary" href="workspace.html">Đăng nhập</a>
-            <a class="button outline" href="#cong-cu">Khám phá công cụ</a>
+            <a class="button outline" href="#cong-cu">Khám phá công cụ <span class="button-arrow" aria-hidden="true">↓</span></a>
           </div>
         </div>
         <figure class="preview" data-reveal aria-labelledby="preview-caption">
+          <div class="preview-float">
+          <div class="preview-badge preview-badge-ai" aria-hidden="true"><svg><use href="icons.svg#sparkles"></use></svg></div>
+          <div class="preview-badge preview-badge-chart" aria-hidden="true"><svg><use href="icons.svg#chart"></use></svg></div>
           <div class="tilt-area"><div class="preview-window">
             <div class="preview-head"><svg aria-hidden="true"><use href="icons.svg#dashboard"></use></svg><b>Tổng quan hiệu suất</b><span>7 ngày</span></div>
             <div class="preview-metrics">
@@ -50,6 +59,7 @@
             </div>
             <div class="preview-foot"><span><i></i> Chi tiêu</span><span><i></i> Kết quả</span></div>
           </div></div>
+          </div>
           <figcaption id="preview-caption">Giao diện minh họa với số liệu mẫu</figcaption>
         </figure>
       </div>
