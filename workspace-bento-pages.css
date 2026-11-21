@@ -1,36 +1,8 @@
-body[data-workspace-layout="bento"] .app-shell .sidebar {
-  background: linear-gradient(165deg,var(--bento-nav) 45%,color-mix(in srgb,var(--bento-nav) 76%,var(--chrome-deep)));
-  border-right: 1px solid #e4eeff21;
-  box-shadow: 5px 0 24px #06162d16;
-}
-body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item {
-  border-radius: 10px;
-  min-height: 42px;
-}
-body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item.active {
-  background: #d5e8ff22;
-  color: #f5faff;
-  border-color: #e4eeff40;
-  box-shadow: inset 3px 0 rgb(var(--glass-accent)),0 3px 12px #050e211c;
-}
-body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item.active :is(.count-badge:not(.has-pending),.nav-badge) {
-  background: #e4eeff22;
-  color: #fff;
-}
-body[data-workspace-layout="bento"] .app-shell .topbar {
-  --chrome-text: var(--bento-ink);
-  --chrome-muted: var(--bento-muted);
-  --chrome-hairline: var(--bento-line);
-  background: var(--bento-surface);
-  border-bottom-color: var(--bento-line);
-  box-shadow: 0 4px 18px #172b4210;
-}
-body[data-workspace-layout="bento"] .app-shell .topbar .theme-toggle { background: var(--bento-soft); }
 body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) > .page-heading {
-  gap: 14px;
+  gap: 16px;
   margin-bottom: var(--bento-gap);
-  padding: clamp(16px,2.2vw,32px);
-  background: linear-gradient(115deg,var(--bento-surface) 42%,var(--bento-tint));
+  padding: var(--bento-padding);
+  background: linear-gradient(115deg,var(--bento-surface) 58%,var(--bento-tint));
   border: 1px solid var(--bento-line);
   border-inline-start: 4px solid rgb(var(--glass-accent));
   border-radius: var(--bento-radius);
@@ -48,7 +20,7 @@ body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) :is(.pa
   background: var(--bento-surface);
   border-color: var(--bento-line);
   border-radius: var(--bento-radius);
-  box-shadow: 0 3px 12px #182a4511;
+  box-shadow: var(--bento-shadow);
   backdrop-filter: none;
 }
 body[data-workspace-layout="bento"] .app-shell .page :is(.filter-tabs,.editor-tabs,.work-section-tabs) {
@@ -59,10 +31,6 @@ body[data-workspace-layout="bento"] .app-shell .page .panel-heading { gap: 12px;
 body[data-workspace-layout="bento"] .app-shell .page :is(.panel-heading h3,.content-review-panel-heading h3) {
   font-size: clamp(14px,1.25vw,17px);
   line-height: 1.3;
-}
-body[data-workspace-layout="bento"] .app-shell :is(.btn-primary,.btn-secondary) {
-  border-radius: 10px;
-  box-shadow: none;
 }
 body[data-workspace-layout="bento"] .app-shell .workspace-layout-picker .btn[aria-pressed="true"] {
   color: var(--glass-focus);
@@ -243,11 +211,6 @@ body[data-workspace-layout="bento"] #page-settings .settings-nav button {
   border-radius: 10px;
 }
 body[data-workspace-layout="bento"] #page-settings .settings-nav button.selected { background: var(--bento-tint); }
-body[data-workspace-layout="bento"] #modalRoot .modal {
-  border: 1px solid var(--bento-line);
-  border-radius: var(--bento-radius);
-  background: var(--bento-surface);
-}
 @media(min-width:901px) {
   body[data-workspace-layout="bento"] #page-settings .settings-nav {
     position: sticky;
@@ -289,4 +252,105 @@ body[data-workspace-layout="bento"] #modalRoot .modal {
 }
 @media(max-width:350px) {
   body[data-workspace-layout="bento"] #page-content .studio-section-nav-grid { gap: 8px; }
+}
+
+/* Consistent rhythm for page titles, section actions and data surfaces. */
+body[data-workspace-layout="bento"] .app-shell .page > .page-heading p {
+  font-size: .875rem;
+  line-height: 1.55;
+}
+body[data-workspace-layout="bento"] .page > .page-heading :is(.heading-actions,.people-heading-actions) {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body[data-workspace-layout="bento"] .app-shell .page .panel-heading > :first-child { min-width: 0; }
+body[data-workspace-layout="bento"] .app-shell .page .panel-heading p { font-size: .8125rem; line-height: 1.5; }
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-tasks,#page-content-review,#page-work-awards,#page-assistant,#page-people,#page-requests,#page-advances,#page-automation,#page-settings) :is(.panel-heading,.content-review-panel-heading,.content-review-list-heading) {
+  align-items: flex-start;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+}
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-work-awards,#page-people,#page-requests,#page-advances,#page-automation) .table-scroll {
+  border: 1px solid var(--bento-line);
+  border-radius: 12px;
+  scrollbar-color: var(--bento-line) transparent;
+}
+body[data-workspace-layout="bento"] .app-shell .table-scroll :is(th,td) {
+  padding: 10px 12px;
+  font-size: .8125rem;
+  line-height: 1.4;
+}
+body[data-workspace-layout="bento"] .app-shell .table-scroll th {
+  background: var(--bento-soft);
+  color: var(--bento-ink);
+}
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard) :is(.analytics-filters,.leaderboard-chart-panel,.analytics-chart-panel,#analyticsComparePanel,#dailyReportComparison) {
+  padding: var(--bento-padding);
+}
+body[data-workspace-layout="bento"] #page-analytics .analytics-stats {
+  gap: var(--bento-gap);
+  align-items: stretch;
+}
+body[data-workspace-layout="bento"] #page-analytics .analytics-stats .stat-card {
+  padding: clamp(12px,1.5vw,20px);
+  min-width: 0;
+}
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard) :is(.stat-value,.stat-foot) {
+  font-variant-numeric: tabular-nums;
+}
+body[data-workspace-layout="bento"] :is(#page-content-review,#page-assistant) :is(.content-review-submit-panel,.content-review-history-panel,.assistant-import-card) {
+  padding: var(--bento-padding);
+}
+body[data-workspace-layout="bento"] :is(#page-content-review,#page-settings,#page-people,#page-requests,#page-advances) :is(.panel,.role-card) :is(label,input,select,textarea) {
+  font-size: .8125rem;
+}
+body[data-workspace-layout="bento"] #page-content-review :is(.content-review-tabs,.content-review-form-fields) {
+  gap: 8px;
+}
+body[data-workspace-layout="bento"] #page-content-review .content-review-tabs button {
+  font-size: .75rem;
+  white-space: normal;
+}
+body[data-workspace-layout="bento"] #page-content-review .content-review-search input {
+  width: min(100%,245px);
+}
+body[data-workspace-layout="bento"] :is(#page-tasks,#page-work-awards,#page-advances,#page-automation,#page-requests) :is(.work-section-tabs,.billing-section-tabs,.task-toolbar,.task-status-legend,.wf-summary) {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body[data-workspace-layout="bento"] #page-assistant .assistant-import-tools {
+  gap: var(--bento-gap);
+}
+body[data-workspace-layout="bento"] #page-assistant .assistant-import-card {
+  min-width: 0;
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] #page-people .role-overview {
+  padding: var(--bento-gap);
+  gap: clamp(8px,1.1vw,16px);
+}
+body[data-workspace-layout="bento"] #page-settings :is(.setting-section,.settings-panel,.settings-nav) {
+  min-width: 0;
+}
+body[data-workspace-layout="bento"] #page-settings .settings-panel {
+  padding: var(--bento-padding);
+}
+body[data-workspace-layout="bento"] #page-settings .settings-nav button {
+  min-height: 40px;
+  font-size: .8125rem;
+  line-height: 1.35;
+}
+body[data-workspace-layout="bento"] #page-settings .workspace-layout-picker {
+  gap: 8px;
+}
+@media (min-width: 1150px) {
+  body[data-workspace-layout="bento"] #page-automation .automation-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: var(--bento-gap);
+  }
+}
+@media (max-width: 760px) {
+  body[data-workspace-layout="bento"] :is(#page-content-review,#page-settings,#page-people,#page-requests,#page-advances) .panel :is(input:not([type=checkbox],[type=radio],[type=range],[type=color]),select,textarea) {
+    font-size: 1rem;
+  }
 }

@@ -37,7 +37,7 @@ export function initWorkspaceAppearance({document, storage, system}) {
   const tint=document.querySelector('#themeGlassTint');
   const accentButtons=[...document.querySelectorAll('[data-theme-accent]')];
   const modeButtons=[...document.querySelectorAll('[data-theme-choice]')];
-  const layoutButtons=[...document.querySelectorAll('[data-workspace-layout]')];
+  const layoutButtons=[...document.querySelectorAll('button[data-workspace-layout]')];
   const toggle=document.querySelector('#themeToggle');
 
   function render(){

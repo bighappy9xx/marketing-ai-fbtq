@@ -20,31 +20,40 @@
   <link rel="stylesheet" href="inbox-glass.css?v=20261119-scroll-latest">
   <link rel="stylesheet" href="openai-firebase.css?v=20261117-openai-blaze">
   <link rel="stylesheet" href="workspace-glass.css?v=20261119-system-settings-roles">
-  <link rel="stylesheet" href="workspace-bento.css?v=20261121-bento-workspace">
-  <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-bento-workspace">
+  <link rel="stylesheet" href="workspace-bento.css?v=20261121-enterprise">
+  <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-enterprise">
   <link rel="stylesheet" href="workspace-depth.css?v=20261121-depth">
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
+  <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
 </head>
-<body>
+<body data-workspace-layout="bento">
   <div id="authScreen" class="auth-screen">
     <div class="auth-art">
       <div class="auth-orbit orbit-one"></div><div class="auth-orbit orbit-two"></div>
       <div class="auth-brand"><img class="brand-logo" src="logo-light.svg?v=20261106-brand-refresh" alt="Marketing Ai FBTQ"></div>
-      <div class="auth-message"><div class="eyebrow light">THE GROWTH WORKSPACE</div><h1>Mọi chiến dịch<br>trong <em>một tầm nhìn.</em></h1><p>Không gian vận hành marketing tập trung, nơi dữ liệu, con người và AI cùng tiến về phía trước.</p><div class="auth-mini-chart"><div class="mini-chart-head"><span>Không gian làm việc marketing</span><span>FBTQ</span></div><div class="auth-visual-note">Dữ liệu chiến dịch · Công việc · Nội dung</div></div></div><div class="auth-foot">© 2026 Marketing Ai FBTQ <span>•</span> Grow with clarity</div>
+      <div class="auth-message">
+        <h1>Mọi chiến dịch.<br><em>Một không gian.</em></h1>
+        <p>Theo dõi hiệu suất, phối hợp sản xuất nội dung và chăm sóc khách hàng trong cùng hệ thống.</p>
+        <div class="auth-capabilities">
+          <div><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg><b>Hiệu suất marketing</b><span>Chi phí và kết quả chiến dịch</span></div>
+          <div><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg><b>Studio AI</b><span>Nội dung, video và giọng đọc</span></div>
+          <div><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg><b>Hộp thư</b><span>Hội thoại từ nhiều Fanpage</span></div>
+        </div>
+      </div>
     </div>
     <div class="auth-panel"><div class="auth-mobile-brand"><img class="brand-logo" src="logo.svg?v=20261106-brand-refresh" alt="Marketing Ai FBTQ"></div>
-      <form id="loginForm" class="auth-form"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập</h2><p class="muted">Đăng nhập để tiếp tục vào không gian làm việc.</p>
+      <form id="loginForm" class="auth-form"><h2>Đăng nhập</h2><p class="muted">Dùng email công việc để vào Marketing AI FBTQ.</p>
         <label>Email công việc<input name="email" type="email" placeholder="ten@congty.vn" autocomplete="email" required></label>
         <label>Mật khẩu<div class="password-wrap"><input name="password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required><button class="toggle-password" type="button" aria-label="Hiện mật khẩu">◉</button></div></label>
         <div class="auth-row"><label class="check-label"><input type="checkbox" checked> Ghi nhớ đăng nhập</label><a href="#" id="forgotLink">Quên mật khẩu?</a></div>
-        <button class="btn btn-primary btn-full" type="submit">Đăng nhập <span>→</span></button>
+        <button class="btn btn-primary btn-full" type="submit">Đăng nhập</button>
 
         <div class="auth-switch">Chưa có tài khoản? <a href="#" id="showRegister">Đăng ký ngay</a></div>
         <div class="auth-note" id="authNotice"></div>
       </form>
-      <form id="registerForm" class="auth-form hidden"><div class="eyebrow">BẮT ĐẦU CÙNG FBTQ</div><h2>Tạo tài khoản</h2><p class="muted">Bạn có thể đăng nhập sau khi Giám đốc duyệt tài khoản.</p>
+      <form id="registerForm" class="auth-form hidden"><h2>Tạo tài khoản</h2><p class="muted">Bạn có thể đăng nhập sau khi Giám đốc duyệt tài khoản.</p>
         <label>Họ và tên<input name="name" placeholder="Họ và tên" autocomplete="name" required></label><label>Email công việc<input name="email" type="email" placeholder="ten@congty.vn" autocomplete="email" required></label><label>Mật khẩu<input name="password" type="password" minlength="8" placeholder="Tối thiểu 8 ký tự" required></label>
-        <button class="btn btn-primary btn-full" type="submit">Tạo tài khoản <span>→</span></button><div class="auth-switch">Đã có tài khoản? <a href="#" id="showLogin">Đăng nhập</a></div><div class="auth-note" id="registerNotice"></div>
+        <button class="btn btn-primary btn-full" type="submit">Tạo tài khoản</button><div class="auth-switch">Đã có tài khoản? <a href="#" id="showLogin">Đăng nhập</a></div><div class="auth-note" id="registerNotice"></div>
       </form>
       <div class="auth-legal"><a href="home.html">Trang giới thiệu</a> · <a href="terms.html">Điều khoản</a> · <a href="privacy.html">Quyền riêng tư</a></div>
     </div>
@@ -243,6 +252,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261121-showcase"></script>
+  <script type="module" src="app.js?v=20261121-enterprise"></script>
 </body>
 </html>
