@@ -6,7 +6,7 @@
   background: #f5f8fe;
   --blue: #1955d7;
   --blue-dark: #113b9c;
-  --navy: #112e6c;
+  --brand-blue-bright: #2464df;
   --text-secondary: #465c7b;
   --line: #d8e4f5;
   --pale: #eef5ff;
@@ -75,13 +75,13 @@ h1, h2, h3, p, figure { margin: 0; }
 .hero-copy {
   align-content: center;
   color: #fff;
-  background: radial-gradient(ellipse at 108% 103%, #2374f5bd, transparent 66%), linear-gradient(140deg, #102c68, #153e94 75%);
-  border-color: #173b85;
+  background: linear-gradient(140deg, var(--brand-blue-bright), #194fc4 78%);
+  border-color: #1c56cb;
 }
-.kicker { color: #d2e4ff; font-size: .875rem; font-weight: 690; }
+.kicker { color: #f0f6ff; font-size: .875rem; font-weight: 690; }
 .hero h1 { margin: .85rem 0 1.15rem; font-size: clamp(2.5rem, 4.55vw, 4.4rem); line-height: 1.05; letter-spacing: -.05em; }
-.hero h1 em { display: block; color: #a9d1ff; font-style: normal; }
-.hero-copy > p:not(.kicker) { max-width: 42ch; color: #e1edff; font-size: clamp(1rem, 1.45vw, 1.125rem); }
+.hero h1 em { display: block; color: #e8f2ff; font-style: normal; }
+.hero-copy > p:not(.kicker) { max-width: 42ch; color: #fff; font-size: clamp(1rem, 1.45vw, 1.125rem); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: .625rem; margin-top: clamp(1.4rem, 2.65vw, 2rem); }
 .hero-actions .primary { color: #103a90; background: #fff; }
 .hero-actions .primary:hover { background: #e9f3ff; }

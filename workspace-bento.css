@@ -22,7 +22,9 @@ body[data-workspace-layout="bento"] {
   --bento-radius: 18px;
   --bento-canvas: #edf4ff;
   --bento-soft: #f4f8ff;
-  --bento-nav: #0b2756;
+  --bento-nav: #2164dc;
+  --bento-hero-start: #2260d9;
+  --bento-hero-end: #194fc4;
   --bento-accent: rgb(var(--glass-accent-ink));
   --bento-action: rgb(var(--glass-accent-fill));
   --bento-shadow: 0 9px 24px -19px #103b7b65;
@@ -47,12 +49,14 @@ body.dark[data-workspace-layout="bento"] {
   --bento-canvas: #101a2c;
   --bento-soft: #1e304b;
   --bento-nav: #101f3e;
+  --bento-hero-start: #103b85;
+  --bento-hero-end: #0b2455;
   --bento-shadow: 0 9px 24px -19px #000a;
 }
 
 body[data-workspace-layout="bento"] .app-shell .sidebar {
   background: linear-gradient(158deg,color-mix(in srgb,var(--bento-action) 47%,var(--bento-nav)),var(--bento-nav) 69%);
-  border-right-color: #0b244d;
+  border-right-color: color-mix(in srgb,var(--bento-nav),#102343 22%);
   box-shadow: 6px 0 24px #102e6418;
 }
 body[data-workspace-layout="bento"] .sidebar .side-brand {
@@ -68,7 +72,7 @@ body[data-workspace-layout="bento"] .sidebar .main-nav {
   margin-bottom: 16px;
 }
 body[data-workspace-layout="bento"] .app-shell .sidebar .nav-label {
-  color: #d5e5ff;
+  color: #f4f8ff;
   font-size: .6875rem;
   letter-spacing: .12em;
 }
@@ -204,7 +208,7 @@ body[data-workspace-layout="bento"] .system-notification-item:not(.is-read) { ba
   padding: clamp(12px,1.4vw,20px);
   border: 1px solid #ffffff48;
   border-radius: 16px;
-  background: #143f7f;
+  background: #1b50bf;
   color: #fff;
 }
 .auth-capabilities > :first-child {
@@ -237,10 +241,9 @@ body[data-workspace-layout="bento"] .auth-art {
   padding: clamp(24px,4vw,66px);
   border-radius: 26px;
   background:
-    radial-gradient(ellipse at 94% 14%,#316cd4 0%,transparent 65%),
-    repeating-linear-gradient(90deg,transparent 0 47px,#b0cdff15 47px 48px),
-    repeating-linear-gradient(0deg,transparent 0 47px,#b0cdff15 47px 48px),
-    linear-gradient(155deg,#0d357a,#09224e 75%);
+    repeating-linear-gradient(90deg,transparent 0 47px,#b0cdff0e 47px 48px),
+    repeating-linear-gradient(0deg,transparent 0 47px,#b0cdff0e 47px 48px),
+    linear-gradient(155deg,var(--bento-hero-start),var(--bento-hero-end) 80%);
 }
 body[data-workspace-layout="bento"] .auth-message {
   width: min(100%,540px);
@@ -252,8 +255,8 @@ body[data-workspace-layout="bento"] .auth-message h1 {
   line-height: 1.05;
   margin: 0 0 16px;
 }
-body[data-workspace-layout="bento"] .auth-message h1 em { color: #a9ceff; }
-body[data-workspace-layout="bento"] .auth-message > p { color: #dbe9ff; font-size: 1rem; line-height: 1.6; }
+body[data-workspace-layout="bento"] .auth-message h1 em { color: #e8f2ff; }
+body[data-workspace-layout="bento"] .auth-message > p { color: #f8fbff; font-size: 1rem; line-height: 1.6; }
 body[data-workspace-layout="bento"] .auth-panel {
   gap: 20px;
   min-width: 0;
@@ -348,14 +351,13 @@ body[data-workspace-layout="bento"] #page-overview > .page-heading {
   padding: clamp(20px,3vw,46px);
   min-height: 232px;
   overflow: hidden;
-  border: 1px solid #174481;
+  border: 1px solid var(--bento-hero-end);
   border-radius: var(--bento-radius);
   color: #f5faff;
   background:
-    radial-gradient(ellipse at 95% 98%, rgb(var(--glass-accent) / .6), transparent 70%),
-    repeating-linear-gradient(90deg,transparent 0 43px,#c2ddff18 43px 44px),
-    repeating-linear-gradient(0deg,transparent 0 43px,#c2ddff18 43px 44px),
-    linear-gradient(155deg,#103b85,#0b2455 85%);
+    repeating-linear-gradient(90deg,transparent 0 43px,#c2ddff0e 43px 44px),
+    repeating-linear-gradient(0deg,transparent 0 43px,#c2ddff0e 43px 44px),
+    linear-gradient(155deg,var(--bento-hero-start),var(--bento-hero-end) 85%);
 }
 body[data-workspace-layout="bento"] #page-overview > .page-heading h1 {
   font-size: clamp(28px,3.6vw,55px);
@@ -366,11 +368,11 @@ body[data-workspace-layout="bento"] #page-overview > .page-heading h1 {
   overflow-wrap: anywhere;
 }
 body[data-workspace-layout="bento"] #page-overview > .page-heading :is(.muted,.eyebrow,.wave) {
-  color: #d0e0f5;
+  color: #f1f7ff;
 }
 body[data-workspace-layout="bento"] #page-overview > .page-heading p { font-size: .9375rem; line-height: 1.55; }
 body[data-workspace-layout="bento"] #page-overview #greetingName {
-  color: #bdd8ff;
+  color: #dfedff;
 }
 body[data-workspace-layout="bento"] #page-overview > .page-heading .heading-actions {
   flex-wrap: wrap;
