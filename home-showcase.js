@@ -60,6 +60,8 @@ document.querySelectorAll('.preview-window,.tool-preview').forEach(card=>{
     delete card.dataset.tilting;
     card.style.removeProperty('--tilt-x');
     card.style.removeProperty('--tilt-y');
+    card.style.removeProperty('--light-x');
+    card.style.removeProperty('--light-y');
   }
 
   area.addEventListener('pointermove',event=>{
@@ -72,6 +74,8 @@ document.querySelectorAll('.preview-window,.tool-preview').forEach(card=>{
       card.dataset.tilting='';
       card.style.setProperty('--tilt-x',`${(0.5-y)*10}deg`);
       card.style.setProperty('--tilt-y',`${(x-0.5)*12}deg`);
+      card.style.setProperty('--light-x',`${Math.round(x*100)}%`);
+      card.style.setProperty('--light-y',`${Math.round(y*100)}%`);
     });
   });
   area.addEventListener('pointerleave',reset);
