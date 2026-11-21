@@ -1,10 +1,11 @@
 const defaultAccent = '#3978F6';
-const defaults = {mode:'light', accent:defaultAccent, tint:55};
+const defaults = {mode:'light', accent:defaultAccent, tint:55, layout:'bento'};
 const modes = ['light','dark','system'];
 
 function normalizeAppearance(saved = {}) {
   return {
     mode: modes.includes(saved.mode) ? saved.mode : defaults.mode,
+    layout: saved.layout==='glass'?'glass':defaults.layout,
     accent: /^#[\da-f]{6}$/i.test(saved.accent) ? saved.accent.toUpperCase() : defaults.accent,
     tint: Number.isFinite(saved.tint) ? Math.min(100, Math.max(0, Math.round(saved.tint))) : defaults.tint
   };
@@ -35,6 +36,7 @@ export function initWorkspaceAppearance({document, storage, system}) {
   const tint=document.querySelector('#themeGlassTint');
   const accentButtons=[...document.querySelectorAll('[data-theme-accent]')];
   const modeButtons=[...document.querySelectorAll('[data-theme-choice]')];
+  const layoutButtons=[...document.querySelectorAll('[data-workspace-layout]')];
   const toggle=document.querySelector('#themeToggle');
 
   function render(){
@@ -42,6 +44,10 @@ export function initWorkspaceAppearance({document, storage, system}) {
     const channels=rgb(preferences.accent);
     const {body}=document;
     body.classList.toggle('dark',dark);
+    body.dataset.workspaceLayout=preferences.layout;
+    for(const button of layoutButtons){
+      button.setAttribute('aria-pressed',String(button.dataset.workspaceLayout===preferences.layout));
+    }
     body.style.setProperty('--glass-accent',channels.join(' '));
     body.style.setProperty('--glass-accent-fill',accessibleAccent(channels,false));
     body.style.setProperty('--glass-accent-ink',accessibleAccent(channels,dark));
@@ -72,6 +78,7 @@ export function initWorkspaceAppearance({document, storage, system}) {
   }
 
   for(const button of modeButtons)button.onclick=()=>set({mode:button.dataset.themeChoice});
+  for(const button of layoutButtons)button.onclick=()=>set({layout:button.dataset.workspaceLayout});
   for(const button of accentButtons)button.onclick=()=>set({accent:button.dataset.themeAccent});
   toggle.onclick=()=>set({mode:document.body.classList.contains('dark')?'light':'dark'});
   for(const [input,name,value] of [[pick,'accent',()=>pick.value],[tint,'tint',()=>Number(tint.value)]]){

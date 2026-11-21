@@ -1,0 +1,292 @@
+body[data-workspace-layout="bento"] .app-shell .sidebar {
+  background: linear-gradient(165deg,var(--bento-nav) 45%,color-mix(in srgb,var(--bento-nav) 76%,var(--chrome-deep)));
+  border-right: 1px solid #e4eeff21;
+  box-shadow: 5px 0 24px #06162d16;
+}
+body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item {
+  border-radius: 10px;
+  min-height: 42px;
+}
+body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item.active {
+  background: #d5e8ff22;
+  color: #f5faff;
+  border-color: #e4eeff40;
+  box-shadow: inset 3px 0 rgb(var(--glass-accent)),0 3px 12px #050e211c;
+}
+body[data-workspace-layout="bento"] .app-shell .sidebar .nav-item.active :is(.count-badge:not(.has-pending),.nav-badge) {
+  background: #e4eeff22;
+  color: #fff;
+}
+body[data-workspace-layout="bento"] .app-shell .topbar {
+  --chrome-text: var(--bento-ink);
+  --chrome-muted: var(--bento-muted);
+  --chrome-hairline: var(--bento-line);
+  background: var(--bento-surface);
+  border-bottom-color: var(--bento-line);
+  box-shadow: 0 4px 18px #172b4210;
+}
+body[data-workspace-layout="bento"] .app-shell .topbar .theme-toggle { background: var(--bento-soft); }
+body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) > .page-heading {
+  gap: 14px;
+  margin-bottom: var(--bento-gap);
+  padding: clamp(16px,2.2vw,32px);
+  background: linear-gradient(115deg,var(--bento-surface) 42%,var(--bento-tint));
+  border: 1px solid var(--bento-line);
+  border-inline-start: 4px solid rgb(var(--glass-accent));
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) > .page-heading h1 {
+  font-size: clamp(24px,2.45vw,39px);
+  line-height: 1.13;
+  letter-spacing: -.034em;
+  overflow-wrap: anywhere;
+}
+body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) > .page-heading .eyebrow {
+  color: var(--glass-focus);
+}
+body[data-workspace-layout="bento"] .app-shell .page:not(#page-overview) :is(.panel,.stat-card,.task-column,.task-card,.role-card,.settings-nav,.content-review-card) {
+  background: var(--bento-surface);
+  border-color: var(--bento-line);
+  border-radius: var(--bento-radius);
+  box-shadow: 0 3px 12px #182a4511;
+  backdrop-filter: none;
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.filter-tabs,.editor-tabs,.work-section-tabs) {
+  background: var(--bento-soft);
+  border-color: var(--bento-line);
+}
+body[data-workspace-layout="bento"] .app-shell .page .panel-heading { gap: 12px; }
+body[data-workspace-layout="bento"] .app-shell .page :is(.panel-heading h3,.content-review-panel-heading h3) {
+  font-size: clamp(14px,1.25vw,17px);
+  line-height: 1.3;
+}
+body[data-workspace-layout="bento"] .app-shell :is(.btn-primary,.btn-secondary) {
+  border-radius: 10px;
+  box-shadow: none;
+}
+body[data-workspace-layout="bento"] .app-shell .workspace-layout-picker .btn[aria-pressed="true"] {
+  color: var(--glass-focus);
+  background: var(--bento-tint);
+  border-color: rgb(var(--glass-accent));
+}
+
+/* Reports and review use wider cards for the main content and narrower reference cards. */
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-content-review).active {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: var(--bento-gap);
+  align-items: start;
+}
+body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-content-review) > * {
+  grid-column: 1/-1;
+  min-width: 0;
+  margin: 0;
+}
+body[data-workspace-layout="bento"] .app-shell .page:is(#page-analytics,#page-leaderboard,#page-content-review) > .page-heading { margin-bottom: 0; }
+body[data-workspace-layout="bento"] #page-analytics .analytics-filters {
+  padding: 12px;
+  background: var(--bento-surface);
+  border: 1px solid var(--bento-line);
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] #page-analytics :is(.analytics-stats .stat-card:first-child,.revenue-stat-card) {
+  background: var(--bento-tint);
+}
+body[data-workspace-layout="bento"] #page-analytics #dailyCompareGrid {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+body[data-workspace-layout="bento"] #page-leaderboard #analyticsComparePanel {
+  background: var(--bento-tint);
+}
+@media(min-width:1240px) {
+  body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-content-review).active {
+    grid-template-columns: repeat(12,minmax(0,1fr));
+  }
+  body[data-workspace-layout="bento"] :is(#dailyReportComparison,#analyticsComparePanel,#page-content-review .content-review-submit-panel) {
+    grid-column: span 5;
+  }
+  body[data-workspace-layout="bento"] :is(#page-analytics:has(>#dailyReportComparison:not(.hidden,[hidden])) .analytics-chart-panel,#page-leaderboard:has(>#analyticsComparePanel:not(.hidden,[hidden])) .leaderboard-chart-panel,#page-content-review .content-review-history-panel) {
+    grid-column: span 7;
+  }
+}
+
+/* Studio keeps the preview, inspectors and timeline aligned inside a dedicated surface. */
+body[data-workspace-layout="bento"] #page-creative-studio {
+  --cs-border: var(--bento-line);
+  --cs-bg: var(--bento-soft);
+  --cs-panel: var(--bento-surface);
+  --cs-ink: var(--bento-ink);
+  --cs-muted: var(--bento-muted);
+  --cs-accent: var(--glass-focus);
+}
+body[data-workspace-layout="bento"] .app-shell #page-creative-studio > .page-heading {
+  padding-block: 15px;
+}
+@media(min-width:761px) {
+  body[data-workspace-layout="bento"] #page-creative-studio > .page-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+body[data-workspace-layout="bento"] #page-creative-studio .cs-topbar {
+  margin-bottom: 8px;
+  border-radius: 14px;
+}
+body[data-workspace-layout="bento"] #page-creative-studio .cs-workspace {
+  border: 1px solid var(--cs-border);
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] #page-creative-studio :is(.cs-ai-panel,.cs-free-panel,.cs-export-settings) {
+  border-color: var(--bento-line);
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] #page-content .studio-section-nav-grid {
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+}
+body[data-workspace-layout="bento"] #page-content .studio-section-nav {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-content: start;
+  justify-items: start;
+  padding: 14px;
+  border-radius: 14px;
+  border-color: var(--bento-line);
+  background: var(--bento-surface);
+  color: var(--bento-ink);
+}
+body[data-workspace-layout="bento"] #page-content .studio-section-nav-copy {
+  grid-column: 1/-1;
+  grid-row: 2;
+}
+body[data-workspace-layout="bento"] #page-content .studio-section-nav-copy b { font-size: 13px; }
+body[data-workspace-layout="bento"] #page-content .studio-section-nav-action { display: none; }
+body[data-workspace-layout="bento"] #page-content .studio-section-count { grid-area: 1/2; }
+body[data-workspace-layout="bento"] #page-content .studio-section-nav.selected {
+  background: var(--bento-tint);
+  border-color: rgb(var(--glass-accent));
+}
+body[data-workspace-layout="bento"] #page-content .studio-section-nav small {
+  color: var(--bento-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+/* Operations keep long tables and calendars at their full usable width. */
+body[data-workspace-layout="bento"] :is(#page-tasks,#page-work-awards,#page-requests,#page-advances,#page-automation,#page-people) :is(.work-section-tabs,.task-toolbar,.wf-flow,.work-awards-toolbar,.role-overview) {
+  background: var(--bento-surface);
+  border: 1px solid var(--bento-line);
+  border-radius: 14px;
+  padding: clamp(8px,1vw,15px);
+}
+body[data-workspace-layout="bento"] #page-tasks .task-column {
+  background: var(--bento-soft);
+}
+body[data-workspace-layout="bento"] #page-tasks .task-card {
+  border-radius: 13px;
+}
+body[data-workspace-layout="bento"] #page-advances .wf-summary {
+  gap: var(--bento-gap);
+}
+body[data-workspace-layout="bento"] #page-advances .wf-summary article {
+  background: var(--bento-surface);
+  border-color: var(--bento-line);
+  border-radius: var(--bento-radius);
+}
+body[data-workspace-layout="bento"] #page-automation .automation-grid {
+  grid-template-columns: minmax(0,1fr);
+}
+body[data-workspace-layout="bento"] #page-people .role-overview {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 10px;
+}
+body[data-workspace-layout="bento"] #page-people .role-connector { display: none; }
+
+/* Inbox retains its narrow-screen conversation and page navigation. */
+body[data-workspace-layout="bento"] #page-inbox {
+  --mobile-inbox-surface: var(--bento-surface);
+  --mobile-inbox-line: var(--bento-line);
+  --mobile-inbox-soft: var(--bento-soft);
+  --mobile-inbox-ink: var(--bento-ink);
+  --mobile-inbox-muted: var(--bento-muted);
+}
+body[data-workspace-layout="bento"] .app-shell #page-inbox.messenger-workspace > :is(.messenger-topbar,.inbox-mobile-header) {
+  background: linear-gradient(110deg,var(--bento-nav),color-mix(in srgb,var(--bento-nav) 70%,var(--chrome-deep)));
+  border-color: #d8e9ff2e;
+  box-shadow: none;
+}
+body[data-workspace-layout="bento"] .app-shell #page-inbox:not(.inbox-expanded) .inbox-layout.panel {
+  background: var(--bento-surface);
+  border-radius: 0 0 var(--bento-radius) var(--bento-radius);
+}
+@media(min-width:761px) {
+  body[data-workspace-layout="bento"] #page-inbox .inbox-filter-rail {
+    background: var(--bento-nav);
+    border-right-color: var(--bento-line);
+  }
+}
+body[data-workspace-layout="bento"] #page-inbox :is(.inbox-list,.chat-header,.chat-settings,.chat-compose,.broadcast-workspace) {
+  background: var(--bento-surface);
+  border-color: var(--bento-line);
+  color: var(--bento-ink);
+}
+body[data-workspace-layout="bento"] #page-inbox .chat-body { background: var(--bento-soft); }
+body[data-workspace-layout="bento"] #page-inbox :is(.chat-header small,.messenger-customer-empty,.inbox-empty,.result-empty p) { color: var(--bento-muted); }
+body[data-workspace-layout="bento"] #page-inbox :is(.inbox-filter-summary,.chat-settings > *) { border-color: var(--bento-line); }
+body[data-workspace-layout="bento"] #page-inbox .conversation.selected { background: var(--bento-tint); }
+body[data-workspace-layout="bento"] #page-assistant .assistant-import-card { background: var(--bento-tint); }
+body[data-workspace-layout="bento"] #page-assistant .assistant-workspace { gap: var(--bento-gap); }
+body[data-workspace-layout="bento"] #page-settings .settings-layout { gap: var(--bento-gap); }
+body[data-workspace-layout="bento"] #page-settings .settings-nav button {
+  border-radius: 10px;
+}
+body[data-workspace-layout="bento"] #page-settings .settings-nav button.selected { background: var(--bento-tint); }
+body[data-workspace-layout="bento"] #modalRoot .modal {
+  border: 1px solid var(--bento-line);
+  border-radius: var(--bento-radius);
+  background: var(--bento-surface);
+}
+@media(min-width:901px) {
+  body[data-workspace-layout="bento"] #page-settings .settings-nav {
+    position: sticky;
+    top: 78px;
+    align-self: start;
+  }
+}
+@media(max-width:1140px) {
+  body[data-workspace-layout="bento"] #page-content .studio-section-nav-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  body[data-workspace-layout="bento"] #page-people .role-overview {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+}
+@media(max-width:760px) {
+  body[data-workspace-layout="bento"] #page-inbox.messenger-workspace.active {
+    --mobile-inbox-surface: var(--bento-surface);
+    --mobile-inbox-line: var(--bento-line);
+    --mobile-inbox-soft: var(--bento-soft);
+    --mobile-inbox-ink: var(--bento-ink);
+    --mobile-inbox-muted: var(--bento-muted);
+  }
+  body[data-workspace-layout="bento"] #page-inbox.messenger-workspace.active:not(.inbox-expanded) .inbox-layout.panel {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  body[data-workspace-layout="bento"] .app-shell .page > .page-heading :is(.heading-actions,.people-heading-actions,.cs-heading-actions) {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
+@media(max-width:500px) {
+  body[data-workspace-layout="bento"] #page-people .role-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body[data-workspace-layout="bento"] #page-content .studio-section-nav { min-width: 0; padding-inline: 10px; }
+  body[data-workspace-layout="bento"] .app-shell .page :is(.panel-heading,.content-review-panel-heading) {
+    flex-wrap: wrap;
+  }
+}
+@media(max-width:350px) {
+  body[data-workspace-layout="bento"] #page-content .studio-section-nav-grid { gap: 8px; }
+}

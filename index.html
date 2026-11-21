@@ -20,6 +20,8 @@
   <link rel="stylesheet" href="inbox-glass.css?v=20261119-scroll-latest">
   <link rel="stylesheet" href="openai-firebase.css?v=20261117-openai-blaze">
   <link rel="stylesheet" href="workspace-glass.css?v=20261119-system-settings-roles">
+  <link rel="stylesheet" href="workspace-bento.css?v=20261121-bento-workspace">
+  <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-bento-workspace">
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
 </head>
 <body>
@@ -193,6 +195,11 @@
                 <button type="button" class="theme-card" data-theme-choice="dark"><span class="theme-preview dark-preview"><i></i><i></i><i></i></span><b>Tối</b></button>
                 <button type="button" class="theme-card" data-theme-choice="system"><span class="theme-preview system-preview"><i></i><i></i><i></i></span><b>Theo thiết bị</b></button>
               </div>
+              <div class="workspace-layout-picker" role="group" aria-labelledby="workspaceLayoutLabel">
+                <h4 id="workspaceLayoutLabel">Kiểu giao diện</h4>
+                <button type="button" class="btn btn-secondary" data-workspace-layout="bento" aria-pressed="true">Bento Grid</button>
+                <button type="button" class="btn btn-secondary" data-workspace-layout="glass" aria-pressed="false">Liquid Glass</button>
+              </div>
               <div class="appearance-controls">
                 <div><h4 id="themeAccentHeading">Màu nhấn</h4><div class="appearance-swatches" role="group" aria-labelledby="themeAccentHeading">
                   <button type="button" data-theme-accent="#3978F6" style="--swatch:#3978F6" aria-label="Xanh dương"></button>
@@ -234,6 +241,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261119-system-settings-roles"></script>
+  <script type="module" src="app.js?v=20261121-bento"></script>
 </body>
 </html>
