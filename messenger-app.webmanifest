@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Marketing AI FBTQ",
   "short_name": "FBTQ",
-  "start_url": "./",
+  "start_url": "./workspace.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fc",

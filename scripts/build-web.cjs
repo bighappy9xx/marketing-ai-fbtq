@@ -4,7 +4,13 @@ const {transform}=require('esbuild');
 
 const root=path.resolve(__dirname,'..');
 const output=path.join(root,'web-dist');
-const pages=['index.html','canva-callback.html','privacy.html','terms.html','data-deletion.html'];
+const landingAtRoot=process.argv.includes('--landing-root');
+const pages=[
+  ['index.html','workspace.html'],
+  ['home.html','home.html'],
+  [landingAtRoot?'home.html':'index.html','index.html'],
+  ...['canva-callback.html','privacy.html','terms.html','data-deletion.html'].map(file=>[file,file])
+];
 const staticFiles=[
   'icons.svg','favicon.svg','logo.svg','logo-light.svg','apple-touch-icon.png','messenger-app.webmanifest',
   'OPENAI_FIREBASE_SETUP.md','FIREBASE_AI_SETUP.md','FACEBOOK-CONNECT.md',
@@ -80,7 +86,7 @@ async function addAssets(directory){
 async function build(){
   await fs.rm(output,{recursive:true,force:true});
   try{
-    for(const file of pages){
+    for(const [file,target] of pages){
       const html=await fs.readFile(path.join(root,file),'utf8');
       checkPublicText(file,html);
       const links=html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)=["']([^"']+)["']/g);
@@ -88,7 +94,7 @@ async function build(){
         const dep=link.split(/[?#]/)[0];
         if(/^[a-zA-Z0-9_-]+\.(js|css)$/.test(dep))await addModule(dep);
       }
-      await write(file,html.replace(/<head\b[^>]*>/i,head=>head+'\n<meta http-equiv="Content-Security-Policy" content="'+csp+'">'));
+      await write(target,html.replace(/<head\b[^>]*>/i,head=>head+'\n<meta http-equiv="Content-Security-Policy" content="'+csp+'">'));
     }
     await addAssets('assets');
     await addModule('messenger-push-worker.js');

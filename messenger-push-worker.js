@@ -4,6 +4,7 @@ const cacheName='fbtq-messenger-push-v1';
 const bindingKey=new URL('./messenger-push-device',self.registration.scope).href;
 const inboxUrl=new URL('./#inbox',self.registration.scope).href;
 const pendingLocal=new Set();
+const isWorkspaceUrl=(url,scope)=>url.origin===scope.origin&&['','index.html','workspace','workspace.html'].some(path=>url.pathname===scope.pathname+path);
 
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
@@ -36,7 +37,7 @@ self.addEventListener('push',event=>{
 self.addEventListener('message',event=>{
   if(event.data?.type!=='fbtq-messenger-background'||!event.source?.url||event.source.visibilityState==='visible')return;
   const source=new URL(event.source.url),scope=new URL(self.registration.scope);
-  if(source.origin!==scope.origin||!(source.pathname===scope.pathname||source.pathname===scope.pathname+'index.html'))return;
+  if(!isWorkspaceUrl(source,scope))return;
   event.waitUntil(showIncoming(event.data,true));
 });
 self.addEventListener('notificationclick',event=>{
@@ -44,10 +45,7 @@ self.addEventListener('notificationclick',event=>{
   event.waitUntil((async()=>{
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     const scope=new URL(self.registration.scope);
-    const client=windows.find(window=>{
-      const url=new URL(window.url);
-      return url.origin===scope.origin&&(url.pathname===scope.pathname||url.pathname===scope.pathname+'index.html');
-    });
+    const client=windows.find(window=>isWorkspaceUrl(new URL(window.url),scope));
     if(client){
       const target=new URL(client.url);
       target.hash='inbox';
