@@ -1,11 +1,12 @@
 const defaultAccent = '#3978F6';
 const defaults = {mode:'light', accent:defaultAccent, tint:55, layout:'bento'};
 const modes = ['light','dark','system'];
+const layouts = ['bento','glass','depth'];
 
 function normalizeAppearance(saved = {}) {
   return {
     mode: modes.includes(saved.mode) ? saved.mode : defaults.mode,
-    layout: saved.layout==='glass'?'glass':defaults.layout,
+    layout: layouts.includes(saved.layout) ? saved.layout : defaults.layout,
     accent: /^#[\da-f]{6}$/i.test(saved.accent) ? saved.accent.toUpperCase() : defaults.accent,
     tint: Number.isFinite(saved.tint) ? Math.min(100, Math.max(0, Math.round(saved.tint))) : defaults.tint
   };

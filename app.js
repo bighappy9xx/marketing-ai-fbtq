@@ -1,5 +1,5 @@
 import {initMessengerPush} from './messenger-push-ui.js?v=20261119-desktop-banners';
-import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261121-bento';
+import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261121-depth';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-desktop-banners';
 import {attachmentMarkup,initMessengerImages,prepareScriptImage} from './messenger-images.js?v=20261118-blue-chatbot-menu';
 import {messengerAvatar,chatTime} from './inbox-realtime.js?v=20261119-messenger-profile-identity';
