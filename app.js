@@ -711,7 +711,7 @@ function assistantImportNotice(message){
   appendFbtqAssistantMessage('assistant',message);
 }
 function openWorkspaceDeepLink(){
- if(state.user&&['#assistant','#creative-studio','#inbox','#analytics','#automation'].includes(location.hash))navigate(location.hash.slice(1));
+ if(state.user&&['#assistant','#creative-studio','#inbox','#analytics','#automation','#content-review','#tasks'].includes(location.hash))navigate(location.hash.slice(1));
 }
 window.addEventListener('hashchange',openWorkspaceDeepLink);
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
