@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f9fbff">
   <title>Marketing AI FBTQ · Không gian vận hành marketing</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="home.css?v=20261121-motion">
+  <link rel="stylesheet" href="home.css?v=20261121-liquid">
   <script src="home-route.js?v=20261121-home" defer></script>
   <script src="home-showcase.js?v=20261121-light-depth" defer></script>
 </head>
@@ -18,7 +18,11 @@
         <img src="favicon.svg" width="38" height="38" alt=""><span>Marketing AI <b>FBTQ</b></span>
       </a>
       <nav aria-label="Điều hướng trang chủ">
-        <a class="nav-tools" href="#cong-cu">Công cụ</a>
+        <div class="nav-sections">
+          <a href="#cong-cu">Công cụ</a>
+          <a href="#quy-trinh">Quy trình</a>
+          <a href="#cau-hoi">Hỏi đáp</a>
+        </div>
         <a class="nav-login" href="workspace.html">Đăng nhập</a>
         <a class="button primary" href="workspace.html?auth=register">Đăng ký</a>
       </nav>
@@ -37,7 +41,7 @@
         <div class="hero-copy">
           <p class="kicker">WORKSPACE MARKETING FBTQ</p>
           <h1>Từ chiến dịch <em>đến kết quả.</em></h1>
-          <p>Theo dõi quảng cáo, sản xuất nội dung bằng AI và chăm sóc khách hàng trong một không gian làm việc.</p>
+          <p>Không gian làm việc cho đội marketing. Theo dõi hiệu suất quảng cáo, dựng và duyệt nội dung bằng AI, quản lý tin nhắn Fanpage và phối hợp công việc theo chi nhánh.</p>
           <div class="hero-actions">
             <a class="button primary" href="workspace.html">Đăng nhập</a>
             <a class="button outline" href="#cong-cu">Khám phá công cụ <span class="button-arrow" aria-hidden="true">↓</span></a>
@@ -66,33 +70,82 @@
     </section>
 
     <section class="wrap tools" id="cong-cu" aria-labelledby="tools-title">
-      <div class="section-heading" data-reveal><h2 id="tools-title">Khám phá không gian làm việc</h2><p>Chọn một công cụ để xem cách dùng trong công việc hằng ngày.</p></div>
+      <div class="section-heading" data-reveal><h2 id="tools-title">Công cụ cho cả đội marketing</h2><p>Chọn một nhóm để xem tính năng, cách sử dụng và mở công cụ trong hệ thống.</p></div>
       <div class="tool-tabs" aria-label="Nhóm công cụ FBTQ"><a id="tool-tab-reports" href="#tool-reports" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg>Hiệu suất</a><a id="tool-tab-studio" href="#tool-studio" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg>Studio AI</a><a id="tool-tab-review" href="#tool-review" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#clipboard-check"></use></svg>Kiểm duyệt</a><a id="tool-tab-inbox" href="#tool-inbox" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg>Hộp thư</a><a id="tool-tab-tasks" href="#tool-tasks" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg>Công việc</a><a id="tool-tab-billing" href="#tool-billing" data-tool-tab><svg aria-hidden="true"><use href="icons.svg#wallet"></use></svg>Hồ sơ & hóa đơn</a></div>
       <div class="tool-panels">
         <article id="tool-reports" class="tool-panel" data-tool-panel data-tool-theme="reports">
-          <div class="tool-copy"><h3>Hiệu suất marketing</h3><p>Biết ngân sách đang tạo ra kết quả gì.</p><ul><li>So sánh chi tiêu, lượt tiếp cận và kết quả theo kỳ báo cáo.</li><li>Theo dõi doanh thu theo nhân sự và chi nhánh.</li></ul><a class="button outline" href="workspace.html#analytics">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Hiệu suất marketing</h3><p>Biết ngân sách đang tạo ra kết quả gì.</p><ul><li>So sánh chi tiêu, lượt tiếp cận và kết quả theo kỳ báo cáo.</li><li>Theo dõi doanh thu và so sánh hiệu suất nhân sự theo phạm vi được cấp.</li><li>Xem chi phí trên mỗi kết quả để đối chiếu giữa các chiến dịch.</li></ul><a class="button outline" href="workspace.html#analytics">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg>Hiệu suất</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Báo cáo ngày</strong><small>Chi tiêu · Kết quả · Doanh thu</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>So sánh theo kỳ</strong><small>Bộ lọc thời gian và nhân sự</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Xếp hạng doanh thu</strong><small>Hiệu quả theo phạm vi tài khoản</small></span></li></ul></div></div>
         </article>
         <article id="tool-studio" class="tool-panel" data-tool-panel data-tool-theme="studio">
-          <div class="tool-copy"><h3>Studio sáng tạo &amp; nội dung</h3><p>Từ ý tưởng đến nội dung sẵn sàng gửi duyệt.</p><ul><li>Dựng video trên timeline, biên tập hình ảnh và phân tích đoạn nổi bật.</li><li>Dùng AI để viết nội dung và tạo giọng đọc.</li></ul><a class="button outline" href="workspace.html#creative-studio">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Studio sáng tạo &amp; nội dung</h3><p>Từ ý tưởng đến nội dung sẵn sàng gửi duyệt.</p><ul><li>Dựng video trên timeline, biên tập hình ảnh và phân tích đoạn nổi bật.</li><li>Dùng AI để soạn bài, biên tập bản nháp và tạo giọng đọc.</li><li>Đưa video Final và nội dung sang bước kiểm duyệt.</li></ul><a class="button outline" href="workspace.html#creative-studio">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg>Studio AI</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Timeline video</strong><small>Tư liệu · Lớp hình · Âm thanh</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Studio nội dung</strong><small>Bài viết · Bản nháp · Giọng đọc</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Xuất và gửi duyệt</strong><small>Chuyển video Final vào kiểm duyệt</small></span></li></ul></div></div>
         </article>
         <article id="tool-review" class="tool-panel" data-tool-panel data-tool-theme="review">
-          <div class="tool-copy"><h3>Kiểm duyệt nội dung</h3><p>Nhìn rõ chỗ cần sửa trước khi xuất bản.</p><ul><li>Kiểm tra chính tả, đánh dấu từ cấm và xem đề xuất biên tập.</li><li>Gửi bài và video để duyệt, theo dõi yêu cầu chỉnh sửa.</li></ul><a class="button outline" href="workspace.html#content-review">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Kiểm duyệt nội dung</h3><p>Nhìn rõ chỗ cần sửa trước khi xuất bản.</p><ul><li>Kiểm tra chính tả, đánh dấu từ cấm và xem đề xuất biên tập.</li><li>Gửi bài và video để duyệt, theo dõi yêu cầu chỉnh sửa.</li><li>Xem lại lịch sử xử lý và trạng thái của từng nội dung.</li></ul><a class="button outline" href="workspace.html#content-review">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#clipboard-check"></use></svg>Kiểm duyệt</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Bản nháp</strong><small>Kiểm tra từ khóa và chính tả</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Chờ duyệt</strong><small>Nội dung và video gửi cùng nhau</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Lịch sử chỉnh sửa</strong><small>Xem phản hồi và trạng thái</small></span></li></ul></div></div>
         </article>
         <article id="tool-inbox" class="tool-panel" data-tool-panel data-tool-theme="inbox">
-          <div class="tool-copy"><h3>Hộp thư &amp; Chatbot AI</h3><p>Quản lý nhiều Fanpage trong cùng hộp thư.</p><ul><li>Lọc hội thoại, nhận thông báo tin mới và trả lời khách ngay trong FBTQ.</li><li>Dùng kịch bản hoặc AI để gợi ý phản hồi.</li></ul><a class="button outline" href="workspace.html#inbox">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Hộp thư &amp; Chatbot AI</h3><p>Quản lý nhiều Fanpage trong cùng hộp thư.</p><ul><li>Lọc hội thoại, nhận thông báo tin mới và trả lời khách ngay trong FBTQ.</li><li>Dùng kịch bản có văn bản và hình ảnh hoặc để AI gợi ý phản hồi.</li><li>Nhận thông báo tin mới trên thiết bị đã cấp quyền thông báo.</li></ul><a class="button outline" href="workspace.html#inbox">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg>Hộp thư</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Hội thoại</strong><small>Tin nhắn Messenger theo Fanpage</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Kịch bản phản hồi</strong><small>Văn bản và hình ảnh</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Trợ lý AI</strong><small>Gợi ý câu trả lời theo cấu hình</small></span></li></ul></div></div>
         </article>
         <article id="tool-tasks" class="tool-panel" data-tool-panel data-tool-theme="tasks">
-          <div class="tool-copy"><h3>Công việc &amp; vinh danh</h3><p>Giao việc rõ ràng và theo dõi tiến độ.</p><ul><li>Quản lý đầu việc, người phụ trách và thời hạn hoàn thành.</li><li>Xem kết quả và bảng vinh danh theo tháng.</li></ul><a class="button outline" href="workspace.html#tasks">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Công việc &amp; vinh danh</h3><p>Giao việc rõ ràng và theo dõi tiến độ.</p><ul><li>Quản lý đầu việc, người phụ trách và thời hạn hoàn thành.</li><li>Theo dõi việc đang làm và việc đã hoàn thành.</li><li>Xem kết quả và bảng vinh danh theo tháng.</li></ul><a class="button outline" href="workspace.html#tasks">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg>Công việc</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Cần thực hiện</strong><small>Người phụ trách và hạn xử lý</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Đang làm</strong><small>Theo dõi tiến độ</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Hoàn thành</strong><small>Xem lại lịch sử và thành tích</small></span></li></ul></div></div>
         </article>
         <article id="tool-billing" class="tool-panel" data-tool-panel data-tool-theme="billing">
-          <div class="tool-copy"><h3>Hóa đơn, đơn từ &amp; đề xuất</h3><p>Theo dõi hồ sơ từ lúc gửi đến lúc xử lý.</p><ul><li>Tải hóa đơn Meta và đối chiếu VAT theo kỳ.</li><li>Gửi đơn nghỉ, yêu cầu tạm ứng và xem trạng thái phê duyệt.</li></ul><a class="button outline" href="workspace.html#automation">Mở công cụ</a></div>
+          <div class="tool-copy"><h3>Hóa đơn, đơn từ &amp; đề xuất</h3><p>Theo dõi hồ sơ từ lúc gửi đến lúc xử lý.</p><ul><li>Tải hóa đơn Meta và đối chiếu VAT theo kỳ.</li><li>Gửi đơn nghỉ hoặc yêu cầu tạm ứng theo quyền được cấp.</li><li>Theo dõi trạng thái hồ sơ và phản hồi phê duyệt.</li></ul><a class="button outline" href="workspace.html#automation">Mở công cụ</a></div>
           <div class="tilt-area"><div class="tool-preview"><div class="tool-preview-title"><svg aria-hidden="true"><use href="icons.svg#wallet"></use></svg>Hồ sơ &amp; hóa đơn</div><ul><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Hóa đơn Meta</strong><small>Theo dõi tổng tiền và VAT</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Tạm ứng</strong><small>Gửi yêu cầu và xem trạng thái</small></span></li><li><span class="tool-glyph" aria-hidden="true"></span><span><strong>Đơn nghỉ</strong><small>Theo dõi lịch và kết quả duyệt</small></span></li></ul></div></div>
         </article>
+      </div>
+    </section>
+
+    <section class="wrap workflow" id="quy-trinh" aria-labelledby="workflow-title">
+      <div class="section-heading" data-reveal>
+        <h2 id="workflow-title">Một chiến dịch đi qua FBTQ thế nào?</h2>
+        <p>Từ giao việc đến chăm sóc khách hàng và đối chiếu kết quả.</p>
+      </div>
+      <ol class="workflow-steps" data-reveal>
+        <li>
+          <span class="glass-icon"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg></span>
+          <h3>Giao việc và soạn nội dung</h3>
+          <p>Phân công người phụ trách và đặt thời hạn. Dùng Studio để viết bài, biên tập video và chuẩn bị bản gửi duyệt.</p>
+        </li>
+        <li>
+          <span class="glass-icon"><svg aria-hidden="true"><use href="icons.svg#clipboard-check"></use></svg></span>
+          <h3>Duyệt và chăm sóc khách</h3>
+          <p>Gửi bài và video để người có quyền phản hồi hoặc phê duyệt. Khi khách nhắn Fanpage, đội ngũ có thể trả lời từ hộp thư FBTQ.</p>
+        </li>
+        <li>
+          <span class="glass-icon"><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg></span>
+          <h3>Đo lường và đối chiếu</h3>
+          <p>Xem chi tiêu, số lượt tiếp cận, kết quả và doanh thu theo kỳ. Đối chiếu số liệu với hóa đơn Meta và VAT.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="wrap questions" id="cau-hoi" aria-labelledby="questions-title">
+      <div class="section-heading" data-reveal>
+        <h2 id="questions-title">Câu hỏi thường gặp</h2>
+        <p>Cách vào hệ thống và chuẩn bị để sử dụng các công cụ.</p>
+      </div>
+      <div class="question-list" data-reveal>
+        <details>
+          <summary>Ai có thể truy cập không gian làm việc?</summary>
+          <p>Nhân viên đăng ký bằng email công việc và chờ duyệt tài khoản. Sau khi được duyệt, các chức năng và dữ liệu hiển thị theo vai trò và quyền được cấp.</p>
+        </details>
+        <details>
+          <summary>Làm sao để nhận tin nhắn Fanpage?</summary>
+          <p>Trong Chatbot AI, dùng mục Kết nối &amp; đồng bộ để kết nối Fanpage mà bạn có quyền quản lý. Sau khi kết nối, chọn một hoặc nhiều Trang để xem chung hội thoại trong hộp thư.</p>
+        </details>
+        <details>
+          <summary>AI hỗ trợ những công việc nào?</summary>
+          <p>Tùy cấu hình, AI hỗ trợ viết và biên tập nội dung, phân tích video, tạo giọng đọc và gợi ý trả lời khách. Chatbot có thể dùng kịch bản phản hồi hoặc AI theo cấu hình từng Fanpage.</p>
+        </details>
+        <details>
+          <summary>Có dùng được trên điện thoại không?</summary>
+          <p>Bạn có thể mở FBTQ trên trình duyệt điện thoại để xem công việc, đọc tin nhắn và trả lời khách. Bố cục hộp thư chuyển sang từng màn hình để dễ thao tác.</p>
+        </details>
       </div>
     </section>
 
