@@ -9,7 +9,7 @@
     "redirects": [
       {
         "source": "/index{,.html}",
-        "destination": "/workspace",
+        "destination": "/",
         "type": 302
       }
     ],
