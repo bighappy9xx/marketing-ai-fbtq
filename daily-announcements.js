@@ -1,80 +1,61 @@
-import {vnToday} from './assistant-session.js?v=20261125-overview';
-
 const branchOf = user => user?.branch || user?.branchName || user?.branchId || '';
-const roleLabels = {director: 'Giám đốc', branch_manager: 'Quản lý chi nhánh', department_manager: 'Trưởng phòng'};
 const formatTime = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short'
 });
 const timeOf = row => row.createdAt?.toMillis?.() ?? 0;
 const expiresAt = row => timeOf(row) + (row.durationHours === 48 ? 48 : 24) * 3600000;
 
-export function initDailyAnnouncements({root, getSession}) {
+export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
   const query = selector => root.querySelector(selector);
   const composer = query('[data-announcement-composer]');
   const writeButton = query('[data-announcement-write]');
   const form = composer.querySelector('form');
   const submit = form.querySelector('button');
   const activeList = query('[data-announcement-active]');
-  const historyList = query('[data-announcement-history]');
-  const historyDate = query('[data-announcement-date]');
-  const more = query('[data-announcement-more]');
   const status = query('[data-announcement-status]');
   const formStatus = query('[data-announcement-form-status]');
-  let subscriptions = [], results = [], errors = [], visible = 15, generation = 0, expiryTimer;
+  let subscriptions = [], results = [], errors = [], generation = 0, expiryTimer;
 
   function toggleComposer(open) {
     composer.hidden = !open;
     writeButton.setAttribute('aria-expanded', String(open));
-    if (open) form.elements.title.focus();
+    if (open) form.elements.message.focus();
   }
 
-  function renderList(container, rows, emptyLabel = '') {
-    container.replaceChildren();
-    if (!rows.length && emptyLabel) {
-      const empty = document.createElement('p');
-      empty.className = 'muted';
-      empty.textContent = emptyLabel;
-      container.append(empty);
-      return;
-    }
+  function renderList(rows) {
+    const fragment = document.createDocumentFragment();
     for (const row of rows) {
       const item = document.createElement('article');
-      const title = document.createElement('h3');
+      const avatar = document.createElement('span');
       const text = document.createElement('p');
-      const author = document.createElement('small');
-      title.textContent = row.title;
-      text.textContent = row.message;
-      author.textContent = [row.createdByName, roleLabels[row.authorRole], row.branch, row.department,
-        timeOf(row) && formatTime.format(timeOf(row))].filter(Boolean).join(' · ');
-      item.append(title, author, text);
-      if (container === activeList) {
-        const expiry = document.createElement('time');
-        expiry.className = 'announcement-expiry';
-        expiry.dateTime = new Date(expiresAt(row)).toISOString();
-        expiry.textContent = 'Hiệu lực đến ' + formatTime.format(expiresAt(row));
-        item.append(expiry);
-      }
-      container.append(item);
+      const posted = document.createElement('time');
+      const name = row.createdByName || 'Người đăng';
+      const initials = name.trim().split(/\s+/).slice(-2).map(part => part[0]).join('').toUpperCase();
+      avatar.className = 'avatar avatar-blue announcement-avatar';
+      avatar.title = name;
+      avatar.setAttribute('role', 'img');
+      avatar.setAttribute('aria-label', name);
+      setAvatarElement(avatar, row.photoData, initials);
+      text.textContent = [row.title, row.message].filter(Boolean).join('\n');
+      posted.dateTime = new Date(timeOf(row)).toISOString();
+      posted.textContent = formatTime.format(timeOf(row));
+      item.append(avatar, text, posted);
+      fragment.append(item);
     }
+    activeList.replaceChildren(fragment);
   }
 
   function render() {
     clearTimeout(expiryTimer);
     const now = Date.now();
     const rows = results.flat().sort((a, b) => timeOf(b) - timeOf(a));
-    const todayKey = vnToday();
-    const day = row => timeOf(row) ? vnToday(new Date(timeOf(row))) : todayKey;
     const active = rows.filter(row => timeOf(row) && expiresAt(row) > now);
-    const history = rows.filter(row => !historyDate.value || day(row) === historyDate.value);
-    historyDate.max = todayKey;
     activeList.hidden = !active.length;
-    renderList(activeList, active);
+    renderList(active);
     if (active.length) {
       const nextExpiry = active.reduce((next, row) => Math.min(next, expiresAt(row)), Infinity);
       expiryTimer = setTimeout(render, nextExpiry - now);
     }
-    renderList(historyList, history.slice(0, visible), 'Chưa có thông báo trong khoảng đã chọn.');
-    more.hidden = history.length <= visible;
     status.textContent = errors.some(Boolean) ? 'Có phần thông báo chưa tải được. Hãy thử tải lại trang.' : '';
   }
 
@@ -84,11 +65,8 @@ export function initDailyAnnouncements({root, getSession}) {
     subscriptions = [];
     results = [];
     errors = [];
-    visible = 15;
     writeButton.hidden = true;
     toggleComposer(false);
-    query('[data-announcement-history-box]').open = false;
-    historyDate.value = '';
     form.reset();
     submit.disabled = false;
     formStatus.textContent = '';
@@ -143,11 +121,10 @@ export function initDailyAnnouncements({root, getSession}) {
     const {user, role, firebase} = getSession();
     if (!user || !firebase) return;
     const {db, storeMod} = firebase;
-    const title = form.elements.title.value.trim();
     const message = form.elements.message.value.trim();
     const durationHours = Number(form.elements.durationHours.value);
-    if (!title || !message) {
-      formStatus.textContent = 'Nhập tiêu đề và nội dung quan trọng trước khi đăng.';
+    if (!message) {
+      formStatus.textContent = 'Nhập nội dung trước khi đăng.';
       return;
     }
     if (durationHours !== 24 && durationHours !== 48) {
@@ -158,11 +135,14 @@ export function initDailyAnnouncements({root, getSession}) {
     submit.disabled = true;
     formStatus.textContent = 'Đang đăng thông báo…';
     try {
+      const profile = (await storeMod.getDoc(storeMod.doc(db, 'users', user.uid))).data();
+      if (session !== generation) return;
+      const photoData = profile?.photoData || '';
       await storeMod.addDoc(storeMod.collection(db, 'workspaces', 'fbtq', 'dailyAnnouncements'), {
         createdBy: user.uid, createdByName: user.name, authorRole: role,
         branch: role === 'director' ? '' : branchOf(user),
         department: role === 'department_manager' ? user.department : '',
-        title, message, durationHours, createdAt: storeMod.serverTimestamp()
+        message, photoData, durationHours, createdAt: storeMod.serverTimestamp()
       });
       if (session !== generation) return;
       form.reset();
@@ -175,8 +155,6 @@ export function initDailyAnnouncements({root, getSession}) {
       if (session === generation) submit.disabled = false;
     }
   });
-  historyDate.addEventListener('change', () => { visible = 15; render(); });
-  more.addEventListener('click', () => { visible += 15; render(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
   return {start, stop};
 }

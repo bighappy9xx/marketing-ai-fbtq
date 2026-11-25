@@ -19,28 +19,32 @@ body[data-workspace-layout="bento"] #page-overview > .overview-announcements { m
 }
 .overview-announcement-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .overview-announcements h2 { margin: 0; color: var(--glass-text); font-size: clamp(1.05rem, 1.6vw, 1.35rem); }
-.announcement-list { display: grid; gap: 8px; margin-block: 12px; }
-.announcement-list article { min-width: 0; padding: 12px; border: 1px solid var(--glass-edge); border-radius: 12px; background: var(--glass-control); overflow-wrap: anywhere; }
-.announcement-list h3 { margin: 0 0 4px; color: var(--glass-text); font-size: .95rem; }
-.announcement-list small { font-size: .75rem; color: var(--glass-muted); }
-.announcement-list p { margin: 6px 0 0; white-space: pre-wrap; font-size: .875rem; }
+.announcement-list { display: grid; gap: 8px; margin-top: 12px; }
 .announcement-active article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 6px 12px;
+  min-width: 0;
   padding: 14px;
-  border-color: color-mix(in srgb, var(--glass-focus) 45%, var(--glass-edge));
+  border: 1px solid color-mix(in srgb, var(--glass-focus) 45%, var(--glass-edge));
   border-inline-start: 4px solid var(--glass-focus);
+  border-radius: 12px;
   background: color-mix(in srgb, var(--glass-focus) 10%, var(--glass-control));
 }
-.announcement-active h3 { color: var(--glass-focus); font-size: 1rem; }
-.announcement-expiry { display: inline-block; margin-top: 9px; padding: 3px 8px; border-radius: 6px; background: var(--glass-control); color: var(--glass-focus); font-size: .75rem; font-weight: 700; }
-.overview-announcements summary { width: fit-content; padding-block: 7px; cursor: pointer; color: var(--glass-focus); font-weight: 700; font-size: .875rem; }
+.announcement-avatar { width: 38px; height: 38px; }
+.announcement-active p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--glass-text); font-size: .875rem; line-height: 1.55; }
+.announcement-active time { color: var(--glass-muted); white-space: nowrap; font-size: .75rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 540px) {
+  .announcement-active article { grid-template-columns: auto minmax(0, 1fr); }
+  .announcement-active time { grid-column: 2; }
+}
 .overview-announcements [hidden] { display: none; }
-.overview-announcements details[data-announcement-history-box] { border-top: 1px solid var(--glass-edge); margin-top: 12px; padding-top: 4px; }
-.overview-announcements form, .announcement-date { display: grid; gap: 8px; margin-top: 8px; }
+.overview-announcements form { display: grid; gap: 8px; margin-top: 8px; }
 .announcement-form label { display: grid; gap: 5px; }
-.announcement-composer-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(96px, 122px); gap: 8px; }
-.announcement-form :is(label,input,select,textarea), .announcement-date { font-size: .875rem; }
-.announcement-form :is(input,select,textarea), .announcement-date input { padding: 8px 10px; min-width: 0; border: 1px solid var(--glass-edge); border-radius: 8px; }
-.announcement-form button, .announcement-date { justify-self: start; width: fit-content; }
+.announcement-form :is(label,select,textarea) { font-size: .875rem; }
+.announcement-form :is(select,textarea) { padding: 8px 10px; min-width: 0; border: 1px solid var(--glass-edge); border-radius: 8px; }
+.announcement-form button, .announcement-duration { justify-self: start; width: fit-content; }
 .announcement-status { margin: 8px 0 0; font-size: .875rem; color: var(--glass-text); }
 .announcement-status:empty { display: none; }
 #overviewTeamFilterWrap, #dailyHistoryTeamFilterWrap { min-width: 0; }

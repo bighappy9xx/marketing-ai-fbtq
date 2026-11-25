@@ -20,7 +20,7 @@ import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix'
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-broadcast-mobile';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261125-overview';
 import { initOverviewHub } from './overview-hub.js?v=20261125-overview';
-import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-expiry';
+import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-stream';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);
@@ -33,7 +33,7 @@ let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
 const state = {openaiBackendUrl:null,user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
-const dailyAnnouncements=initDailyAnnouncements({root:$('#overviewAnnouncements'),getSession:()=>state});
+const dailyAnnouncements=initDailyAnnouncements({root:$('#overviewAnnouncements'),getSession:()=>state,setAvatarElement});
 let workflows=null;
 let speechObjectUrl=null,speechController=null;
 let geminiFallbackUsed=false;

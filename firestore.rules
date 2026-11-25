@@ -563,16 +563,18 @@ service cloud.firestore {
           && (role() == 'branch_manager' || resource.data.department == '' || resource.data.department == department()));
       }
       function validAnnouncement(data) {
-        let fields = ['createdBy','createdByName','authorRole','branch','department','title','message','durationHours','createdAt'];
+        let fields = ['createdBy','createdByName','authorRole','branch','department','message','durationHours','createdAt'];
         let name = profile().get('name', '');
-        return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+        return data.keys().hasAll(fields) && data.keys().hasOnly(fields.concat(['title','photoData']))
           && data.createdBy == request.auth.uid && data.authorRole == role()
           && data.createdByName == (name != '' ? name : request.auth.token.email)
           && ((director() && data.branch == '' && data.department == '')
             || (branch() != '' && data.branch == branch()
               && ((role() == 'branch_manager' && data.department == '')
                 || (role() == 'department_manager' && department() != '' && data.department == department()))))
-          && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+          && data.get('title', '') is string && data.get('title', '').size() <= 120
+          && (!data.keys().hasAny(['photoData'])
+            || (data.photoData is string && data.photoData.size() <= 180000 && data.photoData == profile().get('photoData', '')))
           && data.message is string && data.message.size() >= 1 && data.message.size() <= 2500
           && data.durationHours is int && data.durationHours in [24, 48]
           && data.createdAt == request.time;

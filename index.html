@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-enterprise">
   <link rel="stylesheet" href="workspace-depth.css?v=20261121-depth">
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
-  <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-expiry">
+  <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-stream">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
 </head>
 <body data-workspace-layout="bento">
@@ -82,7 +82,7 @@
           <section class="panel overview-announcements" id="overviewAnnouncements" aria-labelledby="dailyAnnouncementTitle">
             <header>
               <span class="overview-announcement-icon"><svg aria-hidden="true"><use href="icons.svg#file-text"></use></svg></span>
-              <h2 id="dailyAnnouncementTitle">Thông báo hằng ngày</h2>
+              <h2 id="dailyAnnouncementTitle">Thông báo</h2>
               <button class="btn btn-primary announcement-write" type="button" data-announcement-write aria-controls="dailyAnnouncementComposer" aria-expanded="false" hidden>Viết thông báo</button>
             </header>
             <p class="announcement-status" role="status" data-announcement-status></p>
@@ -90,21 +90,12 @@
             <div id="dailyAnnouncementComposer" data-announcement-composer hidden>
               <form class="announcement-form" data-approval-title="Đăng thông báo hằng ngày">
                 <p class="muted" data-announcement-audience></p>
-                <div class="announcement-composer-fields">
-                  <label>Tiêu đề<input type="text" name="title" maxlength="120" required></label>
-                  <label>Hiệu lực<select name="durationHours"><option value="24">24 giờ</option><option value="48">48 giờ</option></select></label>
-                </div>
+                <label class="announcement-duration">Hiệu lực<select name="durationHours"><option value="24">24 giờ</option><option value="48">48 giờ</option></select></label>
                 <label>Nội dung quan trọng<textarea name="message" rows="3" maxlength="2500" required></textarea></label>
                 <button class="btn btn-primary" type="submit">Đăng thông báo</button>
               </form>
             </div>
             <div class="announcement-list announcement-active" data-announcement-active hidden></div>
-            <details data-announcement-history-box>
-              <summary>Lịch sử thông báo hằng ngày</summary>
-              <label class="announcement-date">Lọc theo ngày<input type="date" data-announcement-date></label>
-              <div class="announcement-list" data-announcement-history></div>
-              <button class="btn btn-secondary" type="button" data-announcement-more hidden>Xem thêm</button>
-            </details>
           </section>
           <div class="page-heading"><div><div class="eyebrow" id="overviewDate">TỔNG QUAN MARKETING</div><h1>Chào bạn, <span id="greetingName">Tài khoản</span> <span class="wave">✦</span></h1><p class="muted">Tổng hợp hiệu suất theo quyền truy cập, chi nhánh và kỳ báo cáo.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-goto="analytics">⌁ <span>Xem báo cáo</span></button><button class="btn btn-primary manager-only" data-goto="tasks">＋ Giao công việc</button></div></div>
           <div class="overview-filter-bar"><div class="overview-filter-intro"><b>Tuỳ chỉnh tổng quan</b><small id="overviewScopeHint">Đang áp dụng phạm vi dữ liệu theo tài khoản.</small></div><div class="overview-filter-controls"><label>Kỳ báo cáo<select id="overviewPeriodFilter" aria-label="Lọc theo kỳ báo cáo"><option value="">Đang tải kỳ báo cáo…</option></select></label><label class="admin-only hidden" id="overviewBranchFilterWrap">Trụ sở / chi nhánh<select id="overviewBranchFilter" aria-label="Lọc theo trụ sở hoặc chi nhánh"><option value="all">Toàn công ty</option></select></label><label class="manager-only hidden" id="overviewTeamFilterWrap">Tên nhóm<select id="overviewTeamFilter"><option value="all">Tất cả nhóm</option></select></label><label class="manager-only hidden" id="overviewUserFilterWrap">Nhân sự<select id="overviewUserFilter" aria-label="Lọc theo nhân sự"><option value="all">Toàn bộ nhân sự</option></select></label></div></div>
@@ -280,6 +271,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-announcement-expiry"></script>
+  <script type="module" src="app.js?v=20261125-announcement-stream"></script>
 </body>
 </html>
