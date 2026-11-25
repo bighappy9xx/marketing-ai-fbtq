@@ -264,7 +264,7 @@ body[data-workspace-layout="bento"] .page > .page-heading :is(.heading-actions,.
   flex-wrap: wrap;
 }
 body[data-workspace-layout="bento"] .app-shell .page .panel-heading > :first-child { min-width: 0; }
-body[data-workspace-layout="bento"] .app-shell .page .panel-heading p { font-size: .8125rem; line-height: 1.5; }
+body[data-workspace-layout="bento"] .app-shell .page .panel-heading p { font-size: var(--bento-label-font); line-height: 1.5; }
 body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard,#page-tasks,#page-content-review,#page-work-awards,#page-assistant,#page-people,#page-requests,#page-advances,#page-automation,#page-settings) :is(.panel-heading,.content-review-panel-heading,.content-review-list-heading) {
   align-items: flex-start;
   gap: 10px 16px;
@@ -301,10 +301,50 @@ body[data-workspace-layout="bento"] :is(#page-analytics,#page-leaderboard) :is(.
 body[data-workspace-layout="bento"] :is(#page-content-review,#page-assistant) :is(.content-review-submit-panel,.content-review-history-panel,.assistant-import-card) {
   padding: var(--bento-padding);
 }
-body[data-workspace-layout="bento"] :is(#page-content-review,#page-settings,#page-people,#page-requests,#page-advances) :is(.panel,.role-card) :is(label,input,select,textarea) {
-  font-size: .8125rem;
+body[data-workspace-layout="bento"] .app-shell .page :is(.overview-filter-controls,.daily-history-filters,.meta-vat-filters,.user-compare-controls,.settings-fields,.content-review-form-fields,.announcement-composer-fields) > label {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 6px;
+  min-width: 0;
+  color: var(--bento-muted);
+  font-size: var(--bento-label-font);
+  font-weight: 650;
+  line-height: 1.35;
 }
-body[data-workspace-layout="bento"] #page-content-review :is(.content-review-tabs,.content-review-form-fields) {
+body[data-workspace-layout="bento"] .app-shell .page :is(.overview-filter-controls,.daily-history-filters,.analytics-filters,.leaderboard-controls,.meta-vat-filters,.user-compare-controls,.settings-fields,.content-review-form-fields,.announcement-composer-fields) :is(select,input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file])) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--bento-control-height);
+  height: var(--bento-control-height);
+  margin-block: 0;
+  padding-inline: 10px;
+  font-size: var(--bento-control-font);
+  font-weight: 500;
+}
+body[data-workspace-layout="bento"] #page-analytics .analytics-filters > :is(.select-small,#analyticsUserFilter) {
+  min-height: var(--bento-control-height);
+  height: var(--bento-control-height);
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.overview-filter-controls,.daily-history-filters,.meta-vat-filters,.user-compare-controls,.settings-fields,.content-review-form-fields,.announcement-composer-fields) > label > :is(select,input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file])) {
+  width: 100%;
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.daily-history-filters,.meta-vat-filters,.user-compare-controls) {
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bento-field-gap);
+  min-width: 0;
+  max-width: 100%;
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.daily-history-filters,.meta-vat-filters,.user-compare-controls) > label {
+  flex: 1 1 145px;
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.daily-history-filters,.meta-vat-filters) .btn {
+  min-height: var(--bento-control-height);
+}
+body[data-workspace-layout="bento"] .app-shell .page :is(.settings-fields,.content-review-form-fields) {
+  gap: var(--bento-field-gap);
+}
+body[data-workspace-layout="bento"] #page-content-review .content-review-tabs {
   gap: 8px;
 }
 body[data-workspace-layout="bento"] #page-content-review .content-review-tabs button {
@@ -350,7 +390,8 @@ body[data-workspace-layout="bento"] #page-settings .workspace-layout-picker {
   }
 }
 @media (max-width: 760px) {
-  body[data-workspace-layout="bento"] :is(#page-content-review,#page-settings,#page-people,#page-requests,#page-advances) .panel :is(input:not([type=checkbox],[type=radio],[type=range],[type=color]),select,textarea) {
-    font-size: 1rem;
+  body[data-workspace-layout="bento"] {
+    --bento-control-font: 1rem;
+    --bento-control-height: 44px;
   }
 }
