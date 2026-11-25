@@ -553,7 +553,29 @@ service cloud.firestore {
       allow delete: if approvedMember() && inWorkspace() && (
         collection == 'settings' && systemAdmin()
         || collection == 'invitations' && director()
-        || !(collection in ['settings','invitations','pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs']) && manager());
+        || !(collection in ['settings','invitations','pages','advanceInvoices','staffRequests','leaveSlots','requests','assistantChatMessages','chatbotJobs','dailyAnnouncements']) && manager());
+    }
+
+    match /workspaces/{workspaceId}/dailyAnnouncements/{announcementId} {
+      function visibleToMember() {
+        return director() || (branch() != '' && resource.data.branch == branch()
+          && (role() == 'branch_manager' || resource.data.department == '' || resource.data.department == department()));
+      }
+      function validAnnouncement(data) {
+        let fields = ['createdBy','createdByName','authorRole','branch','department','title','message','createdAt'];
+        let name = profile().get('name', '');
+        return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+          && data.createdBy == request.auth.uid && data.authorRole == role()
+          && data.createdByName == (name != '' ? name : request.auth.token.email)
+          && data.branch == branch() && branch() != ''
+          && ((role() == 'branch_manager' && data.department == '')
+            || (role() == 'department_manager' && department() != '' && data.department == department()))
+          && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+          && data.message is string && data.message.size() >= 1 && data.message.size() <= 2500
+          && data.createdAt == request.time;
+      }
+      allow read: if workspaceId == 'fbtq' && approvedMember() && visibleToMember();
+      allow create: if workspaceId == 'fbtq' && approvedMember() && validAnnouncement(request.resource.data);
     }
 
     match /workspaces/{workspaceId}/leaveSlots/{slotId} {

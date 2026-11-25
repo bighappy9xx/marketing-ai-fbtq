@@ -5,7 +5,7 @@ const dateKey=value=>{
   return String(value||'').slice(0,10);
 };
 const time=value=>value?.toMillis?.()||value?.seconds*1000||Date.parse(value||'')||0;
-export function overviewHubModel({user,role,users=[],revenue=[],awards=[],reviews=[],workflow={},range={},selectedBranch='all',selectedUser='all'}){
+export function overviewHubModel({user,role,users=[],revenue=[],awards=[],reviews=[],workflow={},range={},selectedBranch='all',selectedUser='all',selectedTeamUsers=null}){
   const director=role==='director',manager=['director','branch_manager','department_manager'].includes(role),profiles=new Map(users.map(p=>[p.uid,p]));if(user)profiles.set(user.uid,user);
   const profile=row=>profiles.get(row.createdBy||row.uid)||row;
   const withinRange=value=>{const date=dateKey(value);return !!date&&(!range.start||date>=range.start)&&(!range.end||date<=range.end);};
@@ -13,6 +13,7 @@ export function overviewHubModel({user,role,users=[],revenue=[],awards=[],review
     const p=profiles.get(uid)||row,unit=branchKey(row.branch||p.branch||p.branchName||p.branchId);
     if(!user)return false;
     if(selectedUser!=='all'&&uid!==selectedUser)return false;
+    if(selectedTeamUsers&&!selectedTeamUsers.has(uid))return false;
     if(role==='accountant'&&finance)return true;
     if(director)return selectedBranch==='all'||unit===selectedBranch;
     if(manager)return branchKey(user.branch)==='__unassigned__'?uid===user.uid:unit===branchKey(user.branch);

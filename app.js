@@ -18,8 +18,9 @@ import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?
 import { initCreativeStudio } from './creative-studio.js?v=20261117-auto-timeline';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-broadcast-mobile';
-import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261118-blue-chatbot-menu';
-import { initOverviewHub } from './overview-hub.js?v=20261119-award-recipient-avatar';
+import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261125-overview';
+import { initOverviewHub } from './overview-hub.js?v=20261125-overview';
+import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-overview';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);
@@ -32,6 +33,7 @@ let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
 const state = {openaiBackendUrl:null,user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
+const dailyAnnouncements=initDailyAnnouncements({root:$('#overviewAnnouncements'),getSession:()=>state});
 let workflows=null;
 let speechObjectUrl=null,speechController=null;
 let geminiFallbackUsed=false;
@@ -344,8 +346,9 @@ async function generateGeminiSpeech(text,voice){
   return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
-function signOutToAuth(){void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
+  dailyAnnouncements.start();
   appearance.useAccount(state.user?.uid,loadLocalForUser());
   syncSystemSettings(true);
   assistantHistory?.start();
@@ -577,6 +580,37 @@ function overviewProfile(uid){return state.users.find(user=>user.uid===uid)||(st
 function overviewBranchKey(profile){const value=String(profile?.branch||profile?.branchName||profile?.branchId||'').trim();return value?value.toLocaleLowerCase('vi-VN'):'__unassigned__'}
 function overviewBranchLabel(profile){const value=String(profile?.branch||profile?.branchName||profile?.branchId||'').trim();return value||'Chưa gán chi nhánh'}
 function overviewScopeUsers(){const available=state.users.filter(user=>user.approved!==false);if(state.user&&!available.some(user=>user.uid===state.user.uid))available.push(state.user);if(isDirector())return available;if(!isManager())return state.user?[state.user]:[];const own=overviewProfile(state.user?.uid)||state.user,branch=overviewBranchKey(own);return branch==='__unassigned__'?[own]:available.filter(user=>overviewBranchKey(user)===branch)}
+function reportTeamKey(user){
+  const name=String(user?.department||'').trim();
+  return name ? JSON.stringify([overviewBranchKey(user),name.normalize('NFC').toLocaleLowerCase('vi-VN')]) : '';
+}
+function renderTeamChoices(select,users){
+  const previous=select.value;
+  const groups=new Map();
+  for(const user of users){
+    const key=reportTeamKey(user);
+    if(key)groups.set(key,{name:String(user.department).trim(),branch:overviewBranchLabel(user)});
+  }
+  const nameCounts=new Map();
+  for(const key of groups.keys()){
+    const [,name]=JSON.parse(key);
+    nameCounts.set(name,(nameCounts.get(name)||0)+1);
+  }
+  const options=[...groups].map(([key,{name,branch}])=>[key,nameCounts.get(JSON.parse(key)[1])>1?name+' · '+branch:name]);
+  options.sort((a,b)=>a[1].localeCompare(b[1],'vi'));
+  select.innerHTML='<option value="all">Tất cả nhóm</option>'+options.map(([key,label])=>`<option value="${esc(key)}">${esc(label)}</option>`).join('');
+  select.value=isManager()&&groups.has(previous)?previous:'all';
+  select.closest('label').classList.toggle('hidden',!isManager());
+  return select.value;
+}
+function renderReportUserChoices(select,users,team,label){
+  const previous=select.value;
+  const lead=user=>team!=='all'&&user.role==='department_manager';
+  const name=user=>user.name||user.email||'Nhân viên';
+  users.sort((a,b)=>Number(lead(b))-Number(lead(a))||name(a).localeCompare(name(b),'vi'));
+  select.innerHTML=`<option value="all">${label}</option>`+users.map(user=>`<option value="${esc(user.uid)}">${esc(name(user))}${lead(user)?' · Trưởng nhóm':''}</option>`).join('');
+  select.value=users.some(user=>user.uid===previous)?previous:'all';
+}
 function overviewMetricOwner(item){return overviewProfile(item.createdBy)||{uid:item.createdBy||'',name:item.createdByName||'',department:item.department||''}}
 function metricOverlapsRange(item,range){const start=String(item.reportStart||item.reportAt||item.reportEnd||'').slice(0,10),end=String(item.reportEnd||item.reportAt||item.reportStart||'').slice(0,10);return(!range.start||!end||end>=range.start)&&(!range.end||!start||start<=range.end)}
 function overviewMonthRange(monthKey){const [year,month]=monthKey.split('-').map(Number);if(!year||!month)return revenueWindowForMetrics([]);return{start:`${year}-${String(month).padStart(2,'0')}-01`,end:`${year}-${String(month).padStart(2,'0')}-${String(new Date(year,month,0).getDate()).padStart(2,'0')}`}}
@@ -592,21 +626,22 @@ function renderOverviewRecentCampaigns(list){
 }
 function renderOverviewDashboard(){
   const periodSelect=$('#overviewPeriodFilter'),branchSelect=$('#overviewBranchFilter'),userSelect=$('#overviewUserFilter');if(!periodSelect||!branchSelect||!userSelect)return;
-  const oldBranch=branchSelect.value||'all',oldUser=userSelect.value||'all',oldPeriod=periodSelect.value||'';
+  const oldBranch=branchSelect.value||'all',oldPeriod=periodSelect.value||'';
   const allUsers=state.users.filter(user=>user.approved!==false);if(state.user&&!allUsers.some(user=>user.uid===state.user.uid))allUsers.push(state.user);
   const branches=new Map();allUsers.forEach(user=>branches.set(overviewBranchKey(user),overviewBranchLabel(user)));
   branchSelect.innerHTML='<option value="all">Toàn công ty</option>'+[...branches.entries()].sort((a,b)=>a[1].localeCompare(b[1],'vi')).map(([key,label])=>`<option value="${esc(key)}">${esc(label)}</option>`).join('');branchSelect.value=isDirector()&&[...branches.keys()].includes(oldBranch)?oldBranch:'all';
   const scopedUsers=overviewScopeUsers().filter(user=>!isDirector()||branchSelect.value==='all'||overviewBranchKey(user)===branchSelect.value);
   const managerBranch=overviewBranchKey(overviewProfile(state.user?.uid)||state.user),managerHasBranch=isDirector()||!isManager()||managerBranch!=='__unassigned__';
-  const scopedUIDs=new Set(scopedUsers.map(user=>user.uid));
-  const selectedUser=scopedUIDs.has(oldUser)?oldUser:'all';
-  userSelect.innerHTML='<option value="all">Toàn bộ nhân sự</option>'+scopedUsers.sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||'','vi')).map(user=>`<option value="${esc(user.uid)}">${esc(user.name||user.email||'Tài khoản')}</option>`).join('');userSelect.value=selectedUser;
+  const selectedTeam=renderTeamChoices($('#overviewTeamFilter'),scopedUsers);
+  const teamUsers=selectedTeam==='all'?scopedUsers:scopedUsers.filter(user=>reportTeamKey(user)===selectedTeam);
+  const teamUIDs=selectedTeam==='all'?null:new Set(teamUsers.map(user=>user.uid));
+  renderReportUserChoices(userSelect,teamUsers,selectedTeam,'Toàn bộ nhân sự');
   $('#overviewBranchFilterWrap').classList.toggle('hidden',!isDirector());$('#overviewUserFilterWrap').classList.toggle('hidden',!isManager());
   let hint=isDirector()?'Giám đốc: xem toàn công ty hoặc lọc theo trụ sở, chi nhánh và nhân sự.':isManager()?managerHasBranch?`Quản lý: đang xem toàn chi nhánh ${overviewBranchLabel(overviewProfile(state.user?.uid)||state.user)}; có thể lọc theo từng nhân sự.`:'Tài khoản quản lý chưa được gán chi nhánh; đang giới hạn chỉ số marketing ở tài khoản này. Giám đốc có thể gán chi nhánh trong mục Nhân sự & phân quyền.':'Nhân viên: chỉ số marketing cá nhân; thẻ doanh thu hiển thị tổng toàn công ty.';
   $('#overviewScopeHint').textContent=hint;
   const userAllowed=uid=>{if(isDirector())return true;if(!isManager())return uid===state.user?.uid;if(!managerHasBranch)return uid===state.user?.uid;const owner=overviewProfile(uid);return!!owner&&overviewBranchKey(owner)===managerBranch};
   const unitFilter=branchSelect.value;
-  const filteredOwner=uid=>{if(userSelect.value!=='all')return uid===userSelect.value;if(isDirector()&&unitFilter!=='all'){const owner=overviewProfile(uid);return owner?overviewBranchKey(owner)===unitFilter:unitFilter==='__unassigned__'}return true};
+  const filteredOwner=uid=>{if(teamUIDs&&!teamUIDs.has(uid))return false;if(userSelect.value!=='all')return uid===userSelect.value;if(isDirector()&&unitFilter!=='all'){const owner=overviewProfile(uid);return owner?overviewBranchKey(owner)===unitFilter:unitFilter==='__unassigned__'}return true};
   const scopedMetrics=state.metrics.filter(item=>userAllowed(item.createdBy)&&filteredOwner(item.createdBy));
   const revenueSource=state.revenueEntries.length?state.revenueEntries:state.dailyReports;
   const scopedRevenue=revenueSource.filter(report=>{if(!isManager())return true;return userAllowed(report.createdBy)&&filteredOwner(report.createdBy)});
@@ -618,7 +653,7 @@ function renderOverviewDashboard(){
   if(selected.startsWith('metric|')){const metricKey=selected.slice(7);visibleMetrics=scopedMetrics.filter(item=>reportPeriodKey(item)===metricKey);range=revenueWindowForMetrics(visibleMetrics)}else if(selected.startsWith('month|')){range=overviewMonthRange(selected.slice(6));visibleMetrics=[]}else range=revenueWindowForMetrics([]);
   const revenue=scopedRevenue.filter(report=>{const date=reportDateKey(report);return date&&date>=range.start&&date<=range.end}).reduce((sum,report)=>sum+(Number(report.revenue)||0),0);
   renderOverviewMetrics(visibleMetrics,periodLabel,revenue,!isManager());renderOverviewRecentCampaigns(visibleMetrics);
-  overviewHubContext={range,periodLabel,selectedBranch:branchSelect.value,selectedUser:userSelect.value};renderOverviewOperations();
+  overviewHubContext={range,periodLabel,selectedBranch:branchSelect.value,selectedUser:userSelect.value,selectedTeamUsers:teamUIDs};renderOverviewOperations();
 }
 function renderMetrics(preferredPeriod=''){
   const userFilter=isManager()?($('#analyticsUserFilter')?.value||'all'):'all',all=userFilter==='all'?state.metrics:state.metrics.filter(item=>item.createdBy===userFilter),showOwner=isManager(),groups=new Map();
@@ -747,7 +782,7 @@ window.addEventListener('message',event=>{
 });
 function parseCsv(text){const input=String(text).replace(/^\uFEFF/,''),rows=[];let row=[],field='',quoted=false;for(let i=0;i<input.length;i++){const ch=input[i];if(quoted){if(ch==='"'&&input[i+1]==='"'){field+='"';i++}else if(ch==='"')quoted=false;else field+=ch;continue}if(ch==='"'&&field===''){quoted=true;continue}if(ch===','){row.push(field.trim());field='';continue}if(ch==='\n'||ch==='\r'){row.push(field.trim());if(row.some(cell=>cell!==''))rows.push(row);row=[];field='';if(ch==='\r'&&input[i+1]==='\n')i++;continue}field+=ch}row.push(field.trim());if(row.some(cell=>cell!==''))rows.push(row);if(rows.length<2)throw new Error('CSV cần có dòng tiêu đề và ít nhất một nhóm quảng cáo.');const headers=rows.shift().map((header,index)=>(index===0?header.replace(/^\uFEFF/,''):header).trim());return rows.map(values=>Object.fromEntries(headers.map((header,index)=>[header,values[index]??''])))}
 function showImportModal(){openModal('Nhập chỉ số quảng cáo','<p>Chọn hoặc dán JSON/CSV Meta Ads. Nhập lại cùng nhóm quảng cáo và kỳ báo cáo sẽ cập nhật chỉ số hiện có, không tạo dòng mới.</p><div class="modal-fields"><label>Dữ liệu JSON hoặc CSV<textarea name="metrics" placeholder="[{&quot;name&quot;:&quot;Summer Sale&quot;,&quot;spend&quot;:1245000,&quot;impressions&quot;:58200,&quot;results&quot;:31,&quot;roas&quot;:3.4}]"></textarea></label><label>Hoặc chọn tệp<input id="modalMetricsFile" type="file" accept=".json,.csv"></label></div>','Nhập dữ liệu',async(form)=>{const text=form.get('metrics');if(!text.trim())throw new Error('Hãy chọn tệp hoặc dán dữ liệu trước khi nhập.');await importCampaignData(text)});$('#modalMetricsFile')?.addEventListener('change',async e=>{const file=e.target.files[0];if(file)$('textarea[name="metrics"]').value=await file.text()})}
-$('#reportPeriodFilter').addEventListener('change',()=>renderMetrics());$('#overviewPeriodFilter').addEventListener('change',renderOverviewDashboard);$('#overviewBranchFilter').addEventListener('change',renderOverviewDashboard);$('#overviewUserFilter').addEventListener('change',renderOverviewDashboard);$('#dailyHistoryUserFilter').addEventListener('change',renderDailyReports);$('#dailyHistoryFrom').addEventListener('change',renderDailyReports);$('#dailyHistoryTo').addEventListener('change',renderDailyReports);$('#clearDailyHistoryFilters').addEventListener('click',()=>{$('#dailyHistoryUserFilter').value='all';$('#dailyHistoryFrom').value='';$('#dailyHistoryTo').value='';renderDailyReports()});$('#dailyCampaignReportBtn').addEventListener('click',openDailyReportForm);
+$('#reportPeriodFilter').addEventListener('change',()=>renderMetrics());$('#overviewPeriodFilter').addEventListener('change',renderOverviewDashboard);$('#overviewBranchFilter').addEventListener('change',renderOverviewDashboard);$('#overviewUserFilter').addEventListener('change',renderOverviewDashboard);$('#overviewTeamFilter').addEventListener('change',renderOverviewDashboard);$('#dailyHistoryUserFilter').addEventListener('change',renderDailyReports);$('#dailyHistoryTeamFilter').addEventListener('change',renderDailyReports);$('#dailyHistoryFrom').addEventListener('change',renderDailyReports);$('#dailyHistoryTo').addEventListener('change',renderDailyReports);$('#clearDailyHistoryFilters').addEventListener('click',()=>{$('#dailyHistoryUserFilter').value='all';$('#dailyHistoryTeamFilter').value='all';$('#dailyHistoryFrom').value='';$('#dailyHistoryTo').value='';renderDailyReports()});$('#dailyCampaignReportBtn').addEventListener('click',openDailyReportForm);
 updateLeaderboardPeriodOptions();$('#leaderboardType').addEventListener('change',()=>{updateLeaderboardPeriodOptions();loadRevenueLeaderboard();renderUserComparison()});$('#leaderboardPeriod').addEventListener('change',()=>{loadRevenueLeaderboard();renderUserComparison()});$$('[data-leaderboard-view]').forEach(button=>button.addEventListener('click',()=>setLeaderboardChartType(button.dataset.leaderboardView)));$('#analyticsUserFilter').addEventListener('change',()=>renderMetrics());$('#analyticsCompareUserA').addEventListener('change',renderUserComparison);$('#analyticsCompareUserB').addEventListener('change',renderUserComparison);
 $('#importEmpty').addEventListener('click',showImportModal);$('#metricsFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{await importCampaignData(await file.text())}catch(err){showToast(err.message,'error')}e.target.value=''});
 $('#copyGuide')?.addEventListener('click',async()=>{try{const text=await navigator.clipboard.readText();if(text.trim().startsWith('[')||text.trim().startsWith('{')){showImportModal();$('textarea[name="metrics"]')&&($('textarea[name="metrics"]').value=text);return}}catch{}openModal('Sao chép từ Meta Ads Manager','<p>Mở Meta Ads Manager, chọn cấp Chiến dịch và tích các dòng cần nhập. Trong Meta Helper, bấm “Quét mục đã chọn” để xem trước, sau đó bấm “Gửi mục đã chọn vào Báo cáo”. Có thể sao chép JSON nếu muốn nhập thủ công.</p><div class="setup-callout"><span>▣</span><div><b>Nhập nhanh từ clipboard</b><p>Cấp quyền đọc clipboard cho website, sau đó bấm nút bên dưới. Bạn cũng có thể dán JSON trực tiếp.</p></div></div><div class="modal-fields"><label>Dữ liệu JSON<textarea name="metrics" placeholder="Dán dữ liệu đã sao chép tại đây"></textarea></label></div>','Đọc clipboard & nhập',async(form)=>{let txt=form.get('metrics');if(!txt.trim())try{txt=await navigator.clipboard.readText()}catch{throw new Error('Hãy dán dữ liệu JSON vào ô bên trên.')}if(!txt.trim())throw new Error('Clipboard chưa có dữ liệu chiến dịch.');await importCampaignData(txt)});});
@@ -902,27 +937,36 @@ $('#workAwardMonth')?.addEventListener('change',loadWorkAwards);$('#refreshWorkA
 
 // Reports, requests and invoice generation.
 function reportDateLabel(value){const key=String(value||'');const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(key);return match?new Date(Number(match[1]),Number(match[2])-1,Number(match[3])).toLocaleDateString('vi-VN'):'—'}
-function renderDailyReportComparison(){
+function renderDailyReportComparison(reports){
   const root=$('#dailyReportComparison');if(!root||!state.user)return;
   const dateA=$('#dailyCompareA').value,dateB=$('#dailyCompareB').value,uid=isManager()?($('#dailyHistoryUserFilter').value||'all'):state.user.uid;
-  const result=compareDailyReports(state.dailyReports,{dateA,dateB,uid});
+  const result=compareDailyReports(reports,{dateA,dateB,uid});
   $('#dailyCompareGrid').innerHTML=[['Chi tiêu','spend',true],['Số Mess','messages',false],['Số điện thoại','phones',false],['Doanh thu','revenue',true]].map(([label,key,currency])=>'<article><b>'+label+'</b><span>'+dateA+': <strong>'+(currency?money(result.a[key]):result.a[key].toLocaleString('vi'))+'</strong></span><span>'+dateB+': <strong>'+(currency?money(result.b[key]):result.b[key].toLocaleString('vi'))+'</strong></span><small>Chênh lệch: '+(result.delta[key]>0?'+':'')+(currency?money(result.delta[key]):result.delta[key].toLocaleString('vi'))+'</small></article>').join('');
 }
 function renderDailyReports(){
-  renderDailyReportComparison();
   const body=$('#reportHistoryTable');if(!body)return;
   const table=body.closest('table'),headers=['NGÀY BÁO CÁO','NHÂN VIÊN','TÊN TKQC','BÀI CHẠY','TRẠNG THÁI','NGÂN SÁCH/NGÀY','CHI TIÊU THỰC TẾ/NGÀY','SỐ MESS','SĐT/CAMP','DOANH THU SĐT/CAMP','KPI/NGÀY','GIÁ MESS TB','GIÁ SỐ TB','TỶ LỆ XIN SỐ MỚI','NGƯỠNG','NGƯỠNG ĐÃ CHI','VẤN ĐỀ/NGUYÊN NHÂN','HƯỚNG GIẢI QUYẾT','GHI CHÚ CHUNG','THỜI GIAN NỘP'];
   if(table){table.classList.add('daily-history-data-table');const head=$('thead',table);if(head)head.innerHTML='<tr>'+headers.map(label=>'<th>'+label+'</th>').join('')+'</tr>'}
-  const userSelect=$('#dailyHistoryUserFilter'),oldUser=userSelect?.value||'all';
+  const userSelect=$('#dailyHistoryUserFilter');
+  let team='all';
+  let reportSource=state.dailyReports;
   if(userSelect&&isManager()){
-    const choices=new Map();
-    state.users.filter(user=>user.approved!==false).forEach(user=>choices.set(user.uid,{uid:user.uid,name:user.name||user.email||'Nhân viên',department:user.department||''}));
-    state.dailyReports.forEach(report=>{if(report.createdBy&&!choices.has(report.createdBy))choices.set(report.createdBy,{uid:report.createdBy,name:report.createdByName||report.employee||'Nhân viên',department:report.department||''})});
-    userSelect.innerHTML='<option value="all">Tất cả nhân sự</option>'+[...choices.values()].sort((a,b)=>a.name.localeCompare(b.name,'vi')).map(user=>'<option value="'+esc(user.uid)+'">'+esc(user.name)+(user.department?' · '+esc(user.department):'')+'</option>').join('');
-    userSelect.value=oldUser==='all'||choices.has(oldUser)?oldUser:'all';
+    const choices=new Map(state.users.filter(user=>user.approved!==false).map(user=>[user.uid,user]));
+    state.dailyReports.forEach(report=>{if(report.createdBy&&!choices.has(report.createdBy))choices.set(report.createdBy,{
+      uid:report.createdBy,name:report.createdByName||report.employee,department:report.department,branch:report.branch
+    })});
+    const users=[...choices.values()];
+    team=renderTeamChoices($('#dailyHistoryTeamFilter'),users);
+    const teamUsers=team==='all'?users:users.filter(user=>reportTeamKey(user)===team);
+    renderReportUserChoices(userSelect,teamUsers,team,'Tất cả nhân sự');
+    if(team!=='all'){
+      const teamUIDs=new Set(teamUsers.map(user=>user.uid));
+      reportSource=reportSource.filter(report=>teamUIDs.has(report.createdBy));
+    }
   }
+  renderDailyReportComparison(reportSource);
   const from=$('#dailyHistoryFrom')?.value||'',to=$('#dailyHistoryTo')?.value||'',selectedUser=isManager()?(userSelect?.value||'all'):state.user?.uid||'';
-  const rows=[...state.dailyReports].filter(report=>{
+  const rows=reportSource.filter(report=>{
     const account=String(report.adAccount||'').trim().toLocaleLowerCase('vi'),campaign=String(report.campaign||'').trim().toLocaleLowerCase('vi'),date=reportDateKey(report);
     const isSummary=report.isOtherRevenue||account==='tổng hợp'||campaign==='doanh thu nguồn khác';
     return !isSummary&&(isManager()||report.createdBy===selectedUser)&&(selectedUser==='all'||report.createdBy===selectedUser)&&(!from||date>=from)&&(!to||date<=to);
@@ -934,7 +978,7 @@ function renderDailyReports(){
   body.innerHTML=rows.map(report=>{
     const status=text(report.status),statusClass=/bật|đang chạy|active/i.test(status)?'status-live':/tắt|dừng|paused/i.test(status)?'status-review':'status-neutral';
     return'<tr>'+cell(reportDateLabel(reportDateKey(report)))+cell(report.employee||report.createdByName)+cell(report.adAccount)+cell(report.campaign,'daily-history-wrap-cell')+'<td><span class="status '+statusClass+'">'+esc(status)+'</span></td>'+cell(moneyCell(report.budget),'daily-history-number')+cell(moneyCell(report.actualSpend??report.spend),'daily-history-number')+cell(countCell(report.messages),'daily-history-number')+cell(countCell(report.phoneLeads??report.results),'daily-history-number')+cell(moneyCell(report.phoneRevenue??report.revenue),'daily-history-number')+cell(moneyCell(report.dailyKpi),'daily-history-number')+cell(moneyCell(report.avgMessageCost),'daily-history-number')+cell(moneyCell(report.avgPhoneCost),'daily-history-number')+cell(percentCell(report.newPhoneRate),'daily-history-number')+cell(moneyCell(report.threshold),'daily-history-number')+cell(moneyCell(report.thresholdSpent),'daily-history-number')+cell(report.issue,'daily-history-wrap-cell')+cell(report.resolution,'daily-history-wrap-cell')+cell(report.note,'daily-history-wrap-cell')+cell(submittedAt(report.submittedAt))+'</tr>';
-  }).join('')||'<tr><td colspan="20" class="muted">'+(from||to||selectedUser!=='all'?'Không có báo cáo phù hợp với bộ lọc.':'Chưa có báo cáo chiến dịch nào được nộp.')+'</td></tr>';
+  }).join('')||'<tr><td colspan="20" class="muted">'+(from||to||team!=='all'||selectedUser!=='all'?'Không có báo cáo phù hợp với bộ lọc.':'Chưa có báo cáo chiến dịch nào được nộp.')+'</td></tr>';
 }
 function dailyReportMetricsForUser(){
   const uid=state.user?.uid||'',own=state.metrics.filter(item=>item.createdBy===uid);if(!own.length)return[];
@@ -1242,7 +1286,7 @@ actionApproval=initActionApproval({getUser:()=>state.user,esc,onLog:text=>append
 $$('[data-assistant-history-older]').forEach(button=>button.addEventListener('click',()=>assistantHistory.loadOlder()));
 $('#assistantExpandWorkspace')?.addEventListener('click',()=>{setFbtqAssistantWindow(false);navigate('assistant');});
 $('#fbtqAssistantExpand')?.addEventListener('click',()=>{const panel=$('#fbtqAssistantWindow'),expanded=panel.classList.toggle('is-expanded');$('#fbtqAssistantExpand').setAttribute('aria-expanded',String(expanded));});
-for(const id of ['dailyCompareA','dailyCompareB']){const input=$('#'+id);if(input){input.max=vnToday();if(!input.value){const today=new Date(vnToday()+'T00:00:00Z');if(id==='dailyCompareA')today.setUTCDate(today.getUTCDate()-1);input.value=today.toISOString().slice(0,10);}input.addEventListener('change',renderDailyReportComparison);}}
+for(const id of ['dailyCompareA','dailyCompareB']){const input=$('#'+id);if(input){input.max=vnToday();if(!input.value){const today=new Date(vnToday()+'T00:00:00Z');if(id==='dailyCompareA')today.setUTCDate(today.getUTCDate()-1);input.value=today.toISOString().slice(0,10);}input.addEventListener('change',renderDailyReports);}}
 
 let lastDailyBoundary=vnToday();
 function refreshDailyBoundary(){const day=vnToday();if(day===lastDailyBoundary)return;lastDailyBoundary=day;const input=$('#modalRoot [name="reportDate"]');if(input){input.max=day;const status=$('#dailySheetCsvStatus');if(status)status.textContent='Đã sang ngày '+day+'. Bấm Hôm nay để mở báo cáo ngày mới. Dữ liệu chưa lưu đang được giữ để bạn kiểm tra.';}for(const id of ['dailyCompareA','dailyCompareB'])if($('#'+id))$('#'+id).max=day;}

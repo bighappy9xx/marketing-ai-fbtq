@@ -51,7 +51,7 @@ export function initActionApproval({getUser,esc,onLog,onError}){
   async function ask(form,submitter){
     cancel();const user=getUser();if(!user)return false;const actor=user.uid,signature=fingerprint(form),started=Date.now();
     const root=document.createElement('div');root.className='assistant-approval-overlay';root.id='assistantActionApproval';
-    const title=form.closest('.modal')?.querySelector('h3')?.textContent||form.closest('.page')?.querySelector('h1')?.textContent||'Thao tác hệ thống';
+    const title=form.dataset.approvalTitle||form.closest('.modal')?.querySelector('h3')?.textContent||form.closest('.page')?.querySelector('h1')?.textContent||'Thao tác hệ thống';
     const rows=[...form.querySelectorAll('input,select,textarea')].filter(input=>!input.disabled&&input.type!=='password'&&input.type!=='hidden'&&(input.value||input.files?.length)).slice(0,24).map(input=>{
       const holder=input.closest('label'),label=holder?.querySelector('span')?.textContent||[...(holder?.childNodes||[])].filter(node=>node.nodeType===3).map(node=>node.textContent.trim()).filter(Boolean).join(' ')||input.name||input.dataset.field||'Thông tin';
       const value=input.type==='file'?[...input.files].map(f=>f.name).join(', '):input.tagName==='SELECT'?input.selectedOptions[0]?.textContent:input.value;
