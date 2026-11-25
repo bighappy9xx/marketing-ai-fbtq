@@ -5,7 +5,7 @@ const formatTime = new Intl.DateTimeFormat('vi-VN', {
 const timeOf = row => row.createdAt?.toMillis?.() ?? 0;
 const expiresAt = row => timeOf(row) + (row.durationHours === 48 ? 48 : 24) * 3600000;
 
-export function initDailyAnnouncements({root, getSession, setAvatarElement, getTeams, getSelectedTeam}) {
+export function initDailyAnnouncements({root, getSession, setAvatarElement, getTeams, getSelectedTeam, onNewAnnouncement}) {
   const query = selector => root.querySelector(selector);
   const composer = query('[data-announcement-composer]');
   const writeButton = query('[data-announcement-write]');
@@ -122,17 +122,34 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement, getT
     }
 
     const session = generation;
-    subscriptions = feeds.map((feed, index) => storeMod.onSnapshot(feed, snapshot => {
-      if (session !== generation) return;
-      results[index] = snapshot.docs.map(doc => doc.data({serverTimestamps: 'estimate'}));
-      errors[index] = false;
-      render();
-    }, () => {
-      if (session !== generation) return;
-      results[index] = [];
-      errors[index] = true;
-      render();
-    }));
+    const seen = new Set();
+    subscriptions = feeds.map((feed, index) => {
+      let ready = false;
+      return storeMod.onSnapshot(feed, {includeMetadataChanges: Boolean(onNewAnnouncement)}, snapshot => {
+        if (session !== generation) return;
+        results[index] = snapshot.docs.map(doc => doc.data({serverTimestamps: 'estimate'}));
+        if (onNewAnnouncement && !snapshot.metadata.fromCache) {
+          const now = Date.now();
+          snapshot.docs.forEach((doc, position) => {
+            if (doc.metadata.hasPendingWrites || seen.has(doc.id)) return;
+            seen.add(doc.id);
+            const row = results[index][position];
+            const at = timeOf(row);
+            if (ready && row.createdBy !== user.uid && at > now - 120000 && at <= now + 5000) {
+              onNewAnnouncement(user.uid);
+            }
+          });
+          ready = true;
+        }
+        errors[index] = false;
+        render();
+      }, () => {
+        if (session !== generation) return;
+        results[index] = [];
+        errors[index] = true;
+        render();
+      });
+    });
   }
 
   writeButton.addEventListener('click', () => {

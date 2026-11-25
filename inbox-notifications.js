@@ -27,17 +27,18 @@ export function createIncomingPopupGate({now=Date.now}={}){
  }};
 }
 export function initInboxNotifications({page,state,callFunction,showToast,onOpenMessage=()=>{}}){
+ const desktop=window.fbtqDesktop;
  const incomingGate=createIncomingPopupGate(),controls=document.createElement('div');controls.className='inbox-notification-controls';controls.innerHTML='<button type="button" data-inbox-sound aria-pressed="false">🔔 Bật âm báo</button><small data-inbox-sound-status></small>';document.querySelector('.chatbot-sound-settings').append(controls);const button=controls.querySelector('button'),status=controls.querySelector('small');
  const banners=document.createElement('div');banners.className='messenger-browser-banners';banners.dataset.desktopPlatform=messengerDesktopPlatform(navigator);banners.setAttribute('aria-live','polite');banners.setAttribute('aria-relevant','additions');document.body.append(banners);
  let uid='',enabled=true,context=null,unlocking=null,generation=0,nextToneAt=0;const tabId=globalThis.crypto?.randomUUID?.()||Math.random().toString(36),colorRequests=new Map();
  const preferenceKey=()=> 'fbtq_inbox_sound_v1_'+uid;
- function render(){const running=context?.state==='running';button.textContent=!enabled?'🔕 Âm báo: tắt':running?'🔔 Âm báo: bật':'🔔 Bật âm báo';button.setAttribute('aria-pressed',String(enabled&&running));button.title='Âm báo mọi tin khách mới từ tất cả Fanpage; không reo khi tải lịch sử cũ. Nhấn để bật/tắt.';status.textContent=enabled&&!running?'Chạm để cho phép phát âm thanh':'';}
+ function render(){const running=desktop||context?.state==='running';button.textContent=!enabled?'🔕 Âm báo: tắt':running?'🔔 Âm báo: bật':'🔔 Bật âm báo';button.setAttribute('aria-pressed',String(enabled&&running));button.title='Âm báo mọi tin khách mới từ tất cả Fanpage; không reo khi tải lịch sử cũ. Nhấn để bật/tắt.';status.textContent=desktop?'Âm thanh phát theo cài đặt thông báo của máy.':enabled&&!running?'Chạm để cho phép phát âm thanh':'';}
  function sync(){const next=state.user?.uid||'';if(next!==uid){generation++;nextToneAt=0;uid=next;incomingGate.reset();banners.replaceChildren();enabled=true;try{enabled=localStorage.getItem(preferenceKey())!=='off';}catch{}const old=context;context=null;unlocking=null;old?.close?.().catch?.(()=>{});}render();}
  async function unlock(){sync();if(!uid||!enabled)return false;if(context?.state==='running')return true;if(unlocking)return unlocking;const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio){status.textContent='Trình duyệt chưa hỗ trợ âm báo.';return false;}const run=generation,owner=uid;try{context||=new Audio();const current=context;unlocking=Promise.resolve(current.resume()).then(()=>{if(run!==generation||owner!==uid)return false;render();return current.state==='running';}).catch(()=>{if(run===generation)status.textContent='Bấm Bật âm báo để cho phép phát tiếng.';return false;}).finally(()=>{if(run===generation)unlocking=null;});return await unlocking;}catch{status.textContent='Chưa bật được âm thanh. Bấm để thử lại.';return false;}}
  function tone(){if(!enabled||context?.state!=='running')return;const time=context.currentTime;for(const [i,freq]of [880,1174.66].entries()){const oscillator=context.createOscillator(),gain=context.createGain(),at=time+i*.115;oscillator.type='sine';oscillator.frequency.setValueAtTime(freq,at);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.075,at+.012);gain.gain.exponentialRampToValueAtTime(.0001,at+.11);oscillator.connect(gain);gain.connect(context.destination);oscillator.start(at);oscillator.stop(at+.12);}}
- async function gesture(e){if(e.target?.closest?.('[data-inbox-sound]'))return;sync();if(enabled&&uid&&context?.state!=='running')await unlock();}
+ async function gesture(e){if(desktop||e.target?.closest?.('[data-inbox-sound]'))return;sync();if(enabled&&uid&&context?.state!=='running')await unlock();}
  document.addEventListener('pointerdown',gesture);document.addEventListener('keydown',gesture);
- button.onclick=async()=>{sync();if(!uid)return showToast('Đăng nhập để dùng âm báo.','error');if(enabled&&context?.state==='running'){enabled=false;try{localStorage.setItem(preferenceKey(),'off');}catch{}render();return;}enabled=true;try{localStorage.setItem(preferenceKey(),'on');}catch{}if(await unlock())tone();render();};
+ button.onclick=async()=>{sync();if(!uid)return showToast('Đăng nhập để dùng âm báo.','error');if(enabled&&(desktop||context?.state==='running')){enabled=false;try{localStorage.setItem(preferenceKey(),'off');}catch{}render();return;}enabled=true;try{localStorage.setItem(preferenceKey(),'on');}catch{}if(!desktop&&await unlock())tone();render();};
  window.addEventListener('storage',e=>{if(uid&&e.key===preferenceKey()){enabled=e.newValue!=='off';render();}});
  function showIncomingBanner(row){
   const owner=uid,card=document.createElement('article');
@@ -60,6 +61,10 @@ export function initInboxNotifications({page,state,callFunction,showToast,onOpen
   sync();
   const arrivals=incomingGate.inspect(uid,rows,info);
   if(arrivals.length){
+   if(desktop){
+    for(const row of arrivals)desktop.notify({kind:'inbox',owner:uid,conversationId:row.conversationId,silent:!enabled});
+    return;
+   }
    if(document.hidden)state.inboxNotifyBackground?.(arrivals);
    else arrivals.slice(-3).forEach(showIncomingBanner);
   }

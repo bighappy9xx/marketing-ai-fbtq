@@ -1,0 +1,28 @@
+{
+  "name": "fbtq-desktop",
+  "productName": "FBTQ Workspace",
+  "version": "1.0.0",
+  "description": "Không gian làm việc FBTQ",
+  "author": "FBTQ",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "package": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.5.0",
+    "electron-builder": "26.11.1"
+  },
+  "build": {
+    "appId": "vn.fbtq.workspace",
+    "directories": {"output": "../output/desktop"},
+    "icon": "icon.png",
+    "files": ["main.cjs", "preload.cjs", "policy.cjs", "offline.html", "icon.png"],
+    "artifactName": "FBTQ-Workspace-${os}-${arch}.${ext}",
+    "mac": {"target": ["zip"], "identity": "-"},
+    "win": {"target": ["nsis"], "signAndEditExecutable": false},
+    "nsis": {"oneClick": true, "createStartMenuShortcut": true}
+  }
+}

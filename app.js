@@ -17,10 +17,10 @@ import {createFirebaseContentReview,generateFirebaseAssistant} from './firebase-
 import {createFinalReviewBridge,finalAttachment} from './studio-final-review.js?v=20261110-export-flows';
 import { initCreativeStudio } from './creative-studio.js?v=20261125-video-preview-zoom';
 import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix';
-import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-broadcast-mobile';
+import { initChatbotWorkspace } from './chatbot-ui.js?v=20261125-desktop';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261125-overview';
 import { initOverviewHub } from './overview-hub.js?v=20261125-overview';
-import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-recipient';
+import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-desktop';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);
@@ -33,10 +33,33 @@ let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
 const state = {openaiBackendUrl:null,user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
+let desktopConversation=null;
+function openDesktopConversation(){
+  if(!desktopConversation)return;
+  if(desktopConversation.owner!==state.user?.uid){desktopConversation=null;return;}
+  const thread=state.inboxThreads.find(row=>row.id===desktopConversation.conversationId);
+  if(!thread)return;
+  desktopConversation=null;
+  navigate('inbox');
+  selectThread(thread,{openedByUser:true});
+}
+window.fbtqDesktop?.onOpenNotification(notification=>{
+  if(state.user?.uid!==notification.owner)return;
+  if(notification.kind==='announcement'){
+    desktopConversation=null;
+    navigate('overview');
+    requestAnimationFrame(()=>$('#overviewAnnouncements').scrollIntoView({block:'nearest'}));
+  }else if(notification.kind==='inbox'){
+    desktopConversation=notification;
+    navigate('inbox');
+    openDesktopConversation();
+  }
+});
 const dailyAnnouncements=initDailyAnnouncements({
   root:$('#overviewAnnouncements'),getSession:()=>state,setAvatarElement,
   getTeams:()=>reportTeamOptions(overviewScopeUsers()),
-  getSelectedTeam:()=>$('#overviewTeamFilter').value
+  getSelectedTeam:()=>$('#overviewTeamFilter').value,
+  onNewAnnouncement:window.fbtqDesktop ? owner=>window.fbtqDesktop.notify({kind:'announcement',owner}) : undefined
 });
 let workflows=null;
 let speechObjectUrl=null,speechController=null;
@@ -350,7 +373,7 @@ async function generateGeminiSpeech(text,voice){
   return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
-function signOutToAuth(){dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){desktopConversation=null;dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
   dailyAnnouncements.start();
   appearance.useAccount(state.user?.uid,loadLocalForUser());
@@ -380,7 +403,7 @@ async function loadCloudData(){
     const revenueQuery=ref('revenueEntries');
     const contentReviewQuery=isManager()?ref('contentReviews'):storeMod.query(ref('contentReviews'),storeMod.where('createdBy','==',uid));
     state.inboxUnsubscribe?.();state.messageUnsubscribe?.();
-    state.inboxUnsubscribe=storeMod.onSnapshot(inboxQuery,snapshot=>{if(state.user?.uid!==uid)return;state.inboxLoadError='';state.inboxThreads=snapshot.docs.map(d=>({id:d.id,...d.data()}));renderInbox()},error=>{if(state.user?.uid!==uid)return;state.inboxLoadError='Không tải được hội thoại: '+(error.code||'lỗi kết nối');renderInbox();showToast(state.inboxLoadError,'error')});
+    state.inboxUnsubscribe=storeMod.onSnapshot(inboxQuery,snapshot=>{if(state.user?.uid!==uid)return;state.inboxLoadError='';state.inboxThreads=snapshot.docs.map(d=>({id:d.id,...d.data()}));renderInbox();openDesktopConversation()},error=>{if(state.user?.uid!==uid)return;state.inboxLoadError='Không tải được hội thoại: '+(error.code||'lỗi kết nối');renderInbox();showToast(state.inboxLoadError,'error')});
     state.messageUnsubscribe=storeMod.onSnapshot(messageQuery,{includeMetadataChanges:true},snapshot=>{if(state.user?.uid!==uid)return;state.messages=snapshot.docs.map(d=>({id:d.id,...d.data()}));state.inboxNotifyMessages?.(state.messages,{fromCache:snapshot.metadata?.fromCache===true});state.messageLoadError='';renderInbox()},error=>{if(state.user?.uid!==uid)return;state.messageLoadError='Không tải được lịch sử: '+(error.code||'lỗi kết nối');showToast(state.messageLoadError,'error')});
     const reads=[['tasks',taskQuery],['metrics',campaignQuery],['drafts',draftQuery],['templates',templateQuery],['invoices',invoiceQuery],['dailyReports',reportQuery],['revenueEntries',revenueQuery],['reviews',contentReviewQuery]].map(([key,query])=>({key,load:()=>storeMod.getDocs(query)}));
     if(isManager())reads.push({key:'users',idField:'uid',load:()=>storeMod.getDocs(storeMod.collection(db,'users'))});

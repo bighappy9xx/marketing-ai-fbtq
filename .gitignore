@@ -18,3 +18,5 @@ openai-worker/.wrangler/
 *.pfx
 service-account*.json
 *-firebase-adminsdk-*.json
+
+/output/desktop/
