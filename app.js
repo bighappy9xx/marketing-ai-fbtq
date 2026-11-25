@@ -783,6 +783,46 @@ function openWorkspaceDeepLink(){
  if(state.user&&['#assistant','#creative-studio','#inbox','#analytics','#automation','#content-review','#tasks','#global-resources'].includes(location.hash))navigate(location.hash.slice(1));
 }
 window.addEventListener('hashchange',openWorkspaceDeepLink);
+{
+  const page=$('#page-global-resources');
+  const search=$('#globalResourceSearch');
+  const filters=$$('[data-global-filter]',page);
+  const groups=$$('[data-global-group]',page).map(group=>({
+    group,
+    resources:$$('.global-resource-card',group).map(card=>({
+      card,
+      text:normalizeFbtqAssistantText([$('h2',group),$('h3',card),$('p',card),$('.global-resource-actions',card)]
+        .map(element=>element.textContent).join(' '))
+    }))
+  }));
+  let activeGroup='all';
+  function updateResources(){
+    const terms=normalizeFbtqAssistantText(search.value).split(' ').filter(Boolean);
+    let total=0;
+    for(const {group,resources} of groups){
+      const selected=activeGroup==='all'||group.dataset.globalGroup===activeGroup;
+      let visible=0;
+      for(const {card,text} of resources){
+        const matches=selected&&terms.every(term=>text.includes(term));
+        card.hidden=!matches;
+        if(matches)visible++;
+      }
+      group.hidden=visible===0;
+      total+=visible;
+    }
+    $('#globalResourceCount').textContent=total+' tài nguyên';
+    $('#globalResourceEmpty').hidden=total!==0;
+  }
+  for(const filter of filters){
+    filter.addEventListener('click',()=>{
+      activeGroup=filter.dataset.globalFilter;
+      for(const item of filters)item.setAttribute('aria-pressed',String(item===filter));
+      updateResources();
+    });
+  }
+  search.addEventListener('input',updateResources);
+  updateResources();
+}
 $('#globalVpnSettings').addEventListener('click',async event=>{
   const button=event.currentTarget,help=$('#globalVpnHelp');
   if(window.fbtqDesktop?.openVpnSettings){
@@ -794,6 +834,28 @@ $('#globalVpnSettings').addEventListener('click',async event=>{
     help.hidden=false;
   }else help.hidden=!help.hidden;
   button.setAttribute('aria-expanded',String(!help.hidden));
+});
+$('#globalExpressVpn').addEventListener('click',async event=>{
+  const button=event.currentTarget,status=$('#globalExpressVpnStatus');
+  if(!window.fbtqDesktop?.connectExpressVpn){
+    status.hidden=false;
+    status.textContent='Dùng FBTQ Desktop 1.0.3 để kết nối từ nút này, hoặc kết nối trong ứng dụng ExpressVPN.';
+    return;
+  }
+  const messages={
+    setup:'Bật MCP Server trong ExpressVPN, sao chép địa chỉ, rồi chọn FBTQ Workspace → Nhập địa chỉ ExpressVPN từ bộ nhớ tạm.',
+    requested:'Đã gửi yêu cầu kết nối. Xem trạng thái trong ứng dụng ExpressVPN.',
+    failed:'Chưa gửi được yêu cầu. Kiểm tra ExpressVPN đang mở và địa chỉ MCP còn hiệu lực.',
+    busy:'Đang xử lý một yêu cầu kết nối.',
+    cancelled:'Đã hủy kết nối.',
+    unavailable:'Chức năng kết nối hiện chưa khả dụng.'
+  };
+  button.disabled=true;
+  status.hidden=false;
+  status.textContent='Đang mở kết nối ExpressVPN…';
+  try{status.textContent=messages[await window.fbtqDesktop.connectExpressVpn()]||messages.failed;}
+  catch{status.textContent=messages.failed;}
+  finally{button.disabled=false;}
 });
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
 

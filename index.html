@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
   <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-recipient">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
-  <link rel="stylesheet" href="global-resources.css?v=20261125">
+  <link rel="stylesheet" href="global-resources.css?v=20261125-grouped">
 </head>
 <body data-workspace-layout="bento">
   <div id="authScreen" class="auth-screen">
@@ -219,66 +219,99 @@
           <div class="page-heading">
             <div><h1 id="globalResourcesTitle">Tài Nguyên Global</h1><p class="muted">Mở các công cụ Meta và quy trình marketing trong FBTQ từ một nơi.</p></div>
           </div>
-          <div class="global-resource-grid">
-            <article class="panel global-resource-card global-resource-featured">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#workflow"></use></svg></span>
-              <h2>Đăng nhập Facebook</h2>
-              <p>Kết nối VPN đã cấu hình trên máy tính, rồi mở Facebook. Nếu VPN chỉ áp dụng cho ứng dụng được chọn, hãy thêm trình duyệt bạn dùng để đăng nhập.</p>
-              <div class="global-resource-actions">
-                <button type="button" class="btn btn-secondary" id="globalVpnSettings" aria-controls="globalVpnHelp" aria-expanded="false">Kết nối VPN</button>
-                <a class="btn btn-secondary" href="https://radar.cloudflare.com/speedtest" target="_blank" rel="noopener noreferrer">Kiểm tra IP công cộng</a>
-                <a class="btn btn-primary" href="https://www.facebook.com/login/" target="_blank" rel="noopener noreferrer">Mở trang đăng nhập Facebook</a>
+          <div class="global-resource-workspace">
+            <nav class="panel global-resource-nav" aria-label="Nhóm tài nguyên">
+              <button type="button" data-global-filter="all" aria-pressed="true">Tất cả</button>
+              <button type="button" data-global-filter="meta" aria-pressed="false">Tài sản Meta</button>
+              <button type="button" data-global-filter="reports" aria-pressed="false">Báo cáo và hóa đơn</button>
+              <button type="button" data-global-filter="network" aria-pressed="false">Kết nối mạng</button>
+              <button type="button" data-global-filter="help" aria-pressed="false">Hướng dẫn</button>
+            </nav>
+            <div class="global-resource-main">
+              <div class="panel global-resource-toolbar">
+                <input id="globalResourceSearch" type="search" aria-label="Tìm tài nguyên" placeholder="Tìm tài nguyên…" autocomplete="off">
+                <span id="globalResourceCount" role="status" aria-live="polite"></span>
               </div>
-              <p id="globalVpnHelp" hidden>Dùng ứng dụng VPN của bạn hoặc mở Cài đặt hệ thống → VPN trên macOS, hay Cài đặt → Mạng &amp; Internet → VPN trên Windows. Chọn cấu hình đã lưu rồi bấm Kết nối.</p>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg></span>
-              <h2>Quản lý tài sản Meta</h2>
-              <p>Quản lý Fanpage, tài khoản quảng cáo và quyền của thành viên trong danh mục doanh nghiệp.</p>
-              <div class="global-resource-actions"><a class="btn btn-primary" href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer">Mở Meta Business Suite</a></div>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg></span>
-              <h2>Báo cáo quảng cáo</h2>
-              <p>Đưa số liệu chiến dịch từ tệp CSV hoặc JSON vào báo cáo hằng ngày của FBTQ.</p>
-              <div class="global-resource-actions">
-                <button type="button" class="btn btn-primary" data-assistant-import="metrics">Nhập CSV / JSON</button>
-                <button type="button" class="btn btn-secondary" data-goto="analytics">Xem hiệu suất</button>
-              </div>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg></span>
-              <h2>Soạn bài và lên lịch</h2>
-              <p>Chuẩn bị bài viết và hình ảnh trong FBTQ, rồi mở Planner của Meta để lên lịch đăng trên Trang được phân quyền.</p>
-              <div class="global-resource-actions">
-                <button type="button" class="btn btn-primary" data-goto="content">Mở Studio Nội Dung</button>
-                <a class="btn btn-secondary" href="https://business.facebook.com/latest/planner" target="_blank" rel="noopener noreferrer">Mở Meta Planner</a>
-              </div>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg></span>
-              <h2>Hộp thư và bình luận</h2>
-              <p>Trả lời tin nhắn khách qua Fanpage đã kết nối hoặc quản lý bình luận trên Trang trong Meta Business Suite.</p>
-              <div class="global-resource-actions">
-                <button type="button" class="btn btn-primary" data-goto="inbox">Mở Chatbot AI</button>
-                <a class="btn btn-secondary" href="https://business.facebook.com/latest/inbox/all" target="_blank" rel="noopener noreferrer">Mở hộp thư Meta</a>
-              </div>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#wallet"></use></svg></span>
-              <h2>Hóa đơn quảng cáo</h2>
-              <p>Nhập hóa đơn Meta từ PDF và đối chiếu chi phí, VAT cùng lịch sử báo cáo.</p>
-              <div class="global-resource-actions">
-                <button type="button" class="btn btn-primary" data-assistant-import="invoice">Nhập hóa đơn PDF</button>
-                <button type="button" class="btn btn-secondary" data-goto="automation">Xem báo cáo hóa đơn</button>
-              </div>
-            </article>
-            <article class="panel global-resource-card">
-              <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#file-text"></use></svg></span>
-              <h2>Hướng dẫn sử dụng Meta</h2>
-              <p>Tìm hiểu cách phân quyền tài sản, lập lịch nội dung và theo dõi hiệu quả chiến dịch qua tài liệu của Meta.</p>
-              <div class="global-resource-actions"><a class="btn btn-secondary" href="https://en-gb.facebook.com/business/learn/courses/meta-business-suite" target="_blank" rel="noopener noreferrer">Mở hướng dẫn Meta</a></div>
-            </article>
+              <section class="global-resource-group" data-global-group="meta" aria-labelledby="globalGroup-meta">
+                <h2 id="globalGroup-meta">Tài sản Meta</h2>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#workflow"></use></svg></span>
+                  <h3>Đăng nhập Facebook</h3>
+                  <p>Mở trang đăng nhập chính thức bằng trình duyệt.</p>
+                  <div class="global-resource-actions"><a class="btn btn-primary" href="https://www.facebook.com/login/" target="_blank" rel="noopener noreferrer">Mở trang đăng nhập Facebook</a></div>
+                </article>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg></span>
+                  <h3>Quản lý tài sản Meta</h3>
+                  <p>Quản lý Fanpage, tài khoản quảng cáo và quyền của thành viên trong danh mục doanh nghiệp.</p>
+                  <div class="global-resource-actions"><a class="btn btn-primary" href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer">Mở Meta Business Suite</a></div>
+                </article>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg></span>
+                  <h3>Soạn bài và lên lịch</h3>
+                  <p>Chuẩn bị bài viết và hình ảnh trong FBTQ, rồi mở Planner của Meta để lên lịch đăng trên Trang được phân quyền.</p>
+                  <div class="global-resource-actions">
+                    <button type="button" class="btn btn-primary" data-goto="content">Mở Studio Nội Dung</button>
+                    <a class="btn btn-secondary" href="https://business.facebook.com/latest/planner" target="_blank" rel="noopener noreferrer">Mở Meta Planner</a>
+                  </div>
+                </article>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg></span>
+                  <h3>Hộp thư và bình luận</h3>
+                  <p>Trả lời tin nhắn khách qua Fanpage đã kết nối hoặc quản lý bình luận trên Trang trong Meta Business Suite.</p>
+                  <div class="global-resource-actions">
+                    <button type="button" class="btn btn-primary" data-goto="inbox">Mở Chatbot AI</button>
+                    <a class="btn btn-secondary" href="https://business.facebook.com/latest/inbox/all" target="_blank" rel="noopener noreferrer">Mở hộp thư Meta</a>
+                  </div>
+                </article>
+              </section>
+              <section class="global-resource-group" data-global-group="reports" aria-labelledby="globalGroup-reports">
+                <h2 id="globalGroup-reports">Báo cáo và hóa đơn</h2>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg></span>
+                  <h3>Báo cáo quảng cáo</h3>
+                  <p>Đưa số liệu chiến dịch từ tệp CSV hoặc JSON vào báo cáo hằng ngày của FBTQ.</p>
+                  <div class="global-resource-actions">
+                    <button type="button" class="btn btn-primary" data-assistant-import="metrics">Nhập CSV / JSON</button>
+                    <button type="button" class="btn btn-secondary" data-goto="analytics">Xem hiệu suất</button>
+                  </div>
+                </article>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#wallet"></use></svg></span>
+                  <h3>Hóa đơn quảng cáo</h3>
+                  <p>Nhập hóa đơn Meta từ PDF và đối chiếu chi phí, VAT cùng lịch sử báo cáo.</p>
+                  <div class="global-resource-actions">
+                    <button type="button" class="btn btn-primary" data-assistant-import="invoice">Nhập hóa đơn PDF</button>
+                    <button type="button" class="btn btn-secondary" data-goto="automation">Xem báo cáo hóa đơn</button>
+                  </div>
+                </article>
+              </section>
+              <section class="global-resource-group" data-global-group="network" aria-labelledby="globalGroup-network">
+                <h2 id="globalGroup-network">Kết nối mạng</h2>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#workflow"></use></svg></span>
+                  <h3>VPN và IP công cộng</h3>
+                  <p>Quản lý kết nối mạng trên thiết bị và kiểm tra địa chỉ IP công cộng của trình duyệt.</p>
+                  <div class="global-resource-actions">
+                    <button type="button" class="btn btn-secondary" id="globalVpnSettings" aria-controls="globalVpnHelp" aria-expanded="false">Kết nối VPN</button>
+                    <button type="button" class="btn btn-secondary" id="globalExpressVpn" aria-describedby="globalExpressVpnStatus">Kết nối ExpressVPN</button>
+                    <a class="btn btn-secondary" href="https://radar.cloudflare.com/speedtest" target="_blank" rel="noopener noreferrer">Kiểm tra IP công cộng</a>
+                  </div>
+                  <p id="globalVpnHelp" hidden>Dùng ứng dụng VPN của bạn hoặc mở Cài đặt hệ thống → VPN trên macOS, hay Cài đặt → Mạng &amp; Internet → VPN trên Windows. Chọn cấu hình đã lưu rồi bấm Kết nối.</p>
+                  <p id="globalExpressVpnStatus" role="status" hidden></p>
+                </article>
+              </section>
+              <section class="global-resource-group" data-global-group="help" aria-labelledby="globalGroup-help">
+                <h2 id="globalGroup-help">Hướng dẫn</h2>
+                <article class="panel global-resource-card">
+                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#file-text"></use></svg></span>
+                  <h3>Hướng dẫn sử dụng Meta</h3>
+                  <p>Tìm hiểu cách phân quyền tài sản, lập lịch nội dung và theo dõi hiệu quả chiến dịch qua tài liệu của Meta.</p>
+                  <div class="global-resource-actions"><a class="btn btn-secondary" href="https://en-gb.facebook.com/business/learn/courses/meta-business-suite" target="_blank" rel="noopener noreferrer">Mở hướng dẫn Meta</a></div>
+                </article>
+              </section>
+              <p id="globalResourceEmpty" class="panel global-resource-empty" hidden>Không tìm thấy tài nguyên phù hợp.</p>
+            </div>
           </div>
         </section>
 
@@ -342,6 +375,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-vpn-settings"></script>
+  <script type="module" src="app.js?v=20261125-global-groups"></script>
 </body>
 </html>

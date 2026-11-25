@@ -1,5 +1,6 @@
-const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog} = require('electron');
+const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog, clipboard} = require('electron');
 const path = require('node:path');
+const {validateExpressVpnUrl, requestExpressVpnConnection} = require('./express-vpn.cjs');
 const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload} = require('./policy.cjs');
 
 const appId = 'vn.fbtq.workspace';
@@ -9,6 +10,8 @@ const notifications = new Set();
 const notificationLimit = 5;
 let window;
 let recentTimes = [];
+let expressVpnEndpoint = null;
+let expressVpnBusy = false;
 
 app.setAppUserModelId(appId);
 app.enableSandbox();
@@ -131,6 +134,23 @@ if (!app.requestSingleInstanceLock()) {
         return false;
       }
     });
+    ipcMain.handle('fbtq:connect-express-vpn', async event => {
+      if (!trustedWorkspace(event)) return 'unavailable';
+      if (!expressVpnEndpoint) return 'setup';
+      if (expressVpnBusy) return 'busy';
+      expressVpnBusy = true;
+      try {
+        const decision = await dialog.showMessageBox(window, {
+          type: 'question', title: 'FBTQ Workspace', message: 'Kết nối ExpressVPN?',
+          detail: 'ExpressVPN sẽ kết nối bằng cấu hình hiện được chọn trong ứng dụng của nhà cung cấp.',
+          buttons: ['Hủy', 'Kết nối'], defaultId: 0, cancelId: 0
+        });
+        if (decision.response !== 1 || !trustedWorkspace(event)) return 'cancelled';
+        return await requestExpressVpnConnection(expressVpnEndpoint);
+      } finally {
+        expressVpnBusy = false;
+      }
+    });
     ipcMain.on('fbtq:notify', (event, data) => {
       if (!trustedWorkspace(event)) return;
       const destination = notificationPayload(data);
@@ -156,7 +176,24 @@ if (!app.requestSingleInstanceLock()) {
             dialog.showMessageBox({message: 'Thiết bị hiện chưa hỗ trợ thông báo của ứng dụng.'});
           }
         }},
-        {type: 'separator'}, {role: 'quit', label: 'Thoát'}
+        {type: 'separator'},
+        {label: 'Nhập địa chỉ ExpressVPN từ bộ nhớ tạm…', click: async () => {
+          focusWorkspace();
+          const decision = await dialog.showMessageBox(window, {
+            type: 'question', title: 'Thiết lập ExpressVPN',
+            message: 'Dùng địa chỉ MCP ExpressVPN đã sao chép?',
+            detail: 'Sao chép địa chỉ trong ExpressVPN → Add-ons → MCP Server. FBTQ giữ địa chỉ trong phiên desktop hiện tại.',
+            buttons: ['Hủy', 'Dùng địa chỉ'], defaultId: 0, cancelId: 0
+          });
+          if (decision.response !== 1) return;
+          const endpoint = validateExpressVpnUrl(clipboard.readText());
+          if (!endpoint) {
+            return dialog.showMessageBox(window, {message: 'Địa chỉ MCP không hợp lệ. Hãy sao chép lại từ ứng dụng ExpressVPN.'});
+          }
+          expressVpnEndpoint = endpoint;
+          await dialog.showMessageBox(window, {message: 'Đã nhập địa chỉ. Mở Tài Nguyên Global để kết nối ExpressVPN.'});
+        }},
+        {role: 'quit', label: 'Thoát'}
       ]},
       {label: 'Chỉnh sửa', role: 'editMenu'},
       {label: 'Cửa sổ', role: 'windowMenu'}

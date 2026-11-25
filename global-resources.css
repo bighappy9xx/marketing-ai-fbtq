@@ -1,70 +1,120 @@
-.global-resource-grid {
+.global-resource-workspace {
   display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
-  gap: var(--bento-gap,16px);
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--bento-gap, 16px);
 }
-.global-resource-grid .global-resource-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  min-width: 0;
+.global-resource-workspace [hidden] { display: none !important; }
+.global-resource-nav {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
   margin: 0;
-  padding: clamp(15px,2.2vw,27px);
 }
-.global-resource-grid > :last-child { grid-column: 1/-1; }
-#page-global-resources .global-resource-featured {
-  grid-column: 1/-1;
-  background: linear-gradient(115deg,var(--glass-solid) 46%,var(--glass-subtle));
+.global-resource-nav button {
+  text-align: start;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--glass-text);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.global-resource-nav button:hover,
+.global-resource-nav button[aria-pressed="true"] {
+  background: var(--glass-subtle);
+  border-color: var(--glass-edge);
+}
+.global-resource-nav button[aria-pressed="true"] {
+  color: var(--glass-focus);
+  font-weight: 700;
+}
+.global-resource-main { min-width: 0; }
+.global-resource-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px;
+  margin: 0 0 16px;
+  color: var(--glass-muted);
+}
+.global-resource-toolbar input {
+  width: min(100%, 340px);
+  min-height: 40px;
+  font-size: 1rem;
+}
+.global-resource-group { margin-bottom: 18px; }
+.global-resource-group > h2 {
+  margin: 0 0 8px;
+  color: var(--glass-text);
+  font-size: .95rem;
+}
+#page-global-resources .global-resource-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 5px 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  margin: 0 0 6px;
 }
 .global-resource-icon {
+  grid-row: 1 / span 2;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: var(--glass-subtle);
   color: var(--glass-focus);
 }
 .global-resource-icon svg {
-  display: block;
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.global-resource-card h2 {
+.global-resource-card h3 {
+  grid-column: 2;
   margin: 0;
   color: var(--glass-text);
-  font-size: 1.125rem;
-  line-height: 1.3;
+  font-size: 1rem;
 }
 .global-resource-card p {
+  grid-column: 2;
   margin: 0;
   color: var(--glass-muted);
   font-size: .875rem;
-  line-height: 1.55;
-  max-width: 60ch;
+  line-height: 1.45;
 }
+.global-resource-card p[id] { grid-column: 2 / -1; }
 .global-resource-actions {
+  grid-column: 3;
+  grid-row: 1 / span 2;
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 6px;
-  max-width: 100%;
+  gap: 6px;
+  max-width: 32ch;
+  justify-content: flex-end;
 }
-.global-resource-actions .btn { display: inline-flex; align-items: center; min-height: 40px; text-decoration: none; }
-@media (min-width: 1260px) {
-  .global-resource-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
-  .global-resource-grid > .global-resource-card { grid-column: span 2; }
-  #page-global-resources .global-resource-featured, .global-resource-grid > :nth-child(2) { grid-column: span 3; }
-  .global-resource-grid > :last-child { grid-column: 1/-1; }
+.global-resource-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  text-decoration: none;
 }
-@media (max-width: 650px) {
-  .global-resource-grid { grid-template-columns: minmax(0,1fr); }
+.global-resource-empty { padding: 16px; color: var(--glass-muted); }
+@media (max-width: 1000px) {
+  #page-global-resources .global-resource-card { grid-template-columns: auto minmax(0, 1fr); }
+  .global-resource-actions { grid-column: 2; grid-row: auto; max-width: none; justify-content: flex-start; }
+}
+@media (max-width: 680px) {
+  .global-resource-workspace { grid-template-columns: minmax(0, 1fr); }
+  .global-resource-nav { display: flex; flex-wrap: wrap; }
 }

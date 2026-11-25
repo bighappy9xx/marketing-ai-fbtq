@@ -1,7 +1,7 @@
 {
   "name": "fbtq-desktop",
   "productName": "FBTQ Workspace",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Không gian làm việc FBTQ",
   "author": "FBTQ",
   "private": true,
@@ -17,12 +17,37 @@
   },
   "build": {
     "appId": "vn.fbtq.workspace",
-    "directories": {"output": "../output/desktop"},
+    "directories": {
+      "output": "../output/desktop"
+    },
     "icon": "icon.png",
-    "files": ["main.cjs", "preload.cjs", "policy.cjs", "offline.html", "icon.png"],
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "policy.cjs",
+      "express-vpn.cjs",
+      "offline.html",
+      "icon.png"
+    ],
     "artifactName": "FBTQ-Workspace-${os}-${arch}.${ext}",
-    "mac": {"target": ["zip"], "identity": "-"},
-    "win": {"target": ["nsis"], "signAndEditExecutable": false},
-    "nsis": {"oneClick": true, "createStartMenuShortcut": true}
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "identity": "-"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
   }
 }
