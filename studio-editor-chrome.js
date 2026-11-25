@@ -9,6 +9,7 @@ const paths={
  select:'M6 3l12 9-6 1-3 7z',hand:'M7 12V6a1.5 1.5 0 013 0v5-7a1.5 1.5 0 013 0v7-6a1.5 1.5 0 013 0v6-3a1.5 1.5 0 013 0v7c0 5-3 7-7 7-3 0-4-2-6-5l-2-3a1.5 1.5 0 012-2z',
  undo:'M9 5L4 10l5 5 M4 10h10a6 6 0 016 6',redo:'M15 5l5 5-5 5 M20 10H10a6 6 0 00-6 6',
  plus:'M12 5v14 M5 12h14',minus:'M5 12h14',fullscreen:'M9 4H4v5 M15 4h5v5 M4 15v5h5 M20 15v5h-5',
+ zoom:'M10 3a7 7 0 100 14 7 7 0 000-14 M15 15l6 6 M7 10h6 M10 7v6',
  fit:'M4 9V4h5 M15 4h5v5 M4 15v5h5 M20 15v5h-5 M8 8h8v8H8z',
  rotate:'M5 8a8 8 0 111 10 M5 3v5h5',layers:'M12 3L2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5',
  duplicate:'M8 8h12v12H8z M16 8V4H4v12h4',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 100 6 3 3 0 000-6',
@@ -16,9 +17,57 @@ const paths={
  play:'M8 5l12 7-12 7z',pause:'M8 5v14 M16 5v14',crop:'M7 3v14h14 M3 7h14v14'
 };
 export function editorIcon(name){return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${name==='play'?'<path d="'+paths.play+'" fill="currentColor" stroke="none"/>':'<path d="'+(paths[name]||paths.select)+'"/>'}</svg>`;}
+function initPreviewZoom(root, button) {
+ const viewport=root.querySelector('.cs-preview-viewport');
+ const scroll=viewport.querySelector('.cs-preview-scroll');
+ const canvas=viewport.querySelector('canvas');
+ const disclosure=document.createElement('details');
+ disclosure.className='cs-preview-zoom';
+ disclosure.innerHTML=`<summary title="Thu phóng video xem trước" aria-label="Thu phóng video xem trước">${editorIcon('zoom')}<span data-preview-percent>100%</span></summary>
+  <div class="cs-preview-zoom-controls" role="group" aria-label="Thu phóng video xem trước">
+    ${button('csVideoZoomOut','minus','Thu nhỏ video xem trước')}
+    <input id="csVideoZoom" type="range" min="25" max="250" step="5" value="100" aria-label="Mức thu phóng video xem trước" aria-valuetext="100%">
+    ${button('csVideoZoomIn','plus','Phóng to video xem trước')}
+    <button id="csVideoZoomFit" type="button" title="Đưa video về vừa khung">Vừa khung</button>
+  </div>`;
+ root.querySelector('.cs-stage-toolbar').append(disclosure);
+ const range=disclosure.querySelector('input'), percent=disclosure.querySelector('[data-preview-percent]');
+ const zoomOut=disclosure.querySelector('#csVideoZoomOut'), zoomIn=disclosure.querySelector('#csVideoZoomIn');
+
+ function syncFrame() {
+  viewport.style.setProperty('--cs-preview-native-width',`${canvas.width}px`);
+  viewport.style.setProperty('--cs-preview-aspect',String(canvas.width/canvas.height));
+ }
+
+ function setZoom(value) {
+  range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),value)));
+  const label=range.value+'%';
+  percent.textContent=label;
+  range.setAttribute('aria-valuetext',label);
+  zoomOut.disabled=range.value===range.min;
+  zoomIn.disabled=range.value===range.max;
+  viewport.style.setProperty('--cs-preview-scale',String(Number(range.value)/100));
+  scroll.scrollLeft=(scroll.scrollWidth-scroll.clientWidth)/2;
+  scroll.scrollTop=(scroll.scrollHeight-scroll.clientHeight)/2;
+ }
+
+ range.addEventListener('input',()=>setZoom(Number(range.value)));
+ zoomOut.onclick=()=>setZoom(Number(range.value)-25);
+ zoomIn.onclick=()=>setZoom(Number(range.value)+25);
+ disclosure.querySelector('#csVideoZoomFit').onclick=()=>setZoom(100);
+ disclosure.addEventListener('keydown',event=>{
+  if(event.key!=='Escape'||!disclosure.open)return;
+  disclosure.open=false;
+  disclosure.querySelector('summary').focus();
+ });
+ syncFrame();
+ new MutationObserver(syncFrame).observe(canvas,{attributes:true,attributeFilter:['width','height']});
+ return ()=>{disclosure.open=false;setZoom(100);};
+}
 export function initEditorChrome(root,{zoomBy,onVisualAction}){
  root.querySelector('.cs-topbar').append(root.querySelector('#csExpand'));
  const q=s=>root.querySelector(s),button=(id,icon,label)=>`<button type="button" id="${id}" title="${label}" aria-label="${label}">${editorIcon(icon)}</button>`;
+ const resetPreviewZoom=initPreviewZoom(root,button);
  const stage=q('#csStage'),toggle=document.createElement('button');toggle.type='button';toggle.id='csToggleLibrary';toggle.className='cs-material-toggle';toggle.title=toggle.ariaLabel='Hiện / ẩn khung dự án';toggle.setAttribute('aria-expanded','true');toggle.innerHTML=editorIcon('panel');stage.append(toggle);toggle.onclick=()=>{const hidden=root.classList.toggle('cs-library-collapsed');toggle.setAttribute('aria-expanded',String(!hidden));};
  const bar=q('.cs-timeline-toolbar');
  const left=document.createElement('div');left.className='cs-tools-left';
@@ -31,5 +80,5 @@ export function initEditorChrome(root,{zoomBy,onVisualAction}){
  for(const [id,action] of [['csObjectFit','contain'],['csObjectCover','cover'],['csObjectRotate','rotate']])q('#'+id).onclick=()=>onVisualAction(action);
  q('#csObjectDuplicate').onclick=()=>q('#csDuplicate').click();q('#csObjectForward').onclick=()=>q('#csForward').click();
  function updateSelection(visible){floating.hidden=!visible;}
- return {updateSelection};
+ return {updateSelection,resetPreviewZoom};
 }

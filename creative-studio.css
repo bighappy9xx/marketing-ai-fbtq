@@ -82,3 +82,62 @@
 #page-creative-studio .cs-workspace{min-width:0;max-width:100%;box-sizing:border-box}#page-creative-studio .cs-timeline-panel{min-width:0;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box}#page-creative-studio .cs-timeline-scroll{min-width:0;width:100%;max-width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:auto}#page-creative-studio .cs-timeline-toolbar{min-width:0;max-width:100%;box-sizing:border-box}.cs-tools-left{flex-wrap:wrap}.cs-tools-playback{justify-content:center}.cs-tools-playback #csPlay{display:grid;place-items:center;flex:0 0 26px;min-width:26px;min-height:26px;width:26px;height:26px;padding:0;line-height:1;box-sizing:border-box}.cs-tools-playback #csPlay svg{width:14px;height:14px;margin:0;display:block}.cs-timeline-scroll:focus-visible{outline:2px solid var(--cs-accent);outline-offset:-2px}
 
 .cs-export-dialog{width:min(480px,calc(100vw - 32px));box-sizing:border-box;max-height:90vh;overflow:auto;border:1px solid var(--line,#dce4ef);border-radius:20px;padding:26px;background:var(--surface,#fff);color:var(--ink,#243246);box-shadow:0 24px 100px #0d203c40}.cs-export-dialog::backdrop{background:#12233c88;backdrop-filter:blur(4px)}.cs-export-dialog[open]{display:grid;gap:16px}.cs-export-dialog-heading{display:flex;align-items:center;gap:12px}.cs-export-dialog-heading>span{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:12px;background:#eaf2ff;color:#347cff;font-size:26px}.cs-export-dialog h2{font-size:18px;margin:0}.cs-export-dialog-heading p{font-size:12px;line-height:1.5;margin:5px 0 0;color:var(--muted,#8290a2);overflow-wrap:anywhere}.cs-export-percent{text-align:center;font-size:48px;font-weight:750;font-variant-numeric:tabular-nums;color:var(--blue,#347cff);line-height:1.2}.cs-export-dialog progress{width:100%;height:12px;appearance:none;border:0;border-radius:20px;overflow:hidden;background:#e9eef6;accent-color:#347cff}.cs-export-dialog progress::-webkit-progress-bar{background:#e9eef6;border-radius:20px}.cs-export-dialog progress::-webkit-progress-value{background:linear-gradient(90deg,#347cff,#8053ee);border-radius:20px}.cs-export-dialog progress::-moz-progress-bar{background:#347cff;border-radius:20px}#csExportProgressStatus{margin:0;text-align:center;font-size:13px;line-height:1.7;overflow-wrap:anywhere}.cs-export-statistics{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted,#8290a2);font-size:12px}.cs-export-progress-note{margin:0;text-align:center;font-size:11px;color:var(--muted,#8290a2)}.cs-export-dialog-actions{display:flex;justify-content:flex-end;gap:10px}.cs-export-dialog [hidden]{display:none!important}.cs-export-dialog[data-state=error] .cs-export-percent{color:#d95063}.cs-export-dialog[data-state=success] .cs-export-percent{color:#21a77e}
+
+.cs-preview-viewport, .cs-preview-scroll { display: contents; }
+#page-creative-studio[data-mode="video"] .cs-preview-viewport {
+  display: block;
+  position: relative;
+  align-self: stretch;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+}
+#page-creative-studio[data-mode="video"] .cs-preview-scroll {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+#page-creative-studio[data-mode="video"] .cs-preview-viewport canvas {
+  flex: none;
+  width: calc(min(var(--cs-preview-native-width), 100cqw, 100cqh * var(--cs-preview-aspect)) * var(--cs-preview-scale, 1));
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: auto;
+}
+.cs-preview-zoom { margin-inline-start: auto; min-width: 0; color: var(--cs-ink); }
+#page-creative-studio:not([data-mode="video"]) .cs-preview-zoom { display: none; }
+.cs-preview-zoom summary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--cs-border);
+  border-radius: 8px;
+  background: var(--cs-panel);
+  cursor: pointer;
+  list-style: none;
+  font-size: .75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.cs-preview-zoom summary::-webkit-details-marker { display: none; }
+.cs-preview-zoom summary:hover, .cs-preview-zoom[open] summary { color: var(--cs-accent); }
+.cs-preview-zoom[open] { flex-basis: 100%; }
+.cs-preview-zoom[open] summary { margin-inline-start: auto; }
+.cs-preview-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 240px);
+  margin: 6px 0 0 auto;
+}
+.cs-preview-zoom svg { display: block; width: 17px; height: 17px; flex: none; }
+.cs-preview-zoom-controls input { flex: 1 1 0; min-width: 25px; accent-color: var(--cs-accent); }
+.cs-preview-zoom-controls button { flex: none; min-height: 32px; white-space: nowrap; }
+.cs-preview-zoom-controls button:disabled { opacity: .45; cursor: default; }
