@@ -65,4 +65,21 @@ function notificationPayload(value) {
   return null;
 }
 
-module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload};
+const desktopRoutes = new Map([
+  ['resources', 'global-resources'],
+  ['meta', 'global-resources'],
+  ['content', 'content'],
+  ['analytics', 'analytics'],
+  ['inbox', 'inbox'],
+  ['automation', 'automation'],
+  ['import-report', 'desktop-import-report']
+]);
+
+function desktopLink(input) {
+  if (typeof input !== 'string') return null;
+  const action = /^fbtq-workspace:\/\/open\/([a-z-]+)\/?$/.exec(input)?.[1];
+  const route = desktopRoutes.get(action);
+  return route ? workspaceUrl + '#' + route : null;
+}
+
+module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink};

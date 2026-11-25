@@ -1,7 +1,7 @@
 {
   "name": "fbtq-desktop",
   "productName": "FBTQ Workspace",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Không gian làm việc FBTQ",
   "author": "FBTQ",
   "private": true,
@@ -21,6 +21,7 @@
       "output": "../output/desktop"
     },
     "icon": "icon.png",
+    "protocols": [{"name": "FBTQ Workspace", "schemes": ["fbtq-workspace"]}],
     "files": [
       "main.cjs",
       "preload.cjs",

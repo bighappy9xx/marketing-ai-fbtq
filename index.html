@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
   <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-recipient">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
-  <link rel="stylesheet" href="global-resources.css?v=20261125-grouped">
+  <link rel="stylesheet" href="global-resources.css?v=20261125-library">
 </head>
 <body data-workspace-layout="bento">
   <div id="authScreen" class="auth-screen">
@@ -216,101 +216,33 @@
         <section class="page" id="page-leaderboard"><div class="page-heading"><div><div class="eyebrow">TEAM PERFORMANCE</div><h1>Xếp hạng &amp; so sánh nhân sự</h1><p class="muted">So sánh doanh thu được tổng hợp từ báo cáo quảng cáo hằng ngày.</p></div></div><div class="panel leaderboard-chart-panel"><div class="panel-heading"><div><h3>Doanh thu theo nhân sự</h3><p class="muted" id="leaderboardChartDescription">Cột 3D · tối đa 10 nhân sự dẫn đầu trong kỳ đang chọn</p></div><div class="leaderboard-chart-modes" role="group" aria-label="Chọn kiểu biểu đồ"><button type="button" class="selected" data-leaderboard-view="3d" aria-pressed="true">Cột 3D</button><button type="button" data-leaderboard-view="2d" aria-pressed="false">Cột 2D</button><button type="button" data-leaderboard-view="pie" aria-pressed="false">Biểu đồ tròn</button><button type="button" data-leaderboard-view="stats" aria-pressed="false">Thống kê</button></div></div><div class="leaderboard-chart-viewport"><div class="leaderboard-chart-content" id="leaderboardChartContent"><p class="muted chart-empty">Đang chờ dữ liệu báo cáo doanh thu.</p></div></div></div><div class="panel leaderboard-panel"><div class="panel-heading"><div><h3>Bảng xếp hạng doanh thu</h3><p class="muted" id="leaderboardCaption">Đang tải dữ liệu doanh thu.</p></div><div class="leaderboard-controls"><select class="select-small" id="leaderboardType" aria-label="Chọn tháng, quý hoặc năm"><option value="month">Theo tháng</option><option value="quarter">Theo quý</option><option value="year">Theo năm</option></select><select class="select-small" id="leaderboardPeriod" aria-label="Chọn kỳ xếp hạng"></select></div></div><div class="table-scroll"><table class="leaderboard-table"><thead><tr><th>HẠNG</th><th>NHÂN SỰ</th><th>TỔNG DOANH THU</th><th>NGÀY ĐÃ BÁO CÁO</th></tr></thead><tbody id="leaderboardTable"><tr><td colspan="4" class="muted">Đăng nhập để xem bảng xếp hạng.</td></tr></tbody></table></div><p class="leaderboard-note">Doanh thu được cộng từ các báo cáo quảng cáo mỗi ngày. Báo cáo trùng cùng ngày và chiến dịch sẽ cập nhật số cũ thay vì tính hai lần.</p></div></section><section class="page" id="page-people"><div class="page-heading"><div><div class="eyebrow">PEOPLE & PERMISSIONS</div><h1>Nhân sự & phân quyền</h1><p class="muted">Mời thành viên, phân quyền và gán đơn vị ngay trên website.</p></div><div class="people-heading-actions"><button type="button" class="btn btn-primary" id="inviteUser">＋ Mời thành viên</button></div></div><div class="role-overview"><div class="role-card role-director"><div class="role-symbol">♔</div><div><b>Giám đốc</b><small>Toàn quyền công ty</small></div><span id="roleCountDirector">0 người</span></div><div class="role-connector">→</div><div class="role-card role-branch"><div class="role-symbol">⌂</div><div><b>Quản lý chi nhánh</b><small>Quản trị chi nhánh</small></div><span id="roleCountBranch">0 người</span></div><div class="role-connector">→</div><div class="role-card role-manager"><div class="role-symbol">♙</div><div><b>Trưởng phòng</b><small>Quản lý nhóm</small></div><span id="roleCountDepartment">0 người</span></div><div class="role-connector">→</div><div class="role-card role-accountant"><div class="role-symbol">₫</div><div><b>Kế toán</b><small>Duyệt và cấp tạm ứng</small></div><span id="roleCountAccountant">0 người</span></div><div class="role-connector">→</div><div class="role-card role-staff"><div class="role-symbol">♧</div><div><b>Nhân viên</b><small>Thực hiện công việc</small></div><span id="roleCountEmployee">0 người</span></div></div><div class="panel permission-panel"><div class="panel-heading"><div><h3>Bảng quyền truy cập</h3><p class="muted">Quyền theo vai trò công việc</p></div><button class="btn btn-secondary" id="editPermissions">✎ Chỉnh quyền</button></div><div class="table-scroll"><table><thead><tr><th>CHỨC NĂNG</th><th>GIÁM ĐỐC</th><th>QUẢN LÝ CHI NHÁNH</th><th>TRƯỞNG PHÒNG</th><th>NHÂN VIÊN</th><th>KẾ TOÁN</th></tr></thead><tbody><tr><td><b>Hiệu suất marketing</b></td><td><span class="perm-full">● Trụ sở và mọi chi nhánh</span></td><td><span class="perm-full">● Toàn chi nhánh</span></td><td><span class="perm-full">● Toàn chi nhánh</span></td><td><span class="perm-limited">● Chỉ số cá nhân</span></td><td><span class="perm-limited">● Cá nhân</span></td></tr><tr><td><b>Doanh thu trên Tổng quan</b></td><td><span class="perm-check">✓ Toàn công ty</span></td><td><span class="perm-check">✓ Chi nhánh</span></td><td><span class="perm-check">✓ Chi nhánh</span></td><td><span class="perm-limited">● Tổng toàn công ty</span></td><td><span class="perm-limited">● Cá nhân</span></td></tr><tr><td><b>Tạo & duyệt nội dung</b></td><td><span class="perm-check">✓ Duyệt toàn bộ</span></td><td><span class="perm-check">✓ Duyệt chi nhánh</span></td><td><span class="perm-check">✓ Duyệt phòng ban</span></td><td><span class="perm-limited">● Gửi duyệt</span></td><td><span class="perm-limited">● Cá nhân</span></td></tr><tr><td><b>Giao công việc</b></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-no">—</span></td><td><span class="perm-no">—</span></td></tr><tr><td><b>Cấu hình hệ thống & phân quyền</b></td><td><span class="perm-check">✓</span></td><td><span class="perm-no">—</span></td><td><span class="perm-no">—</span></td><td><span class="perm-no">—</span></td><td><span class="perm-limited">● Cá nhân</span></td></tr><tr><td><b>Hóa đơn tạm ứng</b></td><td>Xem toàn công ty</td><td>Duyệt bước 1 · chi nhánh</td><td>Gửi đề nghị</td><td>Gửi đề nghị</td><td>Duyệt bước 2 · ghi nhận cấp tiền</td></tr><tr><td><b>Đơn từ & đề xuất</b></td><td>Xem toàn công ty</td><td>Duyệt bước 2 · chi nhánh</td><td>Duyệt bước 1 · phòng ban</td><td>Gửi đơn của mình</td><td>Gửi đơn của mình</td></tr></tbody></table></div></div><p class="muted">Vai trò Kế toán: duyệt bước 2 hóa đơn tạm ứng và xác nhận cấp tiền; không có quyền duyệt đơn xin nghỉ. Gán vai trò tại Chỉnh quyền.</p><div class="panel people-table"><div class="panel-heading"><div><h3>Thành viên công ty</h3><p class="muted" id="peopleSummary">Chưa tải dữ liệu thành viên.</p><p class="muted">Gán chi nhánh cho từng thành viên để bộ lọc Tổng quan gom đúng số liệu.</p></div><div class="table-actions"><button type="button" class="btn btn-secondary" id="manageInvitations">Danh sách lời mời</button><input class="table-search" placeholder="⌕ Tìm thành viên"><select class="select-small"><option>Tất cả vai trò</option><option>Giám đốc</option><option>Quản lý chi nhánh</option><option>Trưởng phòng</option><option>Kế toán</option><option>Nhân viên</option></select></div></div><div class="table-scroll"><table><thead><tr><th>THÀNH VIÊN</th><th>VAI TRÒ</th><th>PHÒNG BAN</th><th>CHI NHÁNH / TRỤ SỞ</th><th>TRẠNG THÁI</th><th></th></tr></thead><tbody id="peopleTable"><tr><td colspan="6" class="muted">Chưa có dữ liệu thành viên.</td></tr></tbody></table></div></div></section>
 
         <section class="page" id="page-global-resources" aria-labelledby="globalResourcesTitle">
-          <div class="page-heading">
-            <div><h1 id="globalResourcesTitle">Tài Nguyên Global</h1><p class="muted">Mở các công cụ Meta và quy trình marketing trong FBTQ từ một nơi.</p></div>
-          </div>
+          <div class="page-heading"><div><h1 id="globalResourcesTitle">Tài Nguyên Global</h1><p class="muted">Sắp xếp lối tắt công việc theo nhóm. Danh sách được lưu trên thiết bị này.</p></div></div>
           <div class="global-resource-workspace">
-            <nav class="panel global-resource-nav" aria-label="Nhóm tài nguyên">
-              <button type="button" data-global-filter="all" aria-pressed="true">Tất cả</button>
-              <button type="button" data-global-filter="meta" aria-pressed="false">Tài sản Meta</button>
-              <button type="button" data-global-filter="reports" aria-pressed="false">Báo cáo và hóa đơn</button>
-              <button type="button" data-global-filter="network" aria-pressed="false">Kết nối mạng</button>
-              <button type="button" data-global-filter="help" aria-pressed="false">Hướng dẫn</button>
-            </nav>
-            <div class="global-resource-main">
-              <div class="panel global-resource-toolbar">
-                <input id="globalResourceSearch" type="search" aria-label="Tìm tài nguyên" placeholder="Tìm tài nguyên…" autocomplete="off">
-                <span id="globalResourceCount" role="status" aria-live="polite"></span>
+            <nav class="panel global-resource-nav" aria-label="Nhóm tài nguyên" id="globalResourceGroups"></nav>
+            <div class="panel global-resource-main">
+              <div class="global-resource-toolbar">
+                <input id="globalResourceSearch" type="search" aria-label="Tìm tài nguyên" placeholder="Tìm theo tên hoặc nhóm…" autocomplete="off">
+                <a class="btn btn-secondary" id="globalResourceDesktop" href="fbtq-workspace://open/resources">Mở FBTQ Desktop</a>
+                <a class="btn btn-secondary" id="globalDesktopReport" href="fbtq-workspace://open/import-report">Nhập báo cáo trên máy</a>
+                <button type="button" class="btn btn-primary" id="globalResourceAdd">Thêm tài nguyên</button>
               </div>
-              <section class="global-resource-group" data-global-group="meta" aria-labelledby="globalGroup-meta">
-                <h2 id="globalGroup-meta">Tài sản Meta</h2>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#workflow"></use></svg></span>
-                  <h3>Đăng nhập Facebook</h3>
-                  <p>Mở trang đăng nhập chính thức bằng trình duyệt.</p>
-                  <div class="global-resource-actions"><a class="btn btn-primary" href="https://www.facebook.com/login/" target="_blank" rel="noopener noreferrer">Mở trang đăng nhập Facebook</a></div>
-                </article>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg></span>
-                  <h3>Quản lý tài sản Meta</h3>
-                  <p>Quản lý Fanpage, tài khoản quảng cáo và quyền của thành viên trong danh mục doanh nghiệp.</p>
-                  <div class="global-resource-actions"><a class="btn btn-primary" href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer">Mở Meta Business Suite</a></div>
-                </article>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#sparkles"></use></svg></span>
-                  <h3>Soạn bài và lên lịch</h3>
-                  <p>Chuẩn bị bài viết và hình ảnh trong FBTQ, rồi mở Planner của Meta để lên lịch đăng trên Trang được phân quyền.</p>
-                  <div class="global-resource-actions">
-                    <button type="button" class="btn btn-primary" data-goto="content">Mở Studio Nội Dung</button>
-                    <a class="btn btn-secondary" href="https://business.facebook.com/latest/planner" target="_blank" rel="noopener noreferrer">Mở Meta Planner</a>
-                  </div>
-                </article>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#message-circle"></use></svg></span>
-                  <h3>Hộp thư và bình luận</h3>
-                  <p>Trả lời tin nhắn khách qua Fanpage đã kết nối hoặc quản lý bình luận trên Trang trong Meta Business Suite.</p>
-                  <div class="global-resource-actions">
-                    <button type="button" class="btn btn-primary" data-goto="inbox">Mở Chatbot AI</button>
-                    <a class="btn btn-secondary" href="https://business.facebook.com/latest/inbox/all" target="_blank" rel="noopener noreferrer">Mở hộp thư Meta</a>
-                  </div>
-                </article>
-              </section>
-              <section class="global-resource-group" data-global-group="reports" aria-labelledby="globalGroup-reports">
-                <h2 id="globalGroup-reports">Báo cáo và hóa đơn</h2>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#chart"></use></svg></span>
-                  <h3>Báo cáo quảng cáo</h3>
-                  <p>Đưa số liệu chiến dịch từ tệp CSV hoặc JSON vào báo cáo hằng ngày của FBTQ.</p>
-                  <div class="global-resource-actions">
-                    <button type="button" class="btn btn-primary" data-assistant-import="metrics">Nhập CSV / JSON</button>
-                    <button type="button" class="btn btn-secondary" data-goto="analytics">Xem hiệu suất</button>
-                  </div>
-                </article>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#wallet"></use></svg></span>
-                  <h3>Hóa đơn quảng cáo</h3>
-                  <p>Nhập hóa đơn Meta từ PDF và đối chiếu chi phí, VAT cùng lịch sử báo cáo.</p>
-                  <div class="global-resource-actions">
-                    <button type="button" class="btn btn-primary" data-assistant-import="invoice">Nhập hóa đơn PDF</button>
-                    <button type="button" class="btn btn-secondary" data-goto="automation">Xem báo cáo hóa đơn</button>
-                  </div>
-                </article>
-              </section>
-              <section class="global-resource-group" data-global-group="network" aria-labelledby="globalGroup-network">
-                <h2 id="globalGroup-network">Kết nối mạng</h2>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#workflow"></use></svg></span>
-                  <h3>VPN và IP công cộng</h3>
-                  <p>Quản lý kết nối mạng trên thiết bị và kiểm tra địa chỉ IP công cộng của trình duyệt.</p>
-                  <div class="global-resource-actions">
-                    <button type="button" class="btn btn-secondary" id="globalVpnSettings" aria-controls="globalVpnHelp" aria-expanded="false">Kết nối VPN</button>
-                    <button type="button" class="btn btn-secondary" id="globalExpressVpn" aria-describedby="globalExpressVpnStatus">Kết nối ExpressVPN</button>
-                    <a class="btn btn-secondary" href="https://radar.cloudflare.com/speedtest" target="_blank" rel="noopener noreferrer">Kiểm tra IP công cộng</a>
-                  </div>
-                  <p id="globalVpnHelp" hidden>Dùng ứng dụng VPN của bạn hoặc mở Cài đặt hệ thống → VPN trên macOS, hay Cài đặt → Mạng &amp; Internet → VPN trên Windows. Chọn cấu hình đã lưu rồi bấm Kết nối.</p>
-                  <p id="globalExpressVpnStatus" role="status" hidden></p>
-                </article>
-              </section>
-              <section class="global-resource-group" data-global-group="help" aria-labelledby="globalGroup-help">
-                <h2 id="globalGroup-help">Hướng dẫn</h2>
-                <article class="panel global-resource-card">
-                  <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#file-text"></use></svg></span>
-                  <h3>Hướng dẫn sử dụng Meta</h3>
-                  <p>Tìm hiểu cách phân quyền tài sản, lập lịch nội dung và theo dõi hiệu quả chiến dịch qua tài liệu của Meta.</p>
-                  <div class="global-resource-actions"><a class="btn btn-secondary" href="https://en-gb.facebook.com/business/learn/courses/meta-business-suite" target="_blank" rel="noopener noreferrer">Mở hướng dẫn Meta</a></div>
-                </article>
-              </section>
-              <p id="globalResourceEmpty" class="panel global-resource-empty" hidden>Không tìm thấy tài nguyên phù hợp.</p>
+              <form id="globalResourceForm" class="global-resource-form" hidden>
+                <label>Tên tài nguyên<input name="resourceName" maxlength="100" required></label>
+                <label>Nhóm<input name="group" list="globalGroupOptions" maxlength="60" required><datalist id="globalGroupOptions"></datalist></label>
+                <label>Điểm đến<select name="destination" required></select></label>
+                <div class="global-resource-actions">
+                  <button type="submit" class="btn btn-primary">Lưu</button>
+                  <button type="button" class="btn btn-secondary" id="globalResourceCancel">Hủy</button>
+                </div>
+              </form>
+              <p id="globalResourceStatus" class="global-resource-status" role="status"></p>
+              <div class="table-scroll" id="globalResourceTable">
+                <table>
+                  <thead><tr><th scope="col">Tên tài nguyên</th><th scope="col">Nhóm</th><th scope="col">Điểm đến</th><th scope="col">Thao tác</th></tr></thead>
+                  <tbody id="globalResourceRows"></tbody>
+                </table>
+              </div>
+              <p id="globalResourceEmpty" class="global-resource-empty" hidden></p>
             </div>
           </div>
         </section>
@@ -375,6 +307,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-global-groups"></script>
+  <script type="module" src="app.js?v=20261125-desktop-links"></script>
 </body>
 </html>

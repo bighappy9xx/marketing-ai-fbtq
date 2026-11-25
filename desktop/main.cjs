@@ -1,7 +1,7 @@
 const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog, clipboard} = require('electron');
 const path = require('node:path');
 const {validateExpressVpnUrl, requestExpressVpnConnection} = require('./express-vpn.cjs');
-const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink} = require('./policy.cjs');
 
 const appId = 'vn.fbtq.workspace';
 const partition = 'persist:fbtq-workspace';
@@ -12,12 +12,15 @@ let window;
 let recentTimes = [];
 let expressVpnEndpoint = null;
 let expressVpnBusy = false;
+let pendingDesktopUrl = process.argv.map(desktopLink).find(Boolean);
+let desktopReady = false;
 
 app.setAppUserModelId(appId);
 app.enableSandbox();
 
-function focusWorkspace() {
-  if (!window || window.isDestroyed()) createWindow();
+function focusWorkspace(url) {
+  if (!window || window.isDestroyed()) createWindow(url);
+  else if (url) window.webContents.loadURL(url).catch(() => {});
   if (window.isMinimized()) window.restore();
   window.show();
   window.focus();
@@ -46,7 +49,7 @@ function openExternal(url) {
   if (externalPage(url)) shell.openExternal(url).catch(() => {});
 }
 
-function createWindow() {
+function createWindow(initialUrl = workspaceUrl) {
   window = new BrowserWindow({
     title: 'FBTQ Workspace', width: 1350, height: 880, minWidth: 430, minHeight: 580,
     backgroundColor: '#f2f6fc', icon, show: false,
@@ -59,7 +62,7 @@ function createWindow() {
   const contents = currentWindow.webContents;
   let metaLoginExpiresAt = 0;
   function loadWorkspace() {
-    contents.loadURL(workspaceUrl).catch(() => {});
+    contents.loadURL(initialUrl).catch(() => {});
   }
   function protectNavigation(event) {
     const {url, isMainFrame, isSameDocument} = event;
@@ -108,12 +111,26 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', focusWorkspace);
-  app.on('activate', focusWorkspace);
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    const target = desktopLink(url);
+    if (!target) return;
+    if (desktopReady) focusWorkspace(target);
+    else pendingDesktopUrl = target;
+  });
+  app.on('second-instance', (_, args) => {
+    const target = args.map(desktopLink).find(Boolean);
+    if (desktopReady) focusWorkspace(target);
+    else if (target) pendingDesktopUrl = target;
+  });
+  app.on('activate', () => {
+    if (desktopReady) focusWorkspace();
+  });
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
   });
   app.whenReady().then(() => {
+    if (app.isPackaged && process.platform === 'win32') app.setAsDefaultProtocolClient('fbtq-workspace');
     const workspaceSession = session.fromPartition(partition);
     const allowedPermission = (permission, origin, mainFrame) => Boolean(mainFrame && workspacePage(origin)
       && ['clipboard-sanitized-write', 'fullscreen'].includes(permission));
@@ -198,6 +215,7 @@ if (!app.requestSingleInstanceLock()) {
       {label: 'Chỉnh sửa', role: 'editMenu'},
       {label: 'Cửa sổ', role: 'windowMenu'}
     ]));
-    if (!window) createWindow();
+    desktopReady = true;
+    if (!window) createWindow(pendingDesktopUrl);
   });
 }

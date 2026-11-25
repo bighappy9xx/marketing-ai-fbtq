@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink} = require('./policy.cjs');
 
 test('desktop bridge trusts the exact HTTPS workspace origin', () => {
   assert.equal(workspacePage(workspaceUrl + '#inbox'), true);
@@ -37,6 +37,14 @@ test('network controls have fixed system settings and public IP destinations', (
   assert.equal(externalPage('ms-settings:network-vpn'), false);
   assert.equal(externalPage('https://radar.cloudflare.com/speedtest'), true);
   assert.equal(externalPage('https://radar.cloudflare.com/anything-else'), false);
+});
+
+test('desktop links open only predefined FBTQ screens', () => {
+  assert.equal(desktopLink('fbtq-workspace://open/resources'), workspaceUrl + '#global-resources');
+  assert.equal(desktopLink('fbtq-workspace://open/import-report'), workspaceUrl + '#desktop-import-report');
+  for (const url of ['fbtq-workspace://open/import-report?file=/tmp/private.csv',
+    'fbtq-workspace://elsewhere/import-report', 'fbtq-workspace://open/connect-vpn',
+    'https://example.org', '--inspect=0']) assert.equal(desktopLink(url), null);
 });
 
 test('notification requests can open only supported actions for the intended session', () => {

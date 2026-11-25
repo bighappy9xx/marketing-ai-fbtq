@@ -1,3 +1,4 @@
+import {initGlobalResources} from './global-resources.js?v=20261125-library';
 import {initMessengerPush} from './messenger-push-ui.js?v=20261119-desktop-banners';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261121-enterprise';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-desktop-banners';
@@ -373,8 +374,9 @@ async function generateGeminiSpeech(text,voice){
   return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
-function signOutToAuth(){desktopConversation=null;dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){globalResources.useAccount(null);desktopConversation=null;dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
+  globalResources.useAccount(state.user?.uid);
   dailyAnnouncements.start();
   appearance.useAccount(state.user?.uid,loadLocalForUser());
   syncSystemSettings(true);
@@ -780,83 +782,25 @@ function assistantImportNotice(message){
   appendFbtqAssistantMessage('assistant',message);
 }
 function openWorkspaceDeepLink(){
- if(state.user&&['#assistant','#creative-studio','#inbox','#analytics','#automation','#content-review','#tasks','#global-resources'].includes(location.hash))navigate(location.hash.slice(1));
+ if(!state.user)return;
+ if(location.hash==='#desktop-import-report'&&window.fbtqDesktop){
+   history.replaceState(history.state,'','#assistant');
+   openAssistantImport('report');
+   return;
+ }
+ if(['#assistant','#creative-studio','#inbox','#analytics','#automation','#content','#content-review','#tasks','#global-resources'].includes(location.hash))navigate(location.hash.slice(1));
 }
 window.addEventListener('hashchange',openWorkspaceDeepLink);
-{
-  const page=$('#page-global-resources');
-  const search=$('#globalResourceSearch');
-  const filters=$$('[data-global-filter]',page);
-  const groups=$$('[data-global-group]',page).map(group=>({
-    group,
-    resources:$$('.global-resource-card',group).map(card=>({
-      card,
-      text:normalizeFbtqAssistantText([$('h2',group),$('h3',card),$('p',card),$('.global-resource-actions',card)]
-        .map(element=>element.textContent).join(' '))
-    }))
-  }));
-  let activeGroup='all';
-  function updateResources(){
-    const terms=normalizeFbtqAssistantText(search.value).split(' ').filter(Boolean);
-    let total=0;
-    for(const {group,resources} of groups){
-      const selected=activeGroup==='all'||group.dataset.globalGroup===activeGroup;
-      let visible=0;
-      for(const {card,text} of resources){
-        const matches=selected&&terms.every(term=>text.includes(term));
-        card.hidden=!matches;
-        if(matches)visible++;
-      }
-      group.hidden=visible===0;
-      total+=visible;
-    }
-    $('#globalResourceCount').textContent=total+' tài nguyên';
-    $('#globalResourceEmpty').hidden=total!==0;
-  }
-  for(const filter of filters){
-    filter.addEventListener('click',()=>{
-      activeGroup=filter.dataset.globalFilter;
-      for(const item of filters)item.setAttribute('aria-pressed',String(item===filter));
-      updateResources();
-    });
-  }
-  search.addEventListener('input',updateResources);
-  updateResources();
+const globalResources=initGlobalResources({
+  root:$('#page-global-resources'),normalize:normalizeFbtqAssistantText,onNavigate:navigate
+});
+if(window.fbtqDesktop){
+  $('#globalResourceDesktop').hidden=true;
+  $('#globalDesktopReport').addEventListener('click',event=>{
+    event.preventDefault();
+    openAssistantImport('report');
+  });
 }
-$('#globalVpnSettings').addEventListener('click',async event=>{
-  const button=event.currentTarget,help=$('#globalVpnHelp');
-  if(window.fbtqDesktop?.openVpnSettings){
-    button.disabled=true;
-    let opened=false;
-    try{opened=await window.fbtqDesktop.openVpnSettings();}catch{}
-    finally{button.disabled=false;}
-    if(opened)return;
-    help.hidden=false;
-  }else help.hidden=!help.hidden;
-  button.setAttribute('aria-expanded',String(!help.hidden));
-});
-$('#globalExpressVpn').addEventListener('click',async event=>{
-  const button=event.currentTarget,status=$('#globalExpressVpnStatus');
-  if(!window.fbtqDesktop?.connectExpressVpn){
-    status.hidden=false;
-    status.textContent='Dùng FBTQ Desktop 1.0.3 để kết nối từ nút này, hoặc kết nối trong ứng dụng ExpressVPN.';
-    return;
-  }
-  const messages={
-    setup:'Bật MCP Server trong ExpressVPN, sao chép địa chỉ, rồi chọn FBTQ Workspace → Nhập địa chỉ ExpressVPN từ bộ nhớ tạm.',
-    requested:'Đã gửi yêu cầu kết nối. Xem trạng thái trong ứng dụng ExpressVPN.',
-    failed:'Chưa gửi được yêu cầu. Kiểm tra ExpressVPN đang mở và địa chỉ MCP còn hiệu lực.',
-    busy:'Đang xử lý một yêu cầu kết nối.',
-    cancelled:'Đã hủy kết nối.',
-    unavailable:'Chức năng kết nối hiện chưa khả dụng.'
-  };
-  button.disabled=true;
-  status.hidden=false;
-  status.textContent='Đang mở kết nối ExpressVPN…';
-  try{status.textContent=messages[await window.fbtqDesktop.connectExpressVpn()]||messages.failed;}
-  catch{status.textContent=messages.failed;}
-  finally{button.disabled=false;}
-});
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
 
 async function receiveExtensionImport(payload){
