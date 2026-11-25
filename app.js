@@ -1,4 +1,4 @@
-import {initGlobalResources} from './global-resources.js?v=20261125-library';
+import {initGlobalResources} from './global-resources.js?v=20261125-backup';
 import {initMessengerPush} from './messenger-push-ui.js?v=20261119-desktop-banners';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261121-enterprise';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-desktop-banners';
@@ -783,6 +783,12 @@ function assistantImportNotice(message){
 }
 function openWorkspaceDeepLink(){
  if(!state.user)return;
+ if(location.hash==='#desktop-resource-backup'&&window.fbtqDesktop?.importResourceBackup){
+   history.replaceState(history.state,'','#global-resources');
+   navigate('global-resources');
+   globalResources.showBackup();
+   return;
+ }
  if(location.hash==='#desktop-import-report'&&window.fbtqDesktop){
    history.replaceState(history.state,'','#assistant');
    openAssistantImport('report');

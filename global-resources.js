@@ -5,6 +5,23 @@ const destinations = new Map([
   ['inbox', {label: 'Chatbot AI', page: 'inbox'}],
   ['automation', {label: 'Báo Cáo Hóa Đơn', page: 'automation'}]
 ]);
+const maxBackupBytes = 256 * 1024;
+const maxResources = 300;
+
+export function readResourceBackup(raw) {
+  if (typeof raw !== 'string' || new TextEncoder().encode(raw).length > maxBackupBytes) throw new Error('Bản sao quá lớn.');
+  const data = JSON.parse(raw.replace(/^\uFEFF/, ''));
+  if (data?.format !== 'fbtq-global-resources' || data.version !== 1 ||
+      !Array.isArray(data.resources) || data.resources.length > maxResources) throw new Error('Định dạng bản sao FBTQ không hợp lệ.');
+  return data.resources.map(item => {
+    const name = typeof item?.name === 'string' ? item.name.trim() : '';
+    const group = typeof item?.group === 'string' ? item.group.trim() : '';
+    if (!name || name.length > 100 || !group || group.length > 60 || !destinations.has(item.destination)) {
+      throw new Error('Bản sao chứa tài nguyên không hợp lệ.');
+    }
+    return {name, group, destination: item.destination};
+  });
+}
 
 export function initGlobalResources({root, normalize, onNavigate}) {
   const get = id => root.querySelector('#' + id);
@@ -18,7 +35,23 @@ export function initGlobalResources({root, normalize, onNavigate}) {
   const rows = get('globalResourceRows');
   const status = get('globalResourceStatus');
   const empty = get('globalResourceEmpty');
+  const backup = get('globalResourceBackup');
+  const exportButton = get('globalResourceExport');
+  const importButton = get('globalResourceImport');
+  const fileInput = get('globalResourceFile');
+  const desktop = window.fbtqDesktop;
   let key = '', resources = [], selectedGroup = '', editingId = '';
+
+  function showBackup() {
+    backup.open = true;
+    backup.querySelector('summary').focus();
+  }
+  if (desktop?.importResourceBackup) {
+    get('globalDesktopBackup').addEventListener('click', event => {
+      event.preventDefault();
+      showBackup();
+    });
+  }
 
   fields.destination.replaceChildren(...Array.from(destinations, ([id, {label}]) => new Option(label, id)));
 
@@ -81,10 +114,15 @@ export function initGlobalResources({root, normalize, onNavigate}) {
     empty.hidden = Boolean(visible.length);
     empty.textContent = resources.length ? 'Không tìm thấy tài nguyên phù hợp.' : 'Chưa có tài nguyên. Bấm Thêm tài nguyên để bắt đầu.';
     status.textContent = visible.length + ' / ' + resources.length + ' tài nguyên';
+    exportButton.disabled = resources.length === 0;
   }
 
   function save(next) {
     if (!key) return false;
+    if (next.length > maxResources) {
+      status.textContent = 'Danh sách có thể lưu tối đa ' + maxResources + ' tài nguyên.';
+      return false;
+    }
     try {
       localStorage.setItem(key, JSON.stringify(next));
     } catch {
@@ -114,6 +152,67 @@ export function initGlobalResources({root, normalize, onNavigate}) {
   add.addEventListener('click', () => openForm());
   get('globalResourceCancel').addEventListener('click', () => {closeForm(); add.focus();});
   search.addEventListener('input', render);
+  exportButton.addEventListener('click', async () => {
+    if (!key || !resources.length) return;
+    const account = key;
+    const raw = JSON.stringify({format: 'fbtq-global-resources', version: 1, resources: resources.map(({name, group, destination}) => ({name, group, destination}))}, null, 2);
+    try {
+      if (desktop?.exportResourceBackup) {
+        if (await desktop.exportResourceBackup(raw) && account === key) status.textContent = 'Đã lưu bản sao JSON.';
+      } else {
+        const url = URL.createObjectURL(new Blob([raw], {type: 'application/json'}));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'FBTQ-Tai-Nguyen-Global.json';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch {
+      if (account === key) status.textContent = 'Không thể lưu bản sao JSON.';
+    }
+  });
+  function mergeBackup(raw) {
+    const signature = item => JSON.stringify([item.name, item.group, item.destination]);
+    const seen = new Set(resources.map(signature));
+    const added = [];
+    for (const item of readResourceBackup(raw)) {
+      const id = signature(item);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      added.push({...item, id: crypto.randomUUID()});
+    }
+    if (save([...resources, ...added])) {
+      selectedGroup = '';
+      search.value = '';
+      render();
+      status.textContent = 'Đã nhập ' + added.length + ' tài nguyên mới.';
+    }
+  }
+  async function importBackup(read) {
+    if (!key || importButton.disabled) return;
+    const account = key;
+    importButton.disabled = true;
+    try {
+      const raw = await read();
+      if (account === key && raw !== null) mergeBackup(raw);
+    } catch {
+      if (account === key) status.textContent = 'Không đọc được bản sao. Hãy chọn tệp JSON đã xuất từ FBTQ (tối đa 256 KB).';
+    } finally {
+      importButton.disabled = false;
+    }
+  }
+  importButton.addEventListener('click', () => {
+    if (desktop?.importResourceBackup) void importBackup(() => desktop.importResourceBackup());
+    else fileInput.click();
+  });
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    fileInput.value = '';
+    if (file) void importBackup(() => {
+      if (file.size > maxBackupBytes) throw new Error('Bản sao quá lớn.');
+      return file.text();
+    });
+  });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const name = fields.resourceName.value.trim();
@@ -135,6 +234,7 @@ export function initGlobalResources({root, normalize, onNavigate}) {
   });
 
   return {
+    showBackup,
     useAccount(uid) {
       const nextKey = uid ? 'fbtq_global_resources_v1_' + uid : '';
       if (nextKey === key) return;
@@ -150,6 +250,7 @@ export function initGlobalResources({root, normalize, onNavigate}) {
       }
       selectedGroup = '';
       search.value = '';
+      backup.open = false;
       closeForm();
       render();
     }

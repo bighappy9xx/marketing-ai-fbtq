@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
   <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-recipient">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
-  <link rel="stylesheet" href="global-resources.css?v=20261125-library">
+  <link rel="stylesheet" href="global-resources.css?v=20261125-backup">
 </head>
 <body data-workspace-layout="bento">
   <div id="authScreen" class="auth-screen">
@@ -224,8 +224,18 @@
                 <input id="globalResourceSearch" type="search" aria-label="Tìm tài nguyên" placeholder="Tìm theo tên hoặc nhóm…" autocomplete="off">
                 <a class="btn btn-secondary" id="globalResourceDesktop" href="fbtq-workspace://open/resources">Mở FBTQ Desktop</a>
                 <a class="btn btn-secondary" id="globalDesktopReport" href="fbtq-workspace://open/import-report">Nhập báo cáo trên máy</a>
+                <a class="btn btn-secondary" id="globalDesktopBackup" href="fbtq-workspace://open/resource-backup">Sao lưu trên Desktop</a>
                 <button type="button" class="btn btn-primary" id="globalResourceAdd">Thêm tài nguyên</button>
               </div>
+              <details id="globalResourceBackup" class="global-resource-backup">
+                <summary>Sao lưu và nhập danh sách</summary>
+                <div class="global-resource-actions">
+                  <button type="button" class="btn btn-secondary" id="globalResourceExport">Xuất bản sao JSON</button>
+                  <button type="button" class="btn btn-secondary" id="globalResourceImport">Nhập bản sao JSON</button>
+                  <input type="file" id="globalResourceFile" accept=".json,application/json" hidden>
+                </div>
+                <p class="muted">Dùng bản sao FBTQ để chuyển danh sách giữa trình duyệt và ứng dụng. Mục trùng sẽ được bỏ qua.</p>
+              </details>
               <form id="globalResourceForm" class="global-resource-form" hidden>
                 <label>Tên tài nguyên<input name="resourceName" maxlength="100" required></label>
                 <label>Nhóm<input name="group" list="globalGroupOptions" maxlength="60" required><datalist id="globalGroupOptions"></datalist></label>
@@ -307,6 +317,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-desktop-links"></script>
+  <script type="module" src="app.js?v=20261125-resource-backup"></script>
 </body>
 </html>

@@ -40,6 +40,10 @@
   gap: 8px;
 }
 .global-resource-toolbar { justify-content: space-between; }
+.global-resource-toolbar a { text-decoration: none; }
+.global-resource-backup { margin-top: 12px; }
+.global-resource-backup summary { cursor: pointer; padding: 8px 0; }
+.global-resource-backup p { margin: 8px 0 0; }
 .global-resource-toolbar input { flex: 1 1 200px; max-width: 360px; }
 .global-resource-toolbar input,
 .global-resource-form input,

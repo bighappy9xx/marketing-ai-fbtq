@@ -72,7 +72,8 @@ const desktopRoutes = new Map([
   ['analytics', 'analytics'],
   ['inbox', 'inbox'],
   ['automation', 'automation'],
-  ['import-report', 'desktop-import-report']
+  ['import-report', 'desktop-import-report'],
+  ['resource-backup', 'desktop-resource-backup']
 ]);
 
 function desktopLink(input) {

@@ -1,5 +1,6 @@
 const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog, clipboard} = require('electron');
 const path = require('node:path');
+const {open, writeFile} = require('node:fs/promises');
 const {validateExpressVpnUrl, requestExpressVpnConnection} = require('./express-vpn.cjs');
 const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink} = require('./policy.cjs');
 
@@ -140,6 +141,34 @@ if (!app.requestSingleInstanceLock()) {
     });
     const trustedWorkspace = event => event.sender === window?.webContents
       && event.senderFrame === event.sender.mainFrame && workspacePage(event.senderFrame?.url);
+    const backupMaxBytes = 256 * 1024;
+    ipcMain.handle('fbtq:import-resource-backup', async event => {
+      if (!trustedWorkspace(event)) return null;
+      const choice = await dialog.showOpenDialog(window, {
+        title: 'Chọn bản sao lưu Tài Nguyên Global', properties: ['openFile'],
+        filters: [{name: 'Bản sao lưu JSON', extensions: ['json']}]
+      });
+      if (choice.canceled || !trustedWorkspace(event)) return null;
+      const file = await open(choice.filePaths[0], 'r');
+      try {
+        const data = Buffer.alloc(backupMaxBytes + 1);
+        const {bytesRead} = await file.read(data, 0, data.length, 0);
+        if (bytesRead > backupMaxBytes) throw new Error('Backup too large');
+        return data.toString('utf8', 0, bytesRead);
+      } finally {
+        await file.close();
+      }
+    });
+    ipcMain.handle('fbtq:export-resource-backup', async (event, content) => {
+      if (!trustedWorkspace(event) || typeof content !== 'string' || Buffer.byteLength(content) > backupMaxBytes) return false;
+      const choice = await dialog.showSaveDialog(window, {
+        title: 'Lưu bản sao Tài Nguyên Global', defaultPath: 'FBTQ-Tai-Nguyen-Global.json',
+        filters: [{name: 'Bản sao lưu JSON', extensions: ['json']}]
+      });
+      if (choice.canceled || !trustedWorkspace(event)) return false;
+      await writeFile(choice.filePath, content, 'utf8');
+      return true;
+    });
     ipcMain.handle('fbtq:open-vpn-settings', async event => {
       if (!trustedWorkspace(event)) return false;
       const target = vpnSettingsUrl(process.platform);
