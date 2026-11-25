@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink} = require('./policy.cjs');
 
 test('desktop bridge trusts the exact HTTPS workspace origin', () => {
   assert.equal(workspacePage(workspaceUrl + '#inbox'), true);
@@ -30,17 +30,9 @@ test('the configured Meta callback returns to the workspace origin with the logi
   assert.equal(metaReturn('https://other.example/index.html' + params), null);
 });
 
-test('network controls have fixed system settings and public IP destinations', () => {
-  assert.equal(vpnSettingsUrl('darwin'), 'x-apple.systempreferences:com.apple.NetworkExtensionSettingsUI.NESettingsUIExtension');
-  assert.equal(vpnSettingsUrl('win32'), 'ms-settings:network-vpn');
-  assert.equal(vpnSettingsUrl('linux'), null);
-  assert.equal(externalPage('ms-settings:network-vpn'), false);
-  assert.equal(externalPage('https://radar.cloudflare.com/speedtest'), true);
-  assert.equal(externalPage('https://radar.cloudflare.com/anything-else'), false);
-});
-
 test('desktop links open only predefined FBTQ screens', () => {
-  assert.equal(desktopLink('fbtq-workspace://open/resources'), workspaceUrl + '#global-resources');
+  assert.equal(desktopLink('fbtq-workspace://open/resources'), null);
+  assert.equal(desktopLink('fbtq-workspace://open/resource-backup'), null);
   assert.equal(desktopLink('fbtq-workspace://open/import-report'), workspaceUrl + '#desktop-import-report');
   for (const url of ['fbtq-workspace://open/import-report?file=/tmp/private.csv',
     'fbtq-workspace://elsewhere/import-report', 'fbtq-workspace://open/connect-vpn',

@@ -45,14 +45,8 @@ const externalHosts = new Set(['business.facebook.com', 'developers.facebook.com
   'aistudio.google.com', 'console.firebase.google.com', 'platform.openai.com', 'www.canva.com']);
 function externalPage(input) {
   const url = httpsUrl(input);
-  return url?.href === 'https://www.facebook.com/login/' || url?.href === 'https://radar.cloudflare.com/speedtest'
+  return url?.href === 'https://www.facebook.com/login/'
     || externalHosts.has(url?.hostname);
-}
-
-function vpnSettingsUrl(platform) {
-  if (platform === 'darwin') return 'x-apple.systempreferences:com.apple.NetworkExtensionSettingsUI.NESettingsUIExtension';
-  if (platform === 'win32') return 'ms-settings:network-vpn';
-  return null;
 }
 
 const identifier = value => typeof value === 'string' && /^[\w-]{1,160}$/.test(value);
@@ -66,14 +60,11 @@ function notificationPayload(value) {
 }
 
 const desktopRoutes = new Map([
-  ['resources', 'global-resources'],
-  ['meta', 'global-resources'],
   ['content', 'content'],
   ['analytics', 'analytics'],
   ['inbox', 'inbox'],
   ['automation', 'automation'],
-  ['import-report', 'desktop-import-report'],
-  ['resource-backup', 'desktop-resource-backup']
+  ['import-report', 'desktop-import-report']
 ]);
 
 function desktopLink(input) {
@@ -83,4 +74,4 @@ function desktopLink(input) {
   return route ? workspaceUrl + '#' + route : null;
 }
 
-module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink};
+module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink};

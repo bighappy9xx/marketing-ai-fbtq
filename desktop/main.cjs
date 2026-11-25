@@ -1,8 +1,6 @@
-const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog, clipboard} = require('electron');
+const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog} = require('electron');
 const path = require('node:path');
-const {open, writeFile} = require('node:fs/promises');
-const {validateExpressVpnUrl, requestExpressVpnConnection} = require('./express-vpn.cjs');
-const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload, desktopLink} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink} = require('./policy.cjs');
 
 const appId = 'vn.fbtq.workspace';
 const partition = 'persist:fbtq-workspace';
@@ -11,8 +9,6 @@ const notifications = new Set();
 const notificationLimit = 5;
 let window;
 let recentTimes = [];
-let expressVpnEndpoint = null;
-let expressVpnBusy = false;
 let pendingDesktopUrl = process.argv.map(desktopLink).find(Boolean);
 let desktopReady = false;
 
@@ -141,62 +137,6 @@ if (!app.requestSingleInstanceLock()) {
     });
     const trustedWorkspace = event => event.sender === window?.webContents
       && event.senderFrame === event.sender.mainFrame && workspacePage(event.senderFrame?.url);
-    const backupMaxBytes = 256 * 1024;
-    ipcMain.handle('fbtq:import-resource-backup', async event => {
-      if (!trustedWorkspace(event)) return null;
-      const choice = await dialog.showOpenDialog(window, {
-        title: 'Chọn bản sao lưu Tài Nguyên Global', properties: ['openFile'],
-        filters: [{name: 'Bản sao lưu JSON', extensions: ['json']}]
-      });
-      if (choice.canceled || !trustedWorkspace(event)) return null;
-      const file = await open(choice.filePaths[0], 'r');
-      try {
-        const data = Buffer.alloc(backupMaxBytes + 1);
-        const {bytesRead} = await file.read(data, 0, data.length, 0);
-        if (bytesRead > backupMaxBytes) throw new Error('Backup too large');
-        return data.toString('utf8', 0, bytesRead);
-      } finally {
-        await file.close();
-      }
-    });
-    ipcMain.handle('fbtq:export-resource-backup', async (event, content) => {
-      if (!trustedWorkspace(event) || typeof content !== 'string' || Buffer.byteLength(content) > backupMaxBytes) return false;
-      const choice = await dialog.showSaveDialog(window, {
-        title: 'Lưu bản sao Tài Nguyên Global', defaultPath: 'FBTQ-Tai-Nguyen-Global.json',
-        filters: [{name: 'Bản sao lưu JSON', extensions: ['json']}]
-      });
-      if (choice.canceled || !trustedWorkspace(event)) return false;
-      await writeFile(choice.filePath, content, 'utf8');
-      return true;
-    });
-    ipcMain.handle('fbtq:open-vpn-settings', async event => {
-      if (!trustedWorkspace(event)) return false;
-      const target = vpnSettingsUrl(process.platform);
-      if (!target) return false;
-      try {
-        await shell.openExternal(target);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-    ipcMain.handle('fbtq:connect-express-vpn', async event => {
-      if (!trustedWorkspace(event)) return 'unavailable';
-      if (!expressVpnEndpoint) return 'setup';
-      if (expressVpnBusy) return 'busy';
-      expressVpnBusy = true;
-      try {
-        const decision = await dialog.showMessageBox(window, {
-          type: 'question', title: 'FBTQ Workspace', message: 'Kết nối ExpressVPN?',
-          detail: 'ExpressVPN sẽ kết nối bằng cấu hình hiện được chọn trong ứng dụng của nhà cung cấp.',
-          buttons: ['Hủy', 'Kết nối'], defaultId: 0, cancelId: 0
-        });
-        if (decision.response !== 1 || !trustedWorkspace(event)) return 'cancelled';
-        return await requestExpressVpnConnection(expressVpnEndpoint);
-      } finally {
-        expressVpnBusy = false;
-      }
-    });
     ipcMain.on('fbtq:notify', (event, data) => {
       if (!trustedWorkspace(event)) return;
       const destination = notificationPayload(data);
@@ -223,22 +163,6 @@ if (!app.requestSingleInstanceLock()) {
           }
         }},
         {type: 'separator'},
-        {label: 'Nhập địa chỉ ExpressVPN từ bộ nhớ tạm…', click: async () => {
-          focusWorkspace();
-          const decision = await dialog.showMessageBox(window, {
-            type: 'question', title: 'Thiết lập ExpressVPN',
-            message: 'Dùng địa chỉ MCP ExpressVPN đã sao chép?',
-            detail: 'Sao chép địa chỉ trong ExpressVPN → Add-ons → MCP Server. FBTQ giữ địa chỉ trong phiên desktop hiện tại.',
-            buttons: ['Hủy', 'Dùng địa chỉ'], defaultId: 0, cancelId: 0
-          });
-          if (decision.response !== 1) return;
-          const endpoint = validateExpressVpnUrl(clipboard.readText());
-          if (!endpoint) {
-            return dialog.showMessageBox(window, {message: 'Địa chỉ MCP không hợp lệ. Hãy sao chép lại từ ứng dụng ExpressVPN.'});
-          }
-          expressVpnEndpoint = endpoint;
-          await dialog.showMessageBox(window, {message: 'Đã nhập địa chỉ. Mở Tài Nguyên Global để kết nối ExpressVPN.'});
-        }},
         {role: 'quit', label: 'Thoát'}
       ]},
       {label: 'Chỉnh sửa', role: 'editMenu'},
