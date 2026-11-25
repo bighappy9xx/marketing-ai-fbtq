@@ -20,7 +20,7 @@ import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix'
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-broadcast-mobile';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261125-overview';
 import { initOverviewHub } from './overview-hub.js?v=20261125-overview';
-import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-stream';
+import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-recipient';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);
@@ -33,7 +33,11 @@ let overviewHub=null,overviewHubContext={};
 const STORE = 'fbtq_marketing_workspace_v1';
 const ROLE_NAMES = {director:'Giám đốc',branch_manager:'Quản lý chi nhánh',department_manager:'Trưởng phòng',accountant:'Kế toán',employee:'Nhân viên'};
 const state = {openaiBackendUrl:null,user:null,role:'employee',firebase:null,signingUp:false,metrics:[],tasks:[],drafts:[],scripts:[],banned:[],reviews:[],templates:[],requests:[],invoices:[],dailyReports:[],revenueEntries:[],leaderboardRows:[],leaderboardChartType:'3d',workAwardRows:[],workAwardLoadId:0,inboxThreads:[],messages:[],activeThread:null,inboxUnsubscribe:null,messageUnsubscribe:null,invoiceUnsubscribe:null,reviewUnsubscribe:null,workAwardUnsubscribe:null,members:[],users:[],pages:[],pageName:'Tổng quan',contentReviewFilter:'all',contentReviewPrefill:null};
-const dailyAnnouncements=initDailyAnnouncements({root:$('#overviewAnnouncements'),getSession:()=>state,setAvatarElement});
+const dailyAnnouncements=initDailyAnnouncements({
+  root:$('#overviewAnnouncements'),getSession:()=>state,setAvatarElement,
+  getTeams:()=>reportTeamOptions(overviewScopeUsers()),
+  getSelectedTeam:()=>$('#overviewTeamFilter').value
+});
 let workflows=null;
 let speechObjectUrl=null,speechController=null;
 let geminiFallbackUsed=false;
@@ -381,6 +385,7 @@ async function loadCloudData(){
     const reads=[['tasks',taskQuery],['metrics',campaignQuery],['drafts',draftQuery],['templates',templateQuery],['invoices',invoiceQuery],['dailyReports',reportQuery],['revenueEntries',revenueQuery],['reviews',contentReviewQuery]].map(([key,query])=>({key,load:()=>storeMod.getDocs(query)}));
     if(isManager())reads.push({key:'users',idField:'uid',load:()=>storeMod.getDocs(storeMod.collection(db,'users'))});
     const loaded=await loadIndependentCollections({reads,state,uid,onError:error=>console.warn('Không tải được mục '+error.key,error.code)});if(loaded.stale)return;
+    dailyAnnouncements.refreshAudiences();
     renderPeople();if(loaded.errors.length)showToast('Một số mục chưa tải được: '+loaded.errors.map(e=>e.key+' ('+e.code+')').join(', '),'error');
     const ownProfile=state.users.find(user=>user.uid===uid);if(ownProfile)state.user={...state.user,branch:ownProfile.branch||ownProfile.branchName||ownProfile.branchId||'',department:ownProfile.department||state.user.department||''};
     const botSnap=await storeMod.getDoc(storeMod.doc(db,'workspaces','fbtq','settings','bot')).catch(error=>{console.warn('Không tải được cài đặt chatbot.',error.code);return null;});if(state.user?.uid!==uid)return;
@@ -584,22 +589,28 @@ function reportTeamKey(user){
   const name=String(user?.department||'').trim();
   return name ? JSON.stringify([overviewBranchKey(user),name.normalize('NFC').toLocaleLowerCase('vi-VN')]) : '';
 }
-function renderTeamChoices(select,users){
-  const previous=select.value;
+function reportTeamOptions(users){
   const groups=new Map();
   for(const user of users){
     const key=reportTeamKey(user);
-    if(key)groups.set(key,{name:String(user.department).trim(),branch:overviewBranchLabel(user)});
+    if(key)groups.set(key,{
+      department:String(user.department),branch:user.branch||user.branchName||user.branchId||'',
+      branchLabel:overviewBranchLabel(user)
+    });
   }
   const nameCounts=new Map();
   for(const key of groups.keys()){
     const [,name]=JSON.parse(key);
     nameCounts.set(name,(nameCounts.get(name)||0)+1);
   }
-  const options=[...groups].map(([key,{name,branch}])=>[key,nameCounts.get(JSON.parse(key)[1])>1?name+' · '+branch:name]);
-  options.sort((a,b)=>a[1].localeCompare(b[1],'vi'));
-  select.innerHTML='<option value="all">Tất cả nhóm</option>'+options.map(([key,label])=>`<option value="${esc(key)}">${esc(label)}</option>`).join('');
-  select.value=isManager()&&groups.has(previous)?previous:'all';
+  return [...groups].map(([key,{department,branch,branchLabel}])=>({
+    key,department,branch,label:department.trim()+(nameCounts.get(JSON.parse(key)[1])>1?' · '+branchLabel:'')
+  })).sort((a,b)=>a.label.localeCompare(b.label,'vi'));
+}
+function renderTeamChoices(select,users){
+  const previous=select.value, options=reportTeamOptions(users);
+  select.innerHTML='<option value="all">Tất cả nhóm</option>'+options.map(({key,label})=>`<option value="${esc(key)}">${esc(label)}</option>`).join('');
+  select.value=isManager()&&options.some(({key})=>key===previous)?previous:'all';
   select.closest('label').classList.toggle('hidden',!isManager());
   return select.value;
 }

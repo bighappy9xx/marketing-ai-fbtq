@@ -41,10 +41,13 @@ body[data-workspace-layout="bento"] #page-overview > .overview-announcements { m
 }
 .overview-announcements [hidden] { display: none; }
 .overview-announcements form { display: grid; gap: 8px; margin-top: 8px; }
+.announcement-composer-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 116px); gap: 10px; width: min(100%, 540px); }
+.announcement-composer-fields > label, .announcement-composer-fields select { min-width: 0; }
+.announcement-composer-fields select { width: 100%; min-height: 38px; }
 .announcement-form label { display: grid; gap: 5px; }
 .announcement-form :is(label,select,textarea) { font-size: .875rem; }
 .announcement-form :is(select,textarea) { padding: 8px 10px; min-width: 0; border: 1px solid var(--glass-edge); border-radius: 8px; }
-.announcement-form button, .announcement-duration { justify-self: start; width: fit-content; }
+.announcement-form button { justify-self: start; width: fit-content; }
 .announcement-status { margin: 8px 0 0; font-size: .875rem; color: var(--glass-text); }
 .announcement-status:empty { display: none; }
 #overviewTeamFilterWrap, #dailyHistoryTeamFilterWrap { min-width: 0; }

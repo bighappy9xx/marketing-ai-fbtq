@@ -568,9 +568,12 @@ service cloud.firestore {
         return data.keys().hasAll(fields) && data.keys().hasOnly(fields.concat(['title','photoData']))
           && data.createdBy == request.auth.uid && data.authorRole == role()
           && data.createdByName == (name != '' ? name : request.auth.token.email)
-          && ((director() && data.branch == '' && data.department == '')
+          && data.branch is string && data.branch.size() <= 160
+          && data.department is string && data.department.size() <= 100
+          && ((director() && ((data.branch == '' && data.department == '')
+              || (data.branch != '' && data.department != '')))
             || (branch() != '' && data.branch == branch()
-              && ((role() == 'branch_manager' && data.department == '')
+              && (role() == 'branch_manager'
                 || (role() == 'department_manager' && department() != '' && data.department == department()))))
           && data.get('title', '') is string && data.get('title', '').size() <= 120
           && (!data.keys().hasAny(['photoData'])

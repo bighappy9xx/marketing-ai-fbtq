@@ -5,16 +5,41 @@ const formatTime = new Intl.DateTimeFormat('vi-VN', {
 const timeOf = row => row.createdAt?.toMillis?.() ?? 0;
 const expiresAt = row => timeOf(row) + (row.durationHours === 48 ? 48 : 24) * 3600000;
 
-export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
+export function initDailyAnnouncements({root, getSession, setAvatarElement, getTeams, getSelectedTeam}) {
   const query = selector => root.querySelector(selector);
   const composer = query('[data-announcement-composer]');
   const writeButton = query('[data-announcement-write]');
   const form = composer.querySelector('form');
   const submit = form.querySelector('button');
+  const audienceSelect = form.elements.audience;
   const activeList = query('[data-announcement-active]');
   const status = query('[data-announcement-status]');
   const formStatus = query('[data-announcement-form-status]');
   let subscriptions = [], results = [], errors = [], generation = 0, expiryTimer;
+  let audiences = new Map();
+
+  function refreshAudiences(preferred = audienceSelect.value) {
+    if (writeButton.hidden) return;
+    const {user, role} = getSession();
+    const branch = branchOf(user);
+    const options = [];
+    if (role === 'director') {
+      options.push({key: 'company', label: 'Toàn công ty', branch: '', department: ''});
+    } else if (role === 'branch_manager') {
+      options.push({key: 'branch', label: 'Chi nhánh ' + branch, branch, department: ''});
+    }
+    if (role === 'department_manager') {
+      options.push({key: 'department', label: 'Nhóm ' + user.department, branch, department: user.department});
+    } else {
+      for (const team of getTeams()) {
+        if (!team.branch || role === 'branch_manager' && team.branch !== branch) continue;
+        options.push({...team, label: 'Nhóm ' + team.label});
+      }
+    }
+    audiences = new Map(options.map(option => [option.key, option]));
+    audienceSelect.replaceChildren(...options.map(({label, key}) => new Option(label, key)));
+    if (audiences.has(preferred)) audienceSelect.value = preferred;
+  }
 
   function toggleComposer(open) {
     composer.hidden = !open;
@@ -67,6 +92,8 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
     errors = [];
     writeButton.hidden = true;
     toggleComposer(false);
+    audiences.clear();
+    audienceSelect.replaceChildren();
     form.reset();
     submit.disabled = false;
     formStatus.textContent = '';
@@ -82,9 +109,7 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
     const department = user.department || '';
     const canPublish = role === 'director' || Boolean(branch && (role === 'branch_manager' || role === 'department_manager' && department));
     writeButton.hidden = !canPublish;
-    const audience = role === 'director' ? 'toàn công ty' : role === 'department_manager'
-      ? `phòng ${department} · ${branch}` : `chi nhánh ${branch}`;
-    query('[data-announcement-audience]').textContent = 'Người nhận: ' + audience;
+    refreshAudiences();
     const collection = storeMod.collection(db, 'workspaces', 'fbtq', 'dailyAnnouncements');
     const ownBranch = branch ? storeMod.where('branch', '==', branch) : null;
     const feeds = role === 'director' ? [collection] : [storeMod.query(collection,
@@ -113,6 +138,7 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
   writeButton.addEventListener('click', () => {
     if (submit.disabled) return;
     formStatus.textContent = '';
+    if (composer.hidden) refreshAudiences(getSelectedTeam());
     toggleComposer(composer.hidden);
   });
   form.addEventListener('submit', async event => {
@@ -123,6 +149,11 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
     const {db, storeMod} = firebase;
     const message = form.elements.message.value.trim();
     const durationHours = Number(form.elements.durationHours.value);
+    const audience = audiences.get(audienceSelect.value);
+    if (!audience) {
+      formStatus.textContent = 'Chọn nhóm người nhận trước khi đăng.';
+      return;
+    }
     if (!message) {
       formStatus.textContent = 'Nhập nội dung trước khi đăng.';
       return;
@@ -140,8 +171,7 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
       const photoData = profile?.photoData || '';
       await storeMod.addDoc(storeMod.collection(db, 'workspaces', 'fbtq', 'dailyAnnouncements'), {
         createdBy: user.uid, createdByName: user.name, authorRole: role,
-        branch: role === 'director' ? '' : branchOf(user),
-        department: role === 'department_manager' ? user.department : '',
+        branch: audience.branch, department: audience.department,
         message, photoData, durationHours, createdAt: storeMod.serverTimestamp()
       });
       if (session !== generation) return;
@@ -156,5 +186,5 @@ export function initDailyAnnouncements({root, getSession, setAvatarElement}) {
     }
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
-  return {start, stop};
+  return {start, stop, refreshAudiences};
 }

@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-enterprise">
   <link rel="stylesheet" href="workspace-depth.css?v=20261121-depth">
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
-  <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-stream">
+  <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-recipient">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
 </head>
 <body data-workspace-layout="bento">
@@ -89,8 +89,10 @@
             <p class="announcement-status" role="status" data-announcement-form-status></p>
             <div id="dailyAnnouncementComposer" data-announcement-composer hidden>
               <form class="announcement-form" data-approval-title="Đăng thông báo hằng ngày">
-                <p class="muted" data-announcement-audience></p>
-                <label class="announcement-duration">Hiệu lực<select name="durationHours"><option value="24">24 giờ</option><option value="48">48 giờ</option></select></label>
+                <div class="announcement-composer-fields">
+                  <label>Người nhận<select name="audience" required></select></label>
+                  <label>Hiệu lực<select name="durationHours"><option value="24">24 giờ</option><option value="48">48 giờ</option></select></label>
+                </div>
                 <label>Nội dung quan trọng<textarea name="message" rows="3" maxlength="2500" required></textarea></label>
                 <button class="btn btn-primary" type="submit">Đăng thông báo</button>
               </form>
@@ -271,6 +273,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-announcement-stream"></script>
+  <script type="module" src="app.js?v=20261125-announcement-recipient"></script>
 </body>
 </html>
