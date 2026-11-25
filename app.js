@@ -20,7 +20,7 @@ import { loadIndependentCollections } from './cloud-load.js?v=20261108-user-fix'
 import { initChatbotWorkspace } from './chatbot-ui.js?v=20261119-broadcast-mobile';
 import { vnToday, compareDailyReports, createAssistantHistory, initActionApproval } from './assistant-session.js?v=20261125-overview';
 import { initOverviewHub } from './overview-hub.js?v=20261125-overview';
-import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-overview';
+import { initDailyAnnouncements } from './daily-announcements.js?v=20261125-announcement-expiry';
 import { readDailyCsv } from './daily-csv.js?v=20261108-assistant-import';
 import { initWorkflows } from './workflows-ui.js?v=20261119-sidebar-pending-badges';
 const $ = (s, root=document) => root.querySelector(s);

@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="workspace-bento-pages.css?v=20261121-enterprise">
   <link rel="stylesheet" href="workspace-depth.css?v=20261121-depth">
   <link rel="stylesheet" href="inbox-mobile.css?v=20261119-broadcast-mobile">
-  <link rel="stylesheet" href="daily-announcements.css?v=20261125-overview">
+  <link rel="stylesheet" href="daily-announcements.css?v=20261125-announcement-expiry">
   <link rel="stylesheet" href="workspace-bento-modules.css?v=20261121-enterprise">
 </head>
 <body data-workspace-layout="bento">
@@ -82,20 +82,23 @@
           <section class="panel overview-announcements" id="overviewAnnouncements" aria-labelledby="dailyAnnouncementTitle">
             <header>
               <span class="overview-announcement-icon"><svg aria-hidden="true"><use href="icons.svg#file-text"></use></svg></span>
-              <div><h2 id="dailyAnnouncementTitle">Thông báo hằng ngày</h2><p class="muted">Nội dung quan trọng từ quản lý chi nhánh và trưởng phòng</p></div>
+              <h2 id="dailyAnnouncementTitle">Thông báo hằng ngày</h2>
+              <button class="btn btn-primary announcement-write" type="button" data-announcement-write aria-controls="dailyAnnouncementComposer" aria-expanded="false" hidden>Viết thông báo</button>
             </header>
             <p class="announcement-status" role="status" data-announcement-status></p>
-            <details data-announcement-composer hidden>
-              <summary>Đăng thông báo</summary>
+            <p class="announcement-status" role="status" data-announcement-form-status></p>
+            <div id="dailyAnnouncementComposer" data-announcement-composer hidden>
               <form class="announcement-form" data-approval-title="Đăng thông báo hằng ngày">
                 <p class="muted" data-announcement-audience></p>
-                <label>Tiêu đề<input type="text" name="title" maxlength="120" required></label>
+                <div class="announcement-composer-fields">
+                  <label>Tiêu đề<input type="text" name="title" maxlength="120" required></label>
+                  <label>Hiệu lực<select name="durationHours"><option value="24">24 giờ</option><option value="48">48 giờ</option></select></label>
+                </div>
                 <label>Nội dung quan trọng<textarea name="message" rows="3" maxlength="2500" required></textarea></label>
                 <button class="btn btn-primary" type="submit">Đăng thông báo</button>
-                <p class="announcement-status" role="status" data-announcement-form-status></p>
               </form>
-            </details>
-            <div class="announcement-list" data-announcement-today><p class="muted">Đang tải thông báo…</p></div>
+            </div>
+            <div class="announcement-list announcement-active" data-announcement-active hidden></div>
             <details data-announcement-history-box>
               <summary>Lịch sử thông báo hằng ngày</summary>
               <label class="announcement-date">Lọc theo ngày<input type="date" data-announcement-date></label>
@@ -277,6 +280,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-video-preview-zoom"></script>
+  <script type="module" src="app.js?v=20261125-announcement-expiry"></script>
 </body>
 </html>
