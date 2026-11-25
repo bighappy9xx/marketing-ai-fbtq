@@ -225,8 +225,11 @@
               <h2>Đăng nhập Facebook</h2>
               <p>Kết nối VPN đã cấu hình trên máy tính, rồi mở Facebook. Nếu VPN chỉ áp dụng cho ứng dụng được chọn, hãy thêm trình duyệt bạn dùng để đăng nhập.</p>
               <div class="global-resource-actions">
+                <button type="button" class="btn btn-secondary" id="globalVpnSettings" aria-controls="globalVpnHelp" aria-expanded="false">Kết nối VPN</button>
+                <a class="btn btn-secondary" href="https://radar.cloudflare.com/speedtest" target="_blank" rel="noopener noreferrer">Kiểm tra IP công cộng</a>
                 <a class="btn btn-primary" href="https://www.facebook.com/login/" target="_blank" rel="noopener noreferrer">Mở trang đăng nhập Facebook</a>
               </div>
+              <p id="globalVpnHelp" hidden>Dùng ứng dụng VPN của bạn hoặc mở Cài đặt hệ thống → VPN trên macOS, hay Cài đặt → Mạng &amp; Internet → VPN trên Windows. Chọn cấu hình đã lưu rồi bấm Kết nối.</p>
             </article>
             <article class="panel global-resource-card">
               <span class="global-resource-icon"><svg aria-hidden="true"><use href="icons.svg#briefcase"></use></svg></span>
@@ -339,6 +342,6 @@
   <div id="toastRegion" class="toast-region" aria-live="polite"></div>
   <div id="modalRoot"></div>
   <script src="firebase-config.js?v=20261106-studio-unified"></script>
-  <script type="module" src="app.js?v=20261125-desktop"></script>
+  <script type="module" src="app.js?v=20261125-vpn-settings"></script>
 </body>
 </html>

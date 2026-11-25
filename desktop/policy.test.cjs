@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, notificationPayload} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload} = require('./policy.cjs');
 
 test('desktop bridge trusts the exact HTTPS workspace origin', () => {
   assert.equal(workspacePage(workspaceUrl + '#inbox'), true);
@@ -28,6 +28,15 @@ test('the configured Meta callback returns to the workspace origin with the logi
   assert.equal(metaReturn(legacy + '?state=' + state + '&error=access_denied'), workspaceUrl + '?state=' + state + '&error=access_denied');
   assert.equal(metaReturn(legacy + '?state=bad&code=123'), null);
   assert.equal(metaReturn('https://other.example/index.html' + params), null);
+});
+
+test('network controls have fixed system settings and public IP destinations', () => {
+  assert.equal(vpnSettingsUrl('darwin'), 'x-apple.systempreferences:com.apple.NetworkExtensionSettingsUI.NESettingsUIExtension');
+  assert.equal(vpnSettingsUrl('win32'), 'ms-settings:network-vpn');
+  assert.equal(vpnSettingsUrl('linux'), null);
+  assert.equal(externalPage('ms-settings:network-vpn'), false);
+  assert.equal(externalPage('https://radar.cloudflare.com/speedtest'), true);
+  assert.equal(externalPage('https://radar.cloudflare.com/anything-else'), false);
 });
 
 test('notification requests can open only supported actions for the intended session', () => {

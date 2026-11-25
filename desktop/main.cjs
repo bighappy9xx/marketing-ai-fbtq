@@ -1,6 +1,6 @@
 const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog} = require('electron');
 const path = require('node:path');
-const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, vpnSettingsUrl, notificationPayload} = require('./policy.cjs');
 
 const appId = 'vn.fbtq.workspace';
 const partition = 'persist:fbtq-workspace';
@@ -118,8 +118,21 @@ if (!app.requestSingleInstanceLock()) {
     workspaceSession.setPermissionRequestHandler((_, permission, callback, details) => {
       callback(allowedPermission(permission, details.requestingUrl, details.isMainFrame));
     });
+    const trustedWorkspace = event => event.sender === window?.webContents
+      && event.senderFrame === event.sender.mainFrame && workspacePage(event.senderFrame?.url);
+    ipcMain.handle('fbtq:open-vpn-settings', async event => {
+      if (!trustedWorkspace(event)) return false;
+      const target = vpnSettingsUrl(process.platform);
+      if (!target) return false;
+      try {
+        await shell.openExternal(target);
+        return true;
+      } catch {
+        return false;
+      }
+    });
     ipcMain.on('fbtq:notify', (event, data) => {
-      if (event.sender !== window?.webContents || event.senderFrame !== event.sender.mainFrame || !workspacePage(event.senderFrame?.url)) return;
+      if (!trustedWorkspace(event)) return;
       const destination = notificationPayload(data);
       if (!destination) return;
       const now = Date.now();

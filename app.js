@@ -783,6 +783,18 @@ function openWorkspaceDeepLink(){
  if(state.user&&['#assistant','#creative-studio','#inbox','#analytics','#automation','#content-review','#tasks','#global-resources'].includes(location.hash))navigate(location.hash.slice(1));
 }
 window.addEventListener('hashchange',openWorkspaceDeepLink);
+$('#globalVpnSettings').addEventListener('click',async event=>{
+  const button=event.currentTarget,help=$('#globalVpnHelp');
+  if(window.fbtqDesktop?.openVpnSettings){
+    button.disabled=true;
+    let opened=false;
+    try{opened=await window.fbtqDesktop.openVpnSettings();}catch{}
+    finally{button.disabled=false;}
+    if(opened)return;
+    help.hidden=false;
+  }else help.hidden=!help.hidden;
+  button.setAttribute('aria-expanded',String(!help.hidden));
+});
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
 
 async function receiveExtensionImport(payload){
