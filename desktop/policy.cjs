@@ -44,7 +44,8 @@ function metaReturn(input) {
 const externalHosts = new Set(['business.facebook.com', 'developers.facebook.com', 'ai.google.dev',
   'aistudio.google.com', 'console.firebase.google.com', 'platform.openai.com', 'www.canva.com']);
 function externalPage(input) {
-  return externalHosts.has(httpsUrl(input)?.hostname);
+  const url = httpsUrl(input);
+  return url?.href === 'https://www.facebook.com/login/' || externalHosts.has(url?.hostname);
 }
 
 const identifier = value => typeof value === 'string' && /^[\w-]{1,160}$/.test(value);

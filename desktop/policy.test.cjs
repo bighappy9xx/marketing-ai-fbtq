@@ -11,6 +11,9 @@ test('desktop bridge trusts the exact HTTPS workspace origin', () => {
     'file:///tmp/workspace.html'
   ]) assert.equal(workspacePage(url), false);
   assert.equal(externalPage('https://developers.facebook.com/docs/'), true);
+  assert.equal(externalPage('https://www.facebook.com/login/'), true);
+  assert.equal(externalPage('https://www.facebook.com/login/?next=https://example.org'), false);
+  assert.equal(externalPage('https://www.facebook.com.example.org/login/'), false);
   assert.equal(externalPage('javascript:void(0)'), false);
 });
 
