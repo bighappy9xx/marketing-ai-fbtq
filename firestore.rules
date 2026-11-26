@@ -67,6 +67,22 @@ service cloud.firestore {
       allow delete: if director();
     }
 
+    match /users/{uid}/workProfiles/{id} {
+      function validWorkProfile() {
+        let data = request.resource.data;
+        return id.matches('^[a-f0-9-]{36}$')
+          && data.keys().hasAll(['title','group','destination','note','updatedAt'])
+          && data.keys().hasOnly(['title','group','destination','note','updatedAt'])
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 80
+          && data.group is string && data.group.size() > 0 && data.group.size() <= 60
+          && data.destination in ['overview','analytics','content','inbox']
+          && data.note is string && data.note.size() <= 240
+          && data.updatedAt == request.time;
+      }
+      allow read, delete: if self(uid) && approvedMember();
+      allow create, update: if self(uid) && approvedMember() && validWorkProfile();
+    }
+
     match /workspaces/{workspaceId}/{collection}/{documentId} {
       function inWorkspace() { return workspaceId == 'fbtq'; }
       function owns() { return resource.data.createdBy == request.auth.uid; }

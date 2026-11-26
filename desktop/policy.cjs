@@ -69,9 +69,20 @@ const desktopRoutes = new Map([
 
 function desktopLink(input) {
   if (typeof input !== 'string') return null;
+  const id = /^fbtq-workspace:\/\/open\/profile\/([a-f0-9-]{36})\/?$/.exec(input)?.[1];
+  if (validProfileId(id)) return workspaceUrl + '#work-profile=' + id;
   const action = /^fbtq-workspace:\/\/open\/([a-z-]+)\/?$/.exec(input)?.[1];
   const route = desktopRoutes.get(action);
   return route ? workspaceUrl + '#' + route : null;
 }
 
-module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink};
+function validProfileId(id) {
+  return typeof id === 'string' && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(id);
+}
+
+function profileTarget(id, destination) {
+  if (!validProfileId(id) || !['overview', 'analytics', 'content', 'inbox'].includes(destination)) return null;
+  return workspaceUrl + '#' + destination;
+}
+
+module.exports = {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink, profileTarget};

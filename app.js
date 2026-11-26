@@ -1,3 +1,4 @@
+import {initWorkProfiles} from './work-profiles.js?v=1';
 import {initMessengerPush} from './messenger-push-ui.js?v=20261119-desktop-banners';
 import {initWorkspaceAppearance} from './workspace-appearance.js?v=20261121-enterprise';
 import {fanpageColor} from './inbox-notifications.js?v=20261119-desktop-banners';
@@ -373,8 +374,9 @@ async function generateGeminiSpeech(text,voice){
   return synthesizeGeminiSpeech({call:callFunction,text,voice,model:$('#speechModel').value,signal:speechController?.signal});
 }
 function clearSpeechSession(){speechController?.abort();speechController=null;$('#synthesizeSpeech').disabled=false;$('#synthesizeSpeech').textContent='🔊 Tạo giọng đọc';if(speechObjectUrl)URL.revokeObjectURL(speechObjectUrl);speechObjectUrl=null;$('#speechAudio').pause();$('#speechAudio').removeAttribute('src');$('#downloadSpeech').removeAttribute('href');$('#speechResult').classList.add('hidden');$('#speechProgress').classList.add('hidden');$('#speechEmptyState').classList.remove('hidden');$('#speechError').classList.add('hidden');$('#speechText').value='';updateSpeechCount();}
-function signOutToAuth(){desktopConversation=null;dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
+function signOutToAuth(){workProfiles.stop();window.fbtqDesktop?.closeWorkProfiles?.();desktopConversation=null;dailyAnnouncements.stop();void messengerPush.disable().catch(()=>{});if($('#modalRoot [data-personal-scripts]'))closeModal();messengerImages?.reset();state.pendingChatMessages=[];state.chatHistoryRequest=null;state.chatSending=new Set();state.chatSuggestionKey='';state.inboxLoadError=state.messageLoadError='';chatbotWorkspace.reset();clearSpeechSession();state.openaiBackendUrl=null;geminiContentReview?.clear();contentReviewAI?.clear();reviewBridge?.clear();$('#contentReviewForm')?.reset();assistantHistory?.stop();actionApproval?.cancel();fbtqPendingConfirmation=null;overviewHub?.stop();overviewHubContext={};workflows.stop();for(const key of ['inboxUnsubscribe','messageUnsubscribe','invoiceUnsubscribe','reviewUnsubscribe','workAwardUnsubscribe'])if(state[key]){state[key]();state[key]=null}state.user=null;messengerPush.refresh();appearance.useAccount(null);state.role='employee';syncSystemSettings();state.usersLoadError='';state.usersLoaded=false;for(const key of ['metrics','tasks','drafts','scripts','banned','reviews','templates','requests','invoices','dailyReports','revenueEntries','leaderboardRows','workAwardRows','inboxThreads','messages','members','users','pages'])state[key]=[];state.activeThread=null;state.contentReviewPrefill=null;$('#app').classList.add('hidden');$('#authScreen').classList.remove('hidden')}
 function enterApp(){
+  workProfiles.start();
   dailyAnnouncements.start();
   appearance.useAccount(state.user?.uid,loadLocalForUser());
   syncSystemSettings(true);
@@ -501,7 +503,7 @@ const workSubnavMarkup='<nav class="work-section-tabs" aria-label="Công việc 
 $('#page-tasks')?.insertAdjacentHTML('afterbegin',workSubnavMarkup);
 $('#page-work-awards')?.insertAdjacentHTML('afterbegin',workSubnavMarkup);
 const taskAssigneeFilter=$('#taskAssigneeFilter');if(taskAssigneeFilter&&!taskAssigneeFilter.closest('.task-assignee-filter')){const assigneeLabel=document.createElement('label');assigneeLabel.className='task-assignee-filter';assigneeLabel.innerHTML='<span>Người phụ trách</span>';taskAssigneeFilter.before(assigneeLabel);assigneeLabel.append(taskAssigneeFilter)}
-const pageNames={'creative-studio':'Studio Sáng Tạo',assistant:'Trợ Lý FBTQ',overview:'Tổng Quan',analytics:'Hiệu Suất Marketing',leaderboard:'Xếp Hạng & So Sánh Nhân Sự',content:'Studio Nội Dung','content-review':'Kiểm Duyệt Nội Dung',tasks:'Công Việc & Vinh Danh','work-awards':'Công Việc & Vinh Danh',automation:'Báo Cáo Hóa Đơn',advances:'Báo Cáo Hóa Đơn',requests:'Đơn Từ & Đề Xuất',inbox:'Chatbot AI','chatbot-settings':'Cài Đặt Chatbot',people:'Nhân Sự & Phân Quyền',settings:'Cài Đặt Hệ Thống'};
+const pageNames={'creative-studio':'Studio Sáng Tạo',assistant:'Trợ Lý FBTQ',overview:'Tổng Quan',analytics:'Hiệu Suất Marketing',leaderboard:'Xếp Hạng & So Sánh Nhân Sự',content:'Studio Nội Dung','content-review':'Kiểm Duyệt Nội Dung',tasks:'Công Việc & Vinh Danh','work-awards':'Công Việc & Vinh Danh',automation:'Báo Cáo Hóa Đơn',advances:'Báo Cáo Hóa Đơn',requests:'Đơn Từ & Đề Xuất',inbox:'Chatbot AI','work-profiles':'Hồ Sơ Công Việc','chatbot-settings':'Cài Đặt Chatbot',people:'Nhân Sự & Phân Quyền',settings:'Cài Đặt Hệ Thống'};
 const comparisonPanel=$('#analyticsComparePanel'),leaderboardPage=$('#page-leaderboard'),leaderboardChart=$('.leaderboard-chart-panel',leaderboardPage);
 if(comparisonPanel&&leaderboardPage&&leaderboardChart)leaderboardPage.insertBefore(comparisonPanel,leaderboardChart);
 function navigate(name){if(name==='people'&&!isDirector()){showToast('Chỉ Giám đốc mới có thể quản lý quyền truy cập.','error');return}if(name==='creative-studio')document.dispatchEvent(new Event('fbtq:creative-open'));const billingPage=name==='automation'||name==='advances';$$('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${name}`));$$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===name||billingPage&&n.dataset.page==='advances'||name==='work-awards'&&n.dataset.page==='tasks'));$$('[data-workspace-subpage]').forEach(button=>button.classList.toggle('selected',button.dataset.workspaceSubpage===name));$$('[data-billing-tab]').forEach(button=>button.classList.toggle('selected',button.dataset.billingTab===name));$('#crumbPage').textContent=pageNames[name]||name;if(name==='tasks')renderTasks($('[data-task-filter].selected')?.dataset.taskFilter||'all');if(name==='work-awards')loadWorkAwards();if(name==='content-review'){if(state.contentReviewPrefill){$('#contentReviewTitle').value=state.contentReviewPrefill.title||'';$('#contentReviewText').value=state.contentReviewPrefill.text||'';state.contentReviewPrefill=null;updateContentReviewInput()}renderContentReviews()}if(name==='automation')renderMetaVatReport();if(name==='settings')syncSystemSettings();$('#sidebar').classList.remove('open');$('#sidebarScrim').classList.remove('show');window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
@@ -781,13 +783,23 @@ function assistantImportNotice(message){
 }
 function openWorkspaceDeepLink(){
  if(!state.user)return;
+ const requestedProfile=/^#work-profile=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
+ if(requestedProfile){
+   history.replaceState(history.state,'','#work-profiles');
+   navigate('work-profiles');
+   workProfiles.requestOpen(requestedProfile);
+   return;
+ }
  if(location.hash==='#desktop-import-report'&&window.fbtqDesktop){
    history.replaceState(history.state,'','#assistant');
    openAssistantImport('report');
    return;
  }
- if(['#assistant','#creative-studio','#inbox','#analytics','#automation','#content','#content-review','#tasks'].includes(location.hash))navigate(location.hash.slice(1));
+ if(['#assistant','#creative-studio','#inbox','#analytics','#automation','#content','#content-review','#tasks','#work-profiles','#overview'].includes(location.hash))navigate(location.hash.slice(1));
 }
+const workProfiles=initWorkProfiles({
+  root:$('#page-work-profiles'),getSession:()=>state,normalize:normalizeFbtqAssistantText
+});
 window.addEventListener('hashchange',openWorkspaceDeepLink);
 $$('[data-assistant-import]').forEach(button=>button.addEventListener('click',()=>openAssistantImport(button.dataset.assistantImport,{chooseFile:button.dataset.assistantImport!=='report'})));
 

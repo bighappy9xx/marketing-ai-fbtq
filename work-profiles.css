@@ -1,0 +1,23 @@
+.work-profile-panel { padding: clamp(14px, 2vw, 24px); }
+.work-profile-tools,.work-profile-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,180px),1fr));
+  align-items: end;
+  gap: 12px;
+}
+.work-profile-panel [hidden] { display: none !important; }
+.work-profile-panel label { display: grid; gap: 5px; min-width: 0; font-size: .875rem; }
+.work-profile-panel :is(input,select,textarea) {
+  width: 100%; min-height: 42px; padding: 8px 10px; min-width: 0;
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.work-profile-form { margin-block: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; }
+.work-profile-note,.work-profile-form .work-profile-actions { grid-column: 1/-1; }
+.work-profile-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.work-profile-panel .table-scroll { overflow-x: auto; }
+.work-profile-panel td { overflow-wrap: anywhere; }
+.work-profile-panel td small { display: block; color: var(--muted); white-space: pre-wrap; }
+@media (max-width: 650px) {
+  .work-profile-panel :is(input,textarea,select) { font-size: 16px; }
+}

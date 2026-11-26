@@ -1,6 +1,7 @@
 const {app, BrowserWindow, Menu, Notification, ipcMain, session, shell, dialog} = require('electron');
 const path = require('node:path');
-const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink} = require('./policy.cjs');
+const {randomUUID} = require('node:crypto');
+const {workspaceUrl, workspacePage, metaPage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink, profileTarget} = require('./policy.cjs');
 
 const appId = 'vn.fbtq.workspace';
 const partition = 'persist:fbtq-workspace';
@@ -11,6 +12,7 @@ let window;
 let recentTimes = [];
 let pendingDesktopUrl = process.argv.map(desktopLink).find(Boolean);
 let desktopReady = false;
+const profileWindows = new Map();
 
 app.setAppUserModelId(appId);
 app.enableSandbox();
@@ -99,10 +101,53 @@ function createWindow(initialUrl = workspaceUrl) {
   currentWindow.once('ready-to-show', () => currentWindow.show());
   currentWindow.on('closed', () => {
     if (window === currentWindow) window = null;
+    for (const profile of profileWindows.values()) profile.destroy();
     for (const notification of notifications) notification.close();
     notifications.clear();
   });
   loadWorkspace();
+}
+
+async function openWorkProfile(id, destination) {
+  const url = profileTarget(id, destination);
+  if (!url) return false;
+  const existing = profileWindows.get(id);
+  if (existing) {
+    if (existing.isMinimized()) existing.restore();
+    existing.show();
+    existing.focus();
+    return true;
+  }
+  if (profileWindows.size >= 12) return false;
+  const isolated = session.fromPartition('fbtq-work-profile-' + id + '-' + randomUUID());
+  isolated.setPermissionRequestHandler((_, __, callback) => callback(false));
+  isolated.setPermissionCheckHandler(() => false);
+  const profile = new BrowserWindow({
+    title: 'Hồ sơ công việc · FBTQ', width: 1190, height: 830,
+    parent: window, icon, backgroundColor: '#f2f6fc', show: false,
+    webPreferences: {session: isolated, sandbox: true, contextIsolation: true, nodeIntegration: false}
+  });
+  profileWindows.set(id, profile);
+  profile.on('closed', () => {
+    profileWindows.delete(id);
+    void isolated.clearStorageData().catch(() => {});
+  });
+  const contents = profile.webContents;
+  const restrict = event => {
+    if (event.isMainFrame && !workspacePage(event.url)) event.preventDefault();
+  };
+  contents.on('will-frame-navigate', restrict);
+  contents.on('will-redirect', restrict);
+  contents.on('will-attach-webview', event => event.preventDefault());
+  contents.setWindowOpenHandler(() => ({action: 'deny'}));
+  try {
+    await contents.loadURL(url);
+    profile.show();
+    return true;
+  } catch {
+    if (!profile.isDestroyed()) profile.destroy();
+    return false;
+  }
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -137,6 +182,14 @@ if (!app.requestSingleInstanceLock()) {
     });
     const trustedWorkspace = event => event.sender === window?.webContents
       && event.senderFrame === event.sender.mainFrame && workspacePage(event.senderFrame?.url);
+    ipcMain.handle('fbtq:open-work-profile', (event, id, destination) => {
+      if (!trustedWorkspace(event)) return false;
+      return openWorkProfile(id, destination);
+    });
+    ipcMain.on('fbtq:close-work-profiles', event => {
+      if (!trustedWorkspace(event)) return;
+      for (const profile of profileWindows.values()) profile.destroy();
+    });
     ipcMain.on('fbtq:notify', (event, data) => {
       if (!trustedWorkspace(event)) return;
       const destination = notificationPayload(data);

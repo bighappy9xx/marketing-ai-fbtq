@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink} = require('./policy.cjs');
+const {workspaceUrl, workspacePage, metaEntry, metaReturn, externalPage, notificationPayload, desktopLink, profileTarget} = require('./policy.cjs');
 
 test('desktop bridge trusts the exact HTTPS workspace origin', () => {
   assert.equal(workspacePage(workspaceUrl + '#inbox'), true);
@@ -46,4 +46,14 @@ test('notification requests can open only supported actions for the intended ses
   for (const invalid of [{...valid, owner: ''}, {...valid, conversationId: '../other'}, {...valid, kind: 'url'}]) {
     assert.equal(notificationPayload(invalid), null);
   }
+});
+
+test('work profiles open only fixed in-workspace screens', () => {
+  const id = '12345678-abcd-1234-abcd-123456789abc';
+  const link = 'fbtq-workspace://open/profile/' + id;
+  assert.equal(desktopLink(link), workspaceUrl + '#work-profile=' + id);
+  assert.equal(desktopLink(link + '?url=https://example.org'), null);
+  assert.equal(profileTarget(id, 'analytics'), workspaceUrl + '#analytics');
+  assert.equal(profileTarget(id, 'https://www.facebook.com/'), null);
+  assert.equal(profileTarget('../escape', 'overview'), null);
 });
