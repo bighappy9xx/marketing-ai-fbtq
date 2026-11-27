@@ -5,11 +5,22 @@ const destinations = new Map([
 
 export function initWorkProfiles({root, getSession, normalize}) {
   const find = name => root.querySelector('[data-profile-' + name + ']');
+  const desktop = window.fbtqDesktop;
+  const canManage = typeof desktop?.openWorkProfile === 'function';
+  if (canManage) {
+    for (const name of ['create-control','editor']) {
+      const template = find(name);
+      template.replaceWith(template.content.cloneNode(true));
+    }
+    const heading = document.createElement('th');
+    heading.scope = 'col';
+    heading.textContent = 'Thao tác';
+    find('columns').append(heading);
+    find('description').textContent = 'Quản lý hồ sơ cá nhân và mở từng phiên làm việc riêng.';
+  }
   const form = find('form'), rows = find('rows'), status = find('status');
   const search = find('search'), group = find('group'), add = find('new');
-  const submit = form.querySelector('[type=submit]');
-  const desktop = window.fbtqDesktop?.openWorkProfile;
-  add.hidden = !desktop;
+  const submit = form?.querySelector('[type=submit]');
   let records = [], editing = '', pendingOpen = '', stopFeed, generation = 0, ready = false;
 
   function render() {
@@ -17,12 +28,12 @@ export function initWorkProfiles({root, getSession, normalize}) {
     const groups = [...new Set(records.map(item => item.group))].sort((a,b) => a.localeCompare(b,'vi'));
     group.replaceChildren(new Option('Tất cả nhóm',''), ...groups.map(value => new Option(value,value)));
     group.value = groups.includes(selected) ? selected : '';
-    root.querySelector('datalist').replaceChildren(...groups.map(value => new Option(value)));
+    form?.querySelector('datalist').replaceChildren(...groups.map(value => new Option(value)));
     const query = normalize(search.value);
     const visible = records.filter(item => (!group.value || item.group === group.value)
       && normalize(item.title + ' ' + item.group).includes(query));
     rows.replaceChildren(...visible.map(renderRow));
-    add.disabled = !ready;
+    if (add) add.disabled = !ready;
     status.textContent = ready ? visible.length + ' / ' + records.length + ' hồ sơ' : 'Đang tải hồ sơ…';
   }
 
@@ -46,36 +57,27 @@ export function initWorkProfiles({root, getSession, normalize}) {
       note.textContent = item.note;
       row.cells[0].append(note);
     }
-    const controls = document.createElement('div');
-    controls.className = 'work-profile-actions';
-    if (window.fbtqDesktop?.openWorkProfile) {
+    if (canManage) {
+      const controls = document.createElement('div');
+      controls.className = 'work-profile-actions';
       controls.append(action('Mở', () => open(item)));
       controls.append(action('Sửa', () => edit(item)));
       controls.append(action('Xóa', () => remove(item)));
-    } else {
-      const link = document.createElement('a');
-      link.className = 'btn btn-secondary';
-      link.href = 'fbtq-workspace://open/profile/' + item.id;
-      link.textContent = 'Mở trên Desktop';
-      controls.append(link);
+      row.insertCell().append(controls);
     }
-    row.insertCell().append(controls);
     return row;
   }
 
   async function open(item) {
     const run = generation;
     try {
-      if (await window.fbtqDesktop?.openWorkProfile(item.id, item.destination)) return;
+      if (await desktop.openWorkProfile(item.id, item.destination)) return;
     } catch {}
     if (run === generation) status.textContent = 'Chưa mở được cửa sổ hồ sơ. Dùng FBTQ Desktop phiên bản mới.';
   }
 
   function requestOpen(id) {
-    if (!window.fbtqDesktop?.openWorkProfile) {
-      status.textContent = 'Dùng FBTQ Desktop phiên bản mới để mở hồ sơ.';
-      return;
-    }
+    if (!canManage) return;
     if (!ready) { pendingOpen = id; return; }
     const item = records.find(record => record.id === id);
     if (item) void open(item);
@@ -106,7 +108,7 @@ export function initWorkProfiles({root, getSession, normalize}) {
     }
   }
 
-  form.addEventListener('submit', async event => {
+  form?.addEventListener('submit', async event => {
     event.preventDefault();
     if (!ready || submit.disabled) return;
     const data = Object.fromEntries(new FormData(form));
@@ -131,8 +133,8 @@ export function initWorkProfiles({root, getSession, normalize}) {
     }
   });
 
-  add.addEventListener('click', () => edit());
-  find('cancel').addEventListener('click', () => {form.hidden = true;});
+  add?.addEventListener('click', () => edit());
+  find('cancel')?.addEventListener('click', () => {form.hidden = true;});
   search.addEventListener('input', render);
   group.addEventListener('change', render);
 
@@ -144,8 +146,10 @@ export function initWorkProfiles({root, getSession, normalize}) {
     pendingOpen = '';
     ready = false;
     editing = '';
-    form.hidden = true;
-    submit.disabled = false;
+    if (form) {
+      form.hidden = true;
+      submit.disabled = false;
+    }
     search.value = '';
     render();
   }
