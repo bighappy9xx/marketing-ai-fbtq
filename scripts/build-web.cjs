@@ -5,6 +5,7 @@ const {transform}=require('esbuild');
 const root=path.resolve(__dirname,'..');
 const output=path.join(root,'web-dist');
 const landingAtRoot=process.argv.includes('--landing-root');
+const includeDesktopDownloads=process.argv.includes('--include-desktop-downloads');
 const pages=[
   ['index.html','workspace.html'],
   ['home.html','home.html'],
@@ -103,11 +104,13 @@ async function build(){
       if(!file.endsWith('.png')&&!file.endsWith('.zip'))checkPublicText(file,data.toString('utf8'));
       await write(file,data);
     }
-    for (const platform of ['macOS-Apple-Silicon','macOS-Intel','Windows-x64']) {
-      const file = 'downloads/ban-ho-so/BanHoSo-v1.3.12-' + platform + '.zip';
-      const target = path.join(output,file);
-      await fs.mkdir(path.dirname(target),{recursive:true});
-      await fs.copyFile(path.join(root,file),target);
+    if (includeDesktopDownloads) {
+      for (const platform of ['macOS-Apple-Silicon','macOS-Intel','Windows-x64']) {
+        const file = 'downloads/ban-ho-so/BanHoSo-v1.3.12-' + platform + '.zip';
+        const target = path.join(output,file);
+        await fs.mkdir(path.dirname(target),{recursive:true});
+        await fs.copyFile(path.join(root,file),target);
+      }
     }
     await write('.nojekyll','');
     console.log('Built web-dist with '+sent.size+' minimized frontend modules.');

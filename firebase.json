@@ -51,7 +51,7 @@
     ],
     "predeploy": [
       "npm run check:source",
-      "npm run build:web -- --landing-root"
+      "npm run build:web -- --landing-root --include-desktop-downloads"
     ]
   },
   "functions": [
