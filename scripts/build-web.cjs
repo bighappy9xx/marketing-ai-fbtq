@@ -15,7 +15,7 @@ const staticFiles=[
   'icons.svg','favicon.svg','logo.svg','logo-light.svg','apple-touch-icon.png','messenger-app.webmanifest',
   'OPENAI_FIREBASE_SETUP.md','FIREBASE_AI_SETUP.md','FACEBOOK-CONNECT.md',
   'extension/README.md','extension/FBTQ-Ads-Clipper.zip',
-  'vendor/mediabunny/LICENSE'
+  'vendor/mediabunny/LICENSE','scripts/publish-global-directory.py'
 ];
 
 const privateKeyPatterns=[
@@ -102,6 +102,12 @@ async function build(){
       const data=await fs.readFile(path.join(root,file));
       if(!file.endsWith('.png')&&!file.endsWith('.zip'))checkPublicText(file,data.toString('utf8'));
       await write(file,data);
+    }
+    for (const platform of ['macOS-Apple-Silicon','macOS-Intel','Windows-x64']) {
+      const file = 'downloads/ban-ho-so/BanHoSo-v1.3.12-' + platform + '.zip';
+      const target = path.join(output,file);
+      await fs.mkdir(path.dirname(target),{recursive:true});
+      await fs.copyFile(path.join(root,file),target);
     }
     await write('.nojekyll','');
     console.log('Built web-dist with '+sent.size+' minimized frontend modules.');

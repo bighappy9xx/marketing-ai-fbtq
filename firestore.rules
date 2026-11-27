@@ -67,6 +67,21 @@ service cloud.firestore {
       allow delete: if director();
     }
 
+    match /users/{uid}/globalDirectory/{id} {
+      function validEntry() {
+        let data = request.resource.data;
+        return id.matches('^[a-f0-9]{64}$')
+          && data.keys().hasAll(['title','displayName','group','status'])
+          && data.keys().hasOnly(['title','displayName','group','status'])
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+          && data.displayName is string && data.displayName.size() <= 100
+          && data.group is string && data.group.size() <= 80
+          && data.status in ['Sẵn sàng','Cần kiểm tra','Tạm dừng','Chưa đăng nhập','Cần xác minh'];
+      }
+      allow read, delete: if self(uid) && approvedMember();
+      allow create, update: if self(uid) && approvedMember() && validEntry();
+    }
+
     match /users/{uid}/workProfiles/{id} {
       function validWorkProfile() {
         let data = request.resource.data;
